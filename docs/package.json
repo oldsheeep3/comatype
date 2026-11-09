@@ -13,7 +13,7 @@
     "gen:status": "node scripts/gen-status.mjs"
   },
   "dependencies": {
-    "@shikijs/monaco": "^2.5.0",
+    "@shikijs/monaco": "^4.6.0",
     "@shikijs/rehype": "^2.5.0",
     "github-slugger": "^2.0.0",
     "hast-util-to-string": "^3.0.1",
