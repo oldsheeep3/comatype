@@ -31,7 +31,8 @@ TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ cl
 | Python | `comatype`（PyPI） | リリースの仕組みは用意済み。未公開 |
 | Rust | `comatype`（crates.io） | リリースの仕組みは用意済み。未公開 |
 | Java / Kotlin | `net.sheeplab.comatype:comatype`、`:comatype-ktx`（Maven Central） | リリースの仕組みは用意済み。未公開 |
-| Swift / Ruby | `packages/swift`、`packages/ruby` | このリポジトリ内のみ |
+| Ruby | `comatype`（RubyGems） | リリースの仕組みは用意済み。未公開 |
+| Swift | `packages/swift` | このリポジトリ内のみ |
 
 ## コマンドライン
 
