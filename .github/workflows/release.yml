@@ -153,7 +153,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: current
-      - name: Publish io.github.oldsheeep3:comatype and comatype-ktx to Maven Central
+      - name: Publish net.sheeplab.comatype:comatype and comatype-ktx to Maven Central
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -161,8 +161,8 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           V: ${{ needs.verify.outputs.version }}
         run: |
-          if curl -sf "https://repo1.maven.org/maven2/io/github/oldsheeep3/comatype/$V/comatype-$V.pom" >/dev/null; then
-            echo "io.github.oldsheeep3:comatype:$V is already published"
+          if curl -sf "https://repo1.maven.org/maven2/net/sheeplab/comatype/comatype/$V/comatype-$V.pom" >/dev/null; then
+            echo "net.sheeplab.comatype:comatype:$V is already published"
             exit 0
           fi
           gradle -p packages publishToMavenCentral -PreleaseVersion="$V" --no-configuration-cache --console=plain

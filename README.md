@@ -30,7 +30,7 @@ TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby — each as a client 
 | Go | `github.com/oldsheeep3/comatype/packages/go` | release pipeline ready, not published yet |
 | Python | `comatype-api` (PyPI) | release pipeline ready, not published yet |
 | Rust | `comatype` (crates.io) | release pipeline ready, not published yet |
-| Java / Kotlin | `io.github.oldsheeep3:comatype`, `:comatype-ktx` (Maven Central) | release pipeline ready, not published yet |
+| Java / Kotlin | `net.sheeplab.comatype:comatype`, `:comatype-ktx` (Maven Central) | release pipeline ready, not published yet |
 | Swift, Ruby | `packages/swift`, `packages/ruby` | in this repository only |
 
 ## The command line

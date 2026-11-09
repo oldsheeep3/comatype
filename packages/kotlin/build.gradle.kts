@@ -13,7 +13,7 @@ dependencies {
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
     if (System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null) signAllPublications()
-    coordinates("io.github.oldsheeep3", "comatype-ktx", project.version.toString())
+    coordinates("net.sheeplab.comatype", "comatype-ktx", project.version.toString())
     pom {
         name.set("comatype-ktx")
         description.set("Comatype runtime for Kotlin (coroutine client and server)")
