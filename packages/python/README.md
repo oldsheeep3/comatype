@@ -1,3 +1,10 @@
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
 # comatype for Python
 
 Comatype runtime for Python: the async client `c` (httpx) and the ASGI server `s`, with pydantic v2 models.
