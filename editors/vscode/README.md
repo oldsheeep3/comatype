@@ -39,7 +39,7 @@ Open the Command Palette and type `Comatype`.
 
 | Setting                           | Default    | Description                                                                                                                      |
 | --------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `comatype.path`                   | `comatype` | Path to the `comatype` executable. Leave it as `comatype` to use the bundled binary, or the one on `PATH`.                                                              |
+| `comatype.path`                   | `comatype` | Path to the `comatype` executable. Leave it as `comatype` to use the bundled binary, or the one on `PATH`.                       |
 | `comatype.config`                 | empty      | Location of `comatype.config.json`, relative to the workspace folder. When empty, it is searched for upwards from the open file. |
 | `comatype.languageServer.enabled` | `true`     | Use the language server (`comatype lsp`). When off, `comatype check` runs on save instead.                                       |
 | `comatype.checkOnSave`            | `true`     | Only when the language server is off: run `comatype check` when a file is opened or saved.                                       |

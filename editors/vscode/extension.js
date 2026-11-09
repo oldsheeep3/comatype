@@ -37,7 +37,6 @@ function activateWithServer(context) {
   const { LanguageClient } = require('vscode-languageclient/node')
   const output = vscode.window.createOutputChannel('Comatype')
   context.subscriptions.push(output)
-  const settings = () => vscode.workspace.getConfiguration('comatype')
   let client
 
   async function start() {
@@ -227,8 +226,6 @@ function activateWithoutServer(context) {
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0)
   status.command = 'comatype.check'
   context.subscriptions.push(diagnostics, output, status)
-
-  const settings = () => vscode.workspace.getConfiguration('comatype')
 
   /** Finds the config file for this uri (or the open editor, or the workspace) */
   function locateConfig(uri) {
