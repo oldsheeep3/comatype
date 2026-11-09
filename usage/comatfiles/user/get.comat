@@ -1,0 +1,8 @@
+import UserData from ../../types/UserData.comat
+
+// user/get.comat: a file named only after the method points at the directory itself (GET /user)
+search {
+    limit?: int,
+}
+
+s200 UserData[]

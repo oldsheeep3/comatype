@@ -1,0 +1,10 @@
+import ApiError from ../../types/common.comat
+
+// user/delete__id.comat: DELETE /user/:id
+params {
+    id: uuidv4,
+}
+
+// none = no response body
+s204 none
+s404 ApiError

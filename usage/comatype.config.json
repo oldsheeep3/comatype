@@ -1,0 +1,112 @@
+{
+  "$schema": "../schema/comatype.config.schema.json",
+  "services": {
+    "api": {
+      "comatDir": "./comatfiles",
+      "targets": [
+        {
+          "lang": "ts",
+          "role": "client",
+          "root": "./node_client"
+        },
+        {
+          "lang": "ts",
+          "role": "server",
+          "root": "./node_server"
+        },
+        {
+          "lang": "go",
+          "role": "client",
+          "root": "./go_client",
+          "importPath": "example.com/app/comatype"
+        },
+        {
+          "lang": "go",
+          "role": "server",
+          "root": "./go_server",
+          "importPath": "example.com/app/comatype"
+        },
+        {
+          "lang": "python",
+          "role": "client",
+          "root": "./python_client"
+        },
+        {
+          "lang": "python",
+          "role": "server",
+          "root": "./python_server"
+        },
+        {
+          "lang": "rust",
+          "role": "client",
+          "root": "./rust_client"
+        },
+        {
+          "lang": "rust",
+          "role": "server",
+          "root": "./rust_server"
+        },
+        {
+          "lang": "java",
+          "role": "client",
+          "root": "./java_client"
+        },
+        {
+          "lang": "java",
+          "role": "server",
+          "root": "./java_server"
+        },
+        {
+          "lang": "ruby",
+          "role": "client",
+          "root": "./ruby_client"
+        },
+        {
+          "lang": "ruby",
+          "role": "server",
+          "root": "./ruby_server"
+        },
+        {
+          "lang": "kotlin",
+          "role": "client",
+          "root": "./kotlin_client"
+        },
+        {
+          "lang": "kotlin",
+          "role": "server",
+          "root": "./kotlin_server"
+        },
+        {
+          "lang": "swift",
+          "role": "client",
+          "root": "./swift_client"
+        },
+        {
+          "lang": "swift",
+          "role": "server",
+          "root": "./swift_server"
+        },
+        {
+          "lang": "dart",
+          "role": "client",
+          "root": "./dart_client"
+        }
+      ]
+    },
+    "wraps": {
+      "comatDir": "./comatfiles_wraps",
+      "targets": [
+        {
+          "lang": "ts",
+          "role": "client",
+          "root": "./wraps_client"
+        },
+        {
+          "lang": "ts",
+          "role": "server",
+          "root": "./wraps_server"
+        }
+      ]
+    }
+  }
+}

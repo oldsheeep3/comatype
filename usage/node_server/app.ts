@@ -1,0 +1,15 @@
+// The whole server: export s with init and all routes registered
+import './init'
+import './post_user'
+import './get_user'
+import './options_user'
+import './query_user'
+import './user_get'
+import './user_get_me'
+import './user_get_ping'
+import './user_put_id'
+import './user_delete_id'
+import './user_post_login'
+import './user_profile_get'
+
+export { s } from '@comatype/typescript'

@@ -1,0 +1,6 @@
+// OPTIONS: ask which methods the path supports
+// The second block of s200 is the response headers (headers only for this status. Optional)
+// An array of headers becomes a single string joined with ", " on the wire
+s200 none, {
+    Allow: string[],
+}

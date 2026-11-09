@@ -1,0 +1,14 @@
+// (noauth)/post_user.comat: the method is the file name (post), and the path is /user from the location and file name (the group (noauth) is not part of the path)
+import UserData from ../../types/UserData.comat
+
+// Sign-up is called while logged out. The auth wrapper is disabled in (noauth)/defaults.comat
+
+// body <type>: the request body (client -> server). One per endpoint. Without `body`, there is no body
+body {
+    ...UserData,
+    uid: empty,
+}
+
+// s[status code] <type>: the response body for that status (server -> client, nullable)
+// `...UserData` spreads the fields, and `uid: empty` omits the key (the server does not send it)
+s200 UserData

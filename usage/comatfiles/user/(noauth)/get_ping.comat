@@ -1,0 +1,12 @@
+// user/(noauth)/get_ping.comat: `path /...` is a fixed path. It becomes /ping regardless of the directory position
+path /ping
+
+// The health check is called while logged out (the auth wrapper is disabled in user/(noauth)/defaults.comat)
+
+s200 {
+    ok: bool,
+}
+
+// Cache GET responses in memory for just 60 seconds (client and server). `cache off` forces it off,
+// and `cache 60000 cookie` caches in a cookie (client only). Writing it in defaults.comat / init.comat has no effect (warning)
+cache 60000

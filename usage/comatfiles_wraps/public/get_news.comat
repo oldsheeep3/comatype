@@ -1,0 +1,5 @@
+// Public news. Cached in memory for just 60 seconds (even with wraps, it is not authentication, so there is little risk)
+cache 60000
+s200 {
+    items: string[],
+}

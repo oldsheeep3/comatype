@@ -1,0 +1,2 @@
+// app/tenant/: tenant is added to the parent's log -> auth (log -> auth -> tenant)
+wrap tenant

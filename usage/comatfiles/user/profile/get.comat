@@ -1,0 +1,5 @@
+import UserData from ../../../types/UserData.comat
+
+// user/profile/get.comat: a nested directory. GET /user/profile
+// The auth wrapper stays enabled from defaults.comat, so the handler can read ctx.user
+s200 UserData

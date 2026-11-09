@@ -1,0 +1,26 @@
+// init.comat: project-specific settings. Place exactly one directly under comatDir
+// Separate from the defaults.comat of each directory; it declares "what this project has"
+import UserData from ../types/UserData.comat
+import ApiError from ../types/common.comat
+
+// The base url of all endpoints (paths are appended to it)
+// At runtime it can be overridden by the COMATYPE_BASE_URL environment variable or the init argument of each language
+baseUrl https://api.example.com
+
+// Cookie settings used by the server (for `cookie on` endpoints). It is httpOnly, so js cannot read it
+cookie session {
+    httpOnly: true,
+    secure: true,
+    sameSite: lax,
+}
+
+// Wrapper declarations. Implement them in each language's code as ComatypeWrap values, export them, and import and pass them in init
+// Each .comat refers to them by name with `wrap auth` / `wrap auth off`
+wrapper auth {
+    // The type of the values a wrapper adds to ctx. On endpoints with `wrap auth` on, a handler can read ctx.user, typed
+    ctx {
+        user: UserData,
+    }
+    // The statuses this wrapper can return. They are added to the Response of endpoints with `wrap auth` on
+    s401 ApiError
+}

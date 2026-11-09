@@ -1,0 +1,64 @@
+// 自動生成: comatype generate が作ったファイルです。手で編集しないでください
+import { t, defineStatus, defineEndpoint, type StatusFn, type Endpoint } from '@comatype/typescript'
+import type { AuthCtx, LogCtx } from '../init'
+
+export type Request = void
+
+export type S200 = { status: 200; data: {
+    events: string[];
+  } }
+export const s200: StatusFn<S200, { data: {
+    events: string[];
+  } }> = defineStatus(200, t.object({
+  events: t.array(t.string()),
+}), null)
+export declare namespace s200 {
+  type Res = {
+    events: string[];
+  }
+}
+
+export type S401 = { status: 401; error: {
+    message: string;
+  } }
+export const s401: StatusFn<S401, { error: {
+    message: string;
+  } }> = defineStatus(401, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s401 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type Response = S200 | S401
+
+export type Ctx = AuthCtx & LogCtx
+
+export const endpoint: Endpoint<Request, Response, Ctx, "get"> = defineEndpoint({
+  method: "get",
+  path: "/audit/events",
+  module: "audit/get_events",
+  baseUrl: "https://wraps.example.com",
+  wraps: ["auth", "log"],
+  cookie: false,
+  params: null,
+  search: null,
+  body: null,
+  requestHeaders: null,
+  responses: [s200, s401],
+})
+/** Same value as `endpoint` (callers import it as `path`) */
+export const path = endpoint
+
+const _ep = { path, endpoint, s200, s401 }
+type _Request = Request
+type _Response = Response
+type _Ctx = Ctx
+declare namespace _ep {
+  export type Request = _Request
+  export type Response = _Response
+  export type Ctx = _Ctx
+}
+export default _ep

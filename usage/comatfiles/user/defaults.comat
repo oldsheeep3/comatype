@@ -1,0 +1,5 @@
+// user/defaults.comat: defaults for the user directory and below (user/profile etc.)
+// Merged into the root defaults.comat (for the same name, this one wins)
+headerRes {
+    "X-Resource-Version"?: string,
+}

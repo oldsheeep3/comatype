@@ -1,0 +1,75 @@
+// 自動生成: comatype generate が作ったファイルです。手で編集しないでください
+import { t, defineStatus, type StatusFn, type ComatypeWrap } from '@comatype/typescript'
+
+export type AuthCtx = {
+  user: string;
+}
+
+export type S401 = { status: 401; error: {
+    message: string;
+  } }
+export const s401: StatusFn<S401, { error: {
+    message: string;
+  } }> = defineStatus(401, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s401 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type LogCtx = {}
+
+export type RatelimitCtx = {}
+
+export type S429 = { status: 429; error: {
+    message: string;
+  } }
+export const s429: StatusFn<S429, { error: {
+    message: string;
+  } }> = defineStatus(429, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s429 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type TenantCtx = {
+  tenant: string;
+}
+
+export type AdminCtx = {
+  role: string;
+}
+
+export type S403 = { status: 403; error: {
+    message: string;
+  } }
+export const s403: StatusFn<S403, { error: {
+    message: string;
+  } }> = defineStatus(403, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s403 {
+  type Res = {
+    message: string;
+  }
+}
+
+/** init に渡すラッパーの実装（init.comat の `wrapper` ごと） */
+export type Wrappers = {
+  auth: ComatypeWrap<AuthCtx>;
+  log: ComatypeWrap<LogCtx>;
+  ratelimit: ComatypeWrap<RatelimitCtx>;
+  tenant: ComatypeWrap<TenantCtx>;
+  admin: ComatypeWrap<AdminCtx>;
+}
+
+declare module '@comatype/typescript' {
+  interface ComatypeRegistry {
+    wrappers: Wrappers
+  }
+}

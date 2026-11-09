@@ -1,0 +1,37 @@
+// A showcase of the type syntax (not used by any endpoint; it shows the list of types and the constraint syntax)
+
+// Named enum (string values)
+enum Role {
+    admin,
+    member,
+    guest,
+}
+
+Profile {
+    // Constraints: string(min..max), int(min..max). Either side can be omitted
+    nickname: string(1..50),
+    age?: int(0..150),
+    // Regular expression
+    zip: string(pattern: "^[0-9]{3}-[0-9]{4}$"),
+
+    role: Role,
+    // Inline literal union
+    status: "active" | "banned",
+
+    birthday?: date,
+    createdAt: datetime,
+    openAt: time,
+
+    // 64-bit integers and decimals are sent as strings on the wire
+    followers: int64,
+    balance: decimal,
+
+    website?: url,
+    avatar?: bytes,
+    // Arbitrary JSON
+    extra?: json,
+
+    // Arrays and null
+    tags: string[],
+    deletedAt: datetime | null,
+}

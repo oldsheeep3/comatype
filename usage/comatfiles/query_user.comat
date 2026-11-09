@@ -1,0 +1,10 @@
+import UserData from ../types/UserData.comat
+
+// QUERY: safe and idempotent like GET, but sends the search criteria in the body
+body {
+    name?: string,
+    email?: email,
+    limit?: int,
+}
+
+s200 UserData[]

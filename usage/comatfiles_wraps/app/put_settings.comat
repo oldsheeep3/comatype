@@ -1,0 +1,7 @@
+body {
+    theme: string,
+}
+
+s200 {
+    theme: string,
+}

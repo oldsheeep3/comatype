@@ -1,0 +1,33 @@
+// defaults.comat: default values for this directory and the endpoints below it. One can be placed per directory
+// They are merged in this order: parent defaults.comat -> this directory's defaults.comat -> each endpoint's .comat (the later one wins)
+// Project-specific declarations (base url, wrapper, cookie settings) go in init.comat directly under comatDir
+import ApiError from ../types/common.comat
+
+// wrap <name>: enable the wrapper <name> declared in init.comat
+// wrap <name> off: disable it (use it to turn it off individually in a lower defaults.comat or an endpoint's .comat)
+// When there are several wrappers, the one written higher is the outer one (runs first).
+// Across levels, the upper directory is outer; at the same level, defaults.comat is outer (SPEC §3)
+wrap auth
+
+// cookie on|off: how httpOnly cookies (session cookies) are handled
+//   client: send and receive cookies (credentials: include in browsers, a cookie jar elsewhere). Client code does not read the value
+//   server: use the cookie settings of init.comat. Readable from wrappers
+cookie on
+
+// Headers: header is for both request and response, headerReq for the request only, headerRes for the response only
+// Names containing a hyphen are quoted. `?` makes it optional
+// Headers specific to a status go in the second block of `s200 <body>, { ... }` in each .comat
+header {
+    "X-Request-Id"?: uuid,
+}
+headerReq {
+    "X-Client-Version"?: string,
+}
+headerRes {
+    "X-Server-Time"?: datetime,
+}
+
+// Common statuses are added to the Response of every endpoint below (if the same code exists, the lower definition wins)
+// So the client does not need to pass s500 one by one (omitted in the examples)
+// s401 is declared in init.comat as a status the auth wrapper can return
+s500 ApiError

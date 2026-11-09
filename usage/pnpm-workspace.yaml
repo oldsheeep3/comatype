@@ -1,0 +1,5 @@
+packages:
+  - node_server
+  - node_client
+allowBuilds:
+  esbuild: false

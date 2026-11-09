@@ -1,0 +1,12 @@
+{
+  "name": "@usage/node-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@comatype/typescript": "link:../../packages/typescript"
+  }
+}

@@ -1,0 +1,23 @@
+import UserData from ../types/UserData.comat
+import ApiError from ../types/common.comat
+
+// The path is explicit (deprecated). To follow the file location, use user/get__id.comat -> /user/:id
+path /user/:id
+
+// Path parameter
+params {
+    id: uuidv4,
+}
+
+// Query string (?verbose=true). `?` makes it optional
+search {
+    verbose?: bool,
+}
+
+// There is no `body`, so the request has no body
+s200 UserData
+s404 ApiError
+
+// User information must show updates immediately, so it is not cached (`cache off`).
+// If you write nothing, it is not cached anyway. `cache off` is a marker that states the intent
+cache off

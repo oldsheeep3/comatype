@@ -1,0 +1,15 @@
+import ApiError from ../../../types/common.comat
+
+// user/(noauth)/post_login.comat: POST /user/login (what follows `_` is a static segment. The group (noauth) is not part of the path)
+// Login is called while logged out. The auth wrapper is disabled in user/(noauth)/defaults.comat
+
+body {
+    email: email,
+    password: string,
+}
+
+s200 {
+    uid: uuidv4,
+}
+// The auth wrapper is disabled, so the wrapper's s401 is not added. Declare 401 yourself here
+s401 ApiError

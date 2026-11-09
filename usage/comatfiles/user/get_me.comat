@@ -1,0 +1,10 @@
+import UserData from ../../types/UserData.comat
+
+// user/get_me.comat: `path ./...` is relative to this directory's path (/user). Here it becomes /user/me
+path ./me
+
+s200 UserData
+
+// Cache in a cookie for just 3 seconds (client only. The server does not use the cookie cache).
+// The response is authenticated, so drop it with `clearCache()` on logout (the client cache key does not include Authorization)
+cache 3000 cookie

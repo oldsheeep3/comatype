@@ -1,0 +1,929 @@
+openapi: 3.0.3
+info:
+  title: api
+  version: 1.0.0
+  description: Comatype から生成
+servers:
+- url: https://api.example.com
+paths:
+  /ping:
+    get:
+      operationId: user_get_ping
+      tags:
+      - user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                - ok
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-cookie: true
+  /user:
+    options:
+      operationId: options_user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          headers:
+            Allow:
+              required: true
+              schema:
+                type: array
+                items:
+                  type: string
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+    post:
+      operationId: post_user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  pattern: ^\+[1-9]\d{1,14}$
+                  x-comatype: phone
+              required:
+              - name
+              - email
+              - phone
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserData'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-cookie: true
+    x-comatype-query:
+      operationId: query_user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                limit:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserData'
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+    get:
+      operationId: user_get
+      tags:
+      - user
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserData'
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+  /user/login:
+    post:
+      operationId: user_post_login
+      tags:
+      - user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+              - email
+              - password
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uid:
+                    type: string
+                    format: uuid
+                    x-comatype: uuidv4
+                required:
+                - uid
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-cookie: true
+  /user/me:
+    get:
+      operationId: user_get_me
+      tags:
+      - user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserData'
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+  /user/profile:
+    get:
+      operationId: user_profile_get
+      tags:
+      - user
+      parameters:
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserData'
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+  /user/{id}:
+    get:
+      operationId: get_user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          x-comatype: uuidv4
+      - name: verbose
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserData'
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+    delete:
+      operationId: user_delete__id
+      tags:
+      - user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          x-comatype: uuidv4
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: No Content
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+    put:
+      operationId: user_put__id
+      tags:
+      - user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          x-comatype: uuidv4
+      - name: X-Client-Version
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-Request-Id
+        in: header
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserData'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserData'
+        '401':
+          description: Unauthorized
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+                format: uuid
+            X-Resource-Version:
+              schema:
+                type: string
+            X-Server-Time:
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-comatype-wraps:
+      - auth
+      x-comatype-cookie: true
+components:
+  schemas:
+    UserData:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          pattern: ^\+[1-9]\d{1,14}$
+          x-comatype: phone
+        uid:
+          type: string
+          format: uuid
+          x-comatype: uuidv4
+      required:
+      - name
+      - email
+      - phone
+      - uid
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+      - code
+      - message

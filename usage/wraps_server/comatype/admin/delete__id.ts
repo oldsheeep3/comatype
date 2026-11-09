@@ -1,0 +1,76 @@
+// 自動生成: comatype generate が作ったファイルです。手で編集しないでください
+import { t, defineStatus, defineEndpoint, type Schema, type StatusFn, type Endpoint, type Uuid } from '@comatype/typescript'
+import type { AuthCtx, AdminCtx } from '../init'
+
+export type Params = {
+  id: Uuid;
+}
+export const Params: Schema<Params> = t.object({
+  id: t.uuid(),
+})
+
+export type Request = { params: Params }
+
+export type S204 = { status: 204 }
+export const s204: StatusFn<S204, void> = defineStatus(204, null, null)
+
+export type S401 = { status: 401; error: {
+    message: string;
+  } }
+export const s401: StatusFn<S401, { error: {
+    message: string;
+  } }> = defineStatus(401, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s401 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type S403 = { status: 403; error: {
+    message: string;
+  } }
+export const s403: StatusFn<S403, { error: {
+    message: string;
+  } }> = defineStatus(403, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s403 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type Response = S204 | S401 | S403
+
+export type Ctx = AuthCtx & AdminCtx
+
+export const endpoint: Endpoint<Request, Response, Ctx, "delete"> = defineEndpoint({
+  method: "delete",
+  path: "/admin/:id",
+  module: "admin/delete__id",
+  baseUrl: "https://wraps.example.com",
+  wraps: ["auth", "admin"],
+  cookie: false,
+  params: Params,
+  search: null,
+  body: null,
+  requestHeaders: null,
+  responses: [s204, s401, s403],
+})
+/** Same value as `endpoint` (callers import it as `path`) */
+export const path = endpoint
+
+const _ep = { path, endpoint, s204, s401, s403 }
+type _Request = Request
+type _Response = Response
+type _Ctx = Ctx
+type _Params = Params
+declare namespace _ep {
+  export type Request = _Request
+  export type Response = _Response
+  export type Ctx = _Ctx
+  export type Params = _Params
+}
+export default _ep

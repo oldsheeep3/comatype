@@ -1,0 +1,5 @@
+// Types shared by several .comat files (e.g. the error body)
+ApiError {
+    code: string,
+    message: string,
+}

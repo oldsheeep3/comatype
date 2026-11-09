@@ -1,0 +1,7 @@
+body {
+    name: string,
+}
+
+s200 {
+    id: string,
+}

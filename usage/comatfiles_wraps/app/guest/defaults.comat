@@ -1,0 +1,2 @@
+// app/guest/: removes only the parent's auth (only log remains)
+wrap auth off

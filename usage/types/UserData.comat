@@ -1,0 +1,13 @@
+// Built-in scalar types (custom types wrapping strings etc.; how each language generates them is decided in SPEC.md)
+//   string, bool, int
+//   email, phone
+//   uuid   : UUID (any version)
+//   uuidv4 : UUID v4
+//   uuidv7 : UUID v7 (time-ordered)
+//   date   : date (YYYY-MM-DD)
+UserData {
+    name: string,
+    email: email,
+    phone: phone,
+    uid: uuidv4,
+}

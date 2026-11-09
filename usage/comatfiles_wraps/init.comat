@@ -1,0 +1,33 @@
+// A service for testing wraps (to check how wraps look in usage). See it with `comat endpoints -g --color --config usage`
+baseUrl https://wraps.example.com
+
+// auth: adds user to ctx. Can return 401
+wrapper auth {
+    ctx {
+        user: string,
+    }
+    s401
+}
+
+// access log: no ctx and no statuses it can return
+wrapper log { }
+
+// rate limit: can return 429
+wrapper ratelimit {
+    s429
+}
+
+// tenant: adds tenant to ctx
+wrapper tenant {
+    ctx {
+        tenant: string,
+    }
+}
+
+// admin: can return 403
+wrapper admin {
+    ctx {
+        role: string,
+    }
+    s403
+}

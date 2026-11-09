@@ -1,0 +1,13 @@
+{
+  "name": "@usage/node-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --import tsx --test test/*.test.ts",
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@comatype/typescript": "link:../../packages/typescript"
+  }
+}

@@ -1,0 +1,4 @@
+// /health: no wrap (it belongs to no defaults.comat of any directory)
+s200 {
+    ok: bool,
+}

@@ -1,0 +1,5 @@
+// (noauth)/defaults.comat: a directory named `(name)` is a "group"
+//   - This defaults.comat applies only below the group
+//   - The group name is not part of the path ((noauth)/post_user.comat becomes /user)
+// Here it disables the auth wrapper for the endpoints below
+wrap auth off

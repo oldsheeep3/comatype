@@ -1,0 +1,13 @@
+import UserData from ../../types/UserData.comat
+import ApiError from ../../types/common.comat
+
+// user/put__id.comat: the method is put, and the path is /user/:id from the location and file name
+// A segment starting with `__` is a dynamic path. The type of the name (id) is declared in params
+params {
+    id: uuidv4,
+}
+
+body UserData
+
+s200 UserData
+s404 ApiError

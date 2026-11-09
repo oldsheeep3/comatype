@@ -1,0 +1,121 @@
+// 自動生成: comatype generate が作ったファイルです。手で編集しないでください
+import { t, defineStatus, defineEndpoint, type Schema, type StatusFn, type Endpoint, type CookieInit, type Uuid, type Uuidv4, type DateTimeStr } from '@comatype/typescript'
+import { ApiError } from '../types'
+import type { AuthCtx } from '../init'
+
+export type Params = {
+  id: Uuidv4;
+}
+export const Params: Schema<Params> = t.object({
+  id: t.uuidv4(),
+})
+
+export type RequestHeaders = {
+  "X-Client-Version"?: string;
+  "X-Request-Id"?: Uuid;
+}
+export const RequestHeaders: Schema<RequestHeaders> = t.object({
+  "X-Client-Version": t.opt(t.string()),
+  "X-Request-Id": t.opt(t.uuid()),
+})
+
+export type Request = { params: Params; headers?: RequestHeaders }
+
+const headers204: Schema<s204.Headers> = t.object({
+  "X-Request-Id": t.opt(t.uuid()),
+  "X-Resource-Version": t.opt(t.string()),
+  "X-Server-Time": t.opt(t.datetime()),
+})
+export type S204 = { status: 204; headers?: s204.Headers }
+export const s204: StatusFn<S204, { headers?: s204.Headers; cookie?: CookieInit }> = defineStatus(204, null, headers204)
+export declare namespace s204 {
+  type Headers = {
+    "X-Request-Id"?: Uuid;
+    "X-Resource-Version"?: string;
+    "X-Server-Time"?: DateTimeStr;
+  }
+}
+
+const headers401: Schema<s401.Headers> = t.object({
+  "X-Request-Id": t.opt(t.uuid()),
+  "X-Resource-Version": t.opt(t.string()),
+  "X-Server-Time": t.opt(t.datetime()),
+})
+export type S401 = { status: 401; error: ApiError; headers?: s401.Headers }
+export const s401: StatusFn<S401, { error: ApiError; headers?: s401.Headers; cookie?: CookieInit }> = defineStatus(401, t.lazy(() => ApiError), headers401)
+export declare namespace s401 {
+  type Res = ApiError
+  type Headers = {
+    "X-Request-Id"?: Uuid;
+    "X-Resource-Version"?: string;
+    "X-Server-Time"?: DateTimeStr;
+  }
+}
+
+const headers404: Schema<s404.Headers> = t.object({
+  "X-Request-Id": t.opt(t.uuid()),
+  "X-Resource-Version": t.opt(t.string()),
+  "X-Server-Time": t.opt(t.datetime()),
+})
+export type S404 = { status: 404; error: ApiError; headers?: s404.Headers }
+export const s404: StatusFn<S404, { error: ApiError; headers?: s404.Headers; cookie?: CookieInit }> = defineStatus(404, t.lazy(() => ApiError), headers404)
+export declare namespace s404 {
+  type Res = ApiError
+  type Headers = {
+    "X-Request-Id"?: Uuid;
+    "X-Resource-Version"?: string;
+    "X-Server-Time"?: DateTimeStr;
+  }
+}
+
+const headers500: Schema<s500.Headers> = t.object({
+  "X-Request-Id": t.opt(t.uuid()),
+  "X-Resource-Version": t.opt(t.string()),
+  "X-Server-Time": t.opt(t.datetime()),
+})
+export type S500 = { status: 500; error: ApiError; headers?: s500.Headers }
+export const s500: StatusFn<S500, { error: ApiError; headers?: s500.Headers; cookie?: CookieInit }> = defineStatus(500, t.lazy(() => ApiError), headers500)
+export declare namespace s500 {
+  type Res = ApiError
+  type Headers = {
+    "X-Request-Id"?: Uuid;
+    "X-Resource-Version"?: string;
+    "X-Server-Time"?: DateTimeStr;
+  }
+}
+
+export type Response = S204 | S401 | S404 | S500
+
+export type Ctx = AuthCtx
+
+export const endpoint: Endpoint<Request, Response, Ctx, "delete"> = defineEndpoint({
+  method: "delete",
+  path: "/user/:id",
+  module: "user/delete__id",
+  baseUrl: "https://api.example.com",
+  wraps: ["auth"],
+  cookie: true,
+  cookieDef: { name: "session", httpOnly: true, secure: true, sameSite: "lax" },
+  params: Params,
+  search: null,
+  body: null,
+  requestHeaders: RequestHeaders,
+  responses: [s204, s401, s404, s500],
+})
+/** Same value as `endpoint` (callers import it as `path`) */
+export const path = endpoint
+
+const _ep = { path, endpoint, s204, s401, s404, s500 }
+type _Request = Request
+type _Response = Response
+type _Ctx = Ctx
+type _Params = Params
+type _RequestHeaders = RequestHeaders
+declare namespace _ep {
+  export type Request = _Request
+  export type Response = _Response
+  export type Ctx = _Ctx
+  export type Params = _Params
+  export type RequestHeaders = _RequestHeaders
+}
+export default _ep

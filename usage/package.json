@@ -1,0 +1,17 @@
+{
+  "name": "usage",
+  "private": true,
+  "type": "module",
+  "description": "Comatype の使い方の見本。node_server と node_client は、生成されたコードと @comatype/typescript で書いた、動く API のサーバとクライアント",
+  "scripts": {
+    "generate": "cargo run -q -p comatype-cli --manifest-path ../Cargo.toml -- generate --config . --lang ts",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "check": "pnpm generate && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "tsx": "^4",
+    "typescript": "^5.9"
+  }
+}

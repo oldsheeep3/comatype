@@ -1,0 +1,3 @@
+// user/(noauth)/defaults.comat: a group inside the user directory. The auth wrapper is disabled below it
+// The path stays /user/... (the group name (noauth) is not included)
+wrap auth off
