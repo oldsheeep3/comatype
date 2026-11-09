@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+members = ["crates/comatype-core", "crates/comatype-gen-ts", "crates/comatype-gen-go", "crates/comatype-gen-python", "crates/comatype-gen-rust", "crates/comatype-gen-java", "crates/comatype-gen-kotlin", "crates/comatype-gen-swift", "crates/comatype-gen-ruby", "crates/comatype-lsp", "crates/comatype-openapi", "crates/comatype-cli"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
