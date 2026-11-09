@@ -152,7 +152,7 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.12"
+          gradle-version: current
       - name: Publish io.github.oldsheeep3:comatype and comatype-ktx to Maven Central
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}

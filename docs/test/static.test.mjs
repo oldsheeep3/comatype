@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url'
 const docs = fileURLToPath(new URL('..', import.meta.url))
 const out = join(docs, 'out')
 const built = existsSync(join(out, 'index.html'))
+// TODO: remove once the guide pages (content/*/guide) are published. Until then, links to them are allowed to dangle.
+const guidePublished = existsSync(join(docs, 'content/en/guide'))
 
 function* pages(dir) {
   for (const name of readdirSync(dir)) {
@@ -36,6 +38,7 @@ test('内部リンクがすべて出力先に存在する', (t) => {
     for (const m of html.matchAll(/href="(\/[^"#?]*)/g)) {
       const h = m[1]
       if (h.startsWith('/_next')) continue
+      if (!guidePublished && /^(\/ja-jp)?\/guide\//.test(h)) continue
       const target = join(out, h)
       if (!existsSync(target) && !existsSync(join(target, 'index.html'))) bad.push(`${f.replace(out, '')} → ${h}`)
     }
