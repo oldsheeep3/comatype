@@ -1,7 +1,7 @@
 name: Release
 
 # Runs when develop (or hotfix) is merged into main. The version comes from the VERSION file:
-# bump it in the merge. Each registry step is skipped when that version is already published,
+# bump it in the merge. Maven Central is released automatically after validation. Each registry step is skipped when that version is already published,
 # so the workflow can be re-run safely (workflow_dispatch).
 on:
   push:
@@ -166,3 +166,33 @@ jobs:
             exit 0
           fi
           gradle -p packages publishToMavenCentral -PreleaseVersion="$V" --no-configuration-cache --console=plain
+
+  rubygems:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # RubyGems trusted publishing (register this repository and workflow as a trusted publisher)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
+      - name: Publish comatype to RubyGems
+        env:
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if curl -sf "https://rubygems.org/api/v1/versions/comatype.json" | grep -q "\"number\":\"$V\""; then
+            echo "comatype $V is already published"
+            echo "skip=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+      - uses: rubygems/configure-rubygems-credentials@v1.0.0
+        if: env.skip != 'true'
+      - name: gem push
+        if: env.skip != 'true'
+        working-directory: packages/ruby
+        run: |
+          gem build comatype.gemspec
+          gem push comatype-*.gem
