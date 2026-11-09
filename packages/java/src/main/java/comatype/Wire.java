@@ -7,7 +7,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-/** Conversion between the wire form (path, query, headers) and Java values. Used by generated code. */
+/**
+ * Conversion between the wire form (path, query, headers) and Java values. Used by generated code.
+ */
 public final class Wire {
     private Wire() {}
 
@@ -123,8 +125,12 @@ public final class Wire {
         return vals.isEmpty() ? null : convert(d, vals.get(0), name);
     }
 
-    /** An array. For `split` (headers) it arrives as one ", "-separated value. Use `optional` for an optional array */
-    public static <T> List<T> readList(List<String> vals, String name, boolean split, boolean optional, Decoder<T> d) {
+    /**
+     * An array. For `split` (headers) it arrives as one ", "-separated value. Use `optional` for an
+     * optional array
+     */
+    public static <T> List<T> readList(
+            List<String> vals, String name, boolean split, boolean optional, Decoder<T> d) {
         if (vals.isEmpty()) {
             if (optional) return null;
             throw new ValidationException(name, "必須です");
@@ -132,7 +138,8 @@ public final class Wire {
         List<String> items = vals;
         if (split && vals.size() == 1) {
             items = new ArrayList<>();
-            if (!vals.get(0).trim().isEmpty()) for (String p : vals.get(0).split(",")) items.add(p.trim());
+            if (!vals.get(0).trim().isEmpty())
+                for (String p : vals.get(0).split(",")) items.add(p.trim());
         }
         List<T> out = new ArrayList<>();
         for (String it : items) out.add(convert(d, it, name));
@@ -162,7 +169,8 @@ public final class Wire {
     }
 
     public static void addQuery(RawRequest raw, Object... kv) {
-        for (int k = 0; k + 1 < kv.length; k += 2) for (String v : strs(kv[k + 1])) raw.query.add(new String[] {(String) kv[k], v});
+        for (int k = 0; k + 1 < kv.length; k += 2)
+            for (String v : strs(kv[k + 1])) raw.query.add(new String[] {(String) kv[k], v});
     }
 
     /** Writes a header. Arrays are joined with ", ". null is not written. */

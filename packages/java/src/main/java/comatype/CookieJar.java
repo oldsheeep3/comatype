@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
-  * A jar for HTTP clients that keep no cookies.
-  * Assumes the API is a single origin: ignores Domain and looks only at Path and expiry.
+ * A jar for HTTP clients that keep no cookies. Assumes the API is a single origin: ignores Domain
+ * and looks only at Path and expiry.
  */
 public final class CookieJar {
     private static final class Stored {
@@ -25,7 +25,8 @@ public final class CookieJar {
         for (Map.Entry<String, Stored> e : m.entrySet()) {
             Stored c = e.getValue();
             String prefix = c.path.endsWith("/") ? c.path : c.path + "/";
-            if (c.path.equals("/") || path.equals(c.path) || path.startsWith(prefix)) out.put(e.getKey(), c.value);
+            if (c.path.equals("/") || path.equals(c.path) || path.startsWith(prefix))
+                out.put(e.getKey(), c.value);
         }
         return out;
     }

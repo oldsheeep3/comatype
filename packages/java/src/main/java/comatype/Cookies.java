@@ -25,14 +25,16 @@ public final class Cookies {
     }
 
     private static String attr(String what, String v) {
-        if (v.contains(";") || v.contains("\r") || v.contains("\n")) throw new ComatypeException("cookie の " + what + " に使えない文字があります: " + v);
+        if (v.contains(";") || v.contains("\r") || v.contains("\n"))
+            throw new ComatypeException("cookie の " + what + " に使えない文字があります: " + v);
         return v;
     }
 
     /** Builds a Set-Cookie value. Attributes (HttpOnly etc.) come from init.comat. */
     public static String serialize(CookieDef def, CookieValue v) {
         if (def == null) {
-            throw new ComatypeException("このエンドポイントは cookie を発行できません（cookie off、または init.comat に cookie の宣言がありません）");
+            throw new ComatypeException(
+                    "このエンドポイントは cookie を発行できません（cookie off、または init.comat に cookie の宣言がありません）");
         }
         List<String> parts = new ArrayList<>();
         parts.add(def.name() + "=" + encode(v.delete ? "" : v.value));

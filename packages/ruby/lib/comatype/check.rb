@@ -31,8 +31,8 @@ module Comatype
       raise ValidationError.new(path, "#{values.join(' | ')} のどれかにしてください") unless values.include?(s)
     end
 
-    UUID_RE = /\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-([0-9a-fA-F])[0-9a-fA-F]{3}-([89abAB])[0-9a-fA-F]{3}-[0-9a-fA-F]{12}\z/.freeze
-    UUID_ANY = /\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\z/.freeze
+    UUID_RE = /\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-([0-9a-fA-F])[0-9a-fA-F]{3}-([89abAB])[0-9a-fA-F]{3}-[0-9a-fA-F]{12}\z/
+    UUID_ANY = /\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\z/
 
     def uuid(path, s, version)
       label = version.zero? ? "uuid" : "uuidv#{version}"

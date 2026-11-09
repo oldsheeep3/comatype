@@ -30,7 +30,13 @@ public final class Codec {
     }
 
     private static String describe(Object j) {
-        return j == null ? "null" : j instanceof String ? "文字列" : j instanceof Boolean ? "真偽値" : j instanceof Number ? "数値" : j instanceof List ? "配列" : "オブジェクト";
+        return j == null
+                ? "null"
+                : j instanceof String
+                        ? "文字列"
+                        : j instanceof Boolean
+                                ? "真偽値"
+                                : j instanceof Number ? "数値" : j instanceof List ? "配列" : "オブジェクト";
     }
 
     // ---- Reading ----
@@ -59,7 +65,9 @@ public final class Codec {
 
     public static long integer(Object j, String path) {
         if (j instanceof Long) return (Long) j;
-        if (j instanceof Double && (Double) j == Math.rint((Double) j) && Math.abs((Double) j) < 9e15) return (long) (double) (Double) j;
+        if (j instanceof Double
+                && (Double) j == Math.rint((Double) j)
+                && Math.abs((Double) j) < 9e15) return (long) (double) (Double) j;
         throw fail(path, "整数にしてください（" + describe(j) + " でした）");
     }
 
@@ -96,7 +104,9 @@ public final class Codec {
         return parseUuid(string(j, path), path, 7);
     }
 
-    private static final Pattern UUID_RE = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+    private static final Pattern UUID_RE =
+            Pattern.compile(
+                    "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     public static UUID parseUuid(String s, String path, int version) {
         String label = version == 0 ? "uuid" : "uuidv" + version;
@@ -124,7 +134,8 @@ public final class Codec {
     }
 
     public static LocalTime parseTime(String s, String path) {
-        if (!s.matches("^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$")) throw fail(path, "time は HH:MM:SS の形式にしてください");
+        if (!s.matches("^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$"))
+            throw fail(path, "time は HH:MM:SS の形式にしてください");
         return LocalTime.parse(s);
     }
 
@@ -156,7 +167,8 @@ public final class Codec {
     public static URI parseUrl(String s, String path) {
         try {
             URI u = new URI(s);
-            if (u.getScheme() == null || u.getHost() == null) throw new URISyntaxException(s, "no host");
+            if (u.getScheme() == null || u.getHost() == null)
+                throw new URISyntaxException(s, "no host");
             return u;
         } catch (URISyntaxException e) {
             throw fail(path, "url は http(s)://host/... の形式にしてください");

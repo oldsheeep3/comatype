@@ -8,8 +8,10 @@ public final class RawResponse {
     public int status;
     public Headers headers = new Headers();
     public byte[] body = new byte[0];
+
     /** Set-Cookie lines to issue (server). On the client, the received lines */
     public List<String> setCookies = new ArrayList<>();
+
     /** The cause wrapped by {@link #error} (not included in the response) */
     public String err;
 
@@ -37,7 +39,9 @@ public final class RawResponse {
     /** Turns a server-side fault into a 500. The details are not shown to the client. */
     public static RawResponse error(String cause) {
         RawResponse r = new RawResponse(500);
-        r.body = "{\"code\":\"internal_error\",\"message\":\"Internal Server Error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        r.body =
+                "{\"code\":\"internal_error\",\"message\":\"Internal Server Error\"}"
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8);
         r.headers.set("Content-Type", "application/json");
         r.err = cause;
         return r;

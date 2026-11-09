@@ -20,7 +20,9 @@ public enum Check {
     }
 
     public static func pattern(_ path: String, _ s: String, _ pattern: String) throws {
-        guard let re = try? NSRegularExpression(pattern: pattern) else { throw ValidationError(path: path, reason: "pattern \"\(pattern)\" が不正です") }
+        guard let re = try? NSRegularExpression(pattern: pattern) else {
+            throw ValidationError(path: path, reason: "pattern \"\(pattern)\" が不正です")
+        }
         if re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) == nil {
             throw ValidationError(path: path, reason: "パターン \(pattern) に一致しません")
         }

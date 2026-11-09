@@ -1,8 +1,8 @@
 package comatype;
 
 /**
-  * `cache` in `.comat` (GET / QUERY endpoints only).
-  * mode is "off" (never cache) / "memory" (in memory for the ttl) / "cookie" (in a cookie for the ttl; client only).
+ * `cache` in `.comat` (GET / QUERY endpoints only). mode is "off" (never cache) / "memory" (in
+ * memory for the ttl) / "cookie" (in a cookie for the ttl; client only).
  */
 public record CacheSpec(String mode, long ttlMs) {
     public boolean memory() {

@@ -18,11 +18,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
-  * The server. Register handlers on {@code S}, then run it with {@link #handle} (callable from any framework)
-  * or {@link #serve} (the JDK built-in com.sun.net.httpserver).
+ * The server. Register handlers on {@code S}, then run it with {@link #handle} (callable from any
+ * framework) or {@link #serve} (the JDK built-in com.sun.net.httpserver).
  */
 public final class S {
-    /** The request as seen by wrappers. ctx holds the values this wrapper adds (the ctx of `wrapper` in init.comat). */
+    /**
+     * The request as seen by wrappers. ctx holds the values this wrapper adds (the ctx of `wrapper`
+     * in init.comat).
+     */
     public static final class WrapRequest<Ctx> {
         public final RawRequest raw;
         public final Ctx ctx;
@@ -46,7 +49,10 @@ public final class S {
         }
     }
 
-    /** Calls the next wrapper (the last one is the handler). The ctx passed to next becomes the ctx of later wrappers and the handler. */
+    /**
+     * Calls the next wrapper (the last one is the handler). The ctx passed to next becomes the ctx
+     * of later wrappers and the handler.
+     */
     @FunctionalInterface
     public interface Next<Ctx> {
         RawResponse call(WrapRequest<Ctx> req);
@@ -61,7 +67,8 @@ public final class S {
     /** The untyped form (built by {@link #adapt}). */
     @FunctionalInterface
     public interface ServerWrap {
-        RawResponse handle(RawRequest req, java.util.function.Function<RawRequest, RawResponse> next);
+        RawResponse handle(
+                RawRequest req, java.util.function.Function<RawRequest, RawResponse> next);
     }
 
     /** Implemented by the generated Wrappers. */
@@ -74,14 +81,18 @@ public final class S {
     public static <Ctx> ServerWrap adapt(String name, ComatypeWrap<Ctx> w) {
         return (req, next) -> {
             Ctx ctx = (Ctx) req.contexts.get(name);
-            return w.handle(new WrapRequest<>(req, ctx), r -> {
-                if (r.ctx != null) r.raw.contexts.put(name, r.ctx);
-                return next.apply(r.raw);
-            });
+            return w.handle(
+                    new WrapRequest<>(req, ctx),
+                    r -> {
+                        if (r.ctx != null) r.raw.contexts.put(name, r.ctx);
+                        return next.apply(r.raw);
+                    });
         };
     }
 
-    /** The return value when a handler wants to add cookies to its result (`cookie on` endpoints). */
+    /**
+     * The return value when a handler wants to add cookies to its result (`cookie on` endpoints).
+     */
     public record Reply<R>(R response, CookieValue cookie) {
         public static <R> Reply<R> of(R response) {
             return new Reply<>(response, null);
@@ -121,8 +132,10 @@ public final class S {
     }
 
     private final List<Route> routes = new CopyOnWriteArrayList<>();
+
     /** Responses of `cache <ttl>` (memory) endpoints. Hit on an exact request match */
     private final ResponseCache cache = new ResponseCache(1000);
+
     private volatile Map<String, ServerWrap> wrappers = Collections.emptyMap();
     private volatile Consumer<String> onError = msg -> System.err.println("[comatype] " + msg);
 
@@ -132,20 +145,46 @@ public final class S {
         return this;
     }
 
-    /** Receives the causes of handler exceptions and of responses that do not match .comat. Defaults to stderr. */
+    /**
+     * Receives the causes of handler exceptions and of responses that do not match .comat. Defaults
+     * to stderr.
+     */
     public S onError(Consumer<String> f) {
         onError = f;
         return this;
     }
 
-    public <Q, R> S get(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("get", ep, h); }
-    public <Q, R> S post(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("post", ep, h); }
-    public <Q, R> S put(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("put", ep, h); }
-    public <Q, R> S patch(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("patch", ep, h); }
-    public <Q, R> S delete(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("delete", ep, h); }
-    public <Q, R> S options(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("options", ep, h); }
-    public <Q, R> S query(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("query", ep, h); }
-    public <Q, R> S head(Endpoint<?, Q, R> ep, Function<Q, R> h) { return register("head", ep, h); }
+    public <Q, R> S get(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("get", ep, h);
+    }
+
+    public <Q, R> S post(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("post", ep, h);
+    }
+
+    public <Q, R> S put(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("put", ep, h);
+    }
+
+    public <Q, R> S patch(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("patch", ep, h);
+    }
+
+    public <Q, R> S delete(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("delete", ep, h);
+    }
+
+    public <Q, R> S options(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("options", ep, h);
+    }
+
+    public <Q, R> S query(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("query", ep, h);
+    }
+
+    public <Q, R> S head(Endpoint<?, Q, R> ep, Function<Q, R> h) {
+        return register("head", ep, h);
+    }
 
     private static List<String> segs(String p) {
         List<String> out = new ArrayList<>();
@@ -164,10 +203,12 @@ public final class S {
 
     private <Q, R> S register(String method, Endpoint<?, Q, R> ep, Function<Q, R> h) {
         if (!ep.method.equals(method)) {
-            throw new IllegalArgumentException("S." + method + "() に " + ep.method + " のエンドポイント（" + ep.module + "）は渡せません");
+            throw new IllegalArgumentException(
+                    "S." + method + "() に " + ep.method + " のエンドポイント（" + ep.module + "）は渡せません");
         }
         if (ep.parseRequest == null || ep.buildResponse == null) {
-            throw new IllegalArgumentException(ep.module + " はサーバ用に生成されていません（role: server で生成してください）");
+            throw new IllegalArgumentException(
+                    ep.module + " はサーバ用に生成されていません（role: server で生成してください）");
         }
         Route r = new Route();
         r.method = method;
@@ -176,28 +217,30 @@ public final class S {
         r.statics = (int) r.segs.stream().filter(s -> !s.startsWith(":")).count();
         r.wraps = ep.wraps;
         r.cache = ep.cache;
-        r.handle = raw -> {
-            Q req;
-            try {
-                req = ep.parseRequest.apply(raw);
-            } catch (ValidationException e) {
-                Map<String, Object> body = new LinkedHashMap<>();
-                body.put("code", "validation_error");
-                body.put("message", e.getMessage());
-                if (!e.path.isEmpty()) body.put("path", e.path);
-                return RawResponse.json(400, body);
-            } catch (ComatypeException e) {
-                return RawResponse.error(e.getMessage());
-            }
-            try {
-                return ep.buildResponse.apply(h.apply(req));
-            } catch (ComatypeException e) {
-                return RawResponse.error(e.getMessage());
-            }
-        };
+        r.handle =
+                raw -> {
+                    Q req;
+                    try {
+                        req = ep.parseRequest.apply(raw);
+                    } catch (ValidationException e) {
+                        Map<String, Object> body = new LinkedHashMap<>();
+                        body.put("code", "validation_error");
+                        body.put("message", e.getMessage());
+                        if (!e.path.isEmpty()) body.put("path", e.path);
+                        return RawResponse.json(400, body);
+                    } catch (ComatypeException e) {
+                        return RawResponse.error(e.getMessage());
+                    }
+                    try {
+                        return ep.buildResponse.apply(h.apply(req));
+                    } catch (ComatypeException e) {
+                        return RawResponse.error(e.getMessage());
+                    }
+                };
         for (Route o : routes) {
             if (shape(o.method, o.segs).equals(shape(r.method, r.segs))) {
-                throw new IllegalArgumentException(shape(r.method, r.segs) + " が重複しています（" + o.module + " と " + r.module + "）");
+                throw new IllegalArgumentException(
+                        shape(r.method, r.segs) + " が重複しています（" + o.module + " と " + r.module + "）");
             }
         }
         routes.add(r);
@@ -241,12 +284,18 @@ public final class S {
             int eq = p.indexOf('=');
             String k = eq < 0 ? p : p.substring(0, eq);
             String v = eq < 0 ? "" : p.substring(eq + 1);
-            out.add(new String[] {java.net.URLDecoder.decode(k, StandardCharsets.UTF_8), java.net.URLDecoder.decode(v, StandardCharsets.UTF_8)});
+            out.add(
+                    new String[] {
+                        java.net.URLDecoder.decode(k, StandardCharsets.UTF_8),
+                        java.net.URLDecoder.decode(v, StandardCharsets.UTF_8)
+                    });
         }
         return out;
     }
 
-    /** Handles one request. target is {@code /path?query}. The entry point to call from a framework. */
+    /**
+     * Handles one request. target is {@code /path?query}. The entry point to call from a framework.
+     */
     public RawResponse handle(String method, String target, Headers headers, byte[] body) {
         method = method.toLowerCase();
         int qi = target.indexOf('?');
@@ -264,7 +313,8 @@ public final class S {
         Route rt = find(method, segs, params);
         if (rt == null) {
             TreeSet<String> allow = new TreeSet<>();
-            for (Route o : routes) if (find(o.method, segs, null) != null) allow.add(o.method.toUpperCase());
+            for (Route o : routes)
+                if (find(o.method, segs, null) != null) allow.add(o.method.toUpperCase());
             if (!allow.isEmpty()) {
                 String joined = String.join(", ", allow);
                 RawResponse r = jsonError(405, "method_not_allowed", "使えるメソッド: " + joined);
@@ -282,12 +332,15 @@ public final class S {
             for (String pair : c.split(";")) {
                 int eq = pair.indexOf('=');
                 if (eq <= 0) continue;
-                raw.cookies.putIfAbsent(pair.substring(0, eq).trim(), Cookies.decode(pair.substring(eq + 1).trim()));
+                raw.cookies.putIfAbsent(
+                        pair.substring(0, eq).trim(),
+                        Cookies.decode(pair.substring(eq + 1).trim()));
             }
         }
         raw.headers = headers;
 
-        // Cache (GET / QUERY, memory only; cookies are a client-only feature). Looked up before the wrappers, so the key includes all headers (including auth)
+        // Cache (GET / QUERY, memory only; cookies are a client-only feature). Looked up before the
+        // wrappers, so the key includes all headers (including auth)
         String cacheKey = null;
         if (rt.cache != null && rt.cache.memory()) {
             cacheKey = ResponseCache.serverKey(method, target, headers, body);
@@ -312,11 +365,16 @@ public final class S {
             resp = RawResponse.error(rt.module + ": " + e);
         }
         if (resp.err != null) onError.accept(rt.module + ": " + resp.err);
-        else if (cacheKey != null && ResponseCache.cacheable(resp)) cache.set(cacheKey, resp, rt.cache.ttlMs());
+        else if (cacheKey != null && ResponseCache.cacheable(resp))
+            cache.set(cacheKey, resp, rt.cache.ttlMs());
         return resp;
     }
 
-    private static RawResponse run(List<ServerWrap> chain, int i, Function<RawRequest, RawResponse> handle, RawRequest req) {
+    private static RawResponse run(
+            List<ServerWrap> chain,
+            int i,
+            Function<RawRequest, RawResponse> handle,
+            RawRequest req) {
         if (i == chain.size()) return handle.apply(req);
         return chain.get(i).handle(req, r -> run(chain, i + 1, handle, r));
     }
@@ -325,14 +383,16 @@ public final class S {
     public HttpServer serve(String host, int port) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(host, port), 0);
         server.setExecutor(Executors.newCachedThreadPool());
-        server.createContext("/", ex -> {
-            try {
-                exchange(ex);
-            } catch (RuntimeException e) {
-                onError.accept("serve: " + e);
-                ex.close();
-            }
-        });
+        server.createContext(
+                "/",
+                ex -> {
+                    try {
+                        exchange(ex);
+                    } catch (RuntimeException e) {
+                        onError.accept("serve: " + e);
+                        ex.close();
+                    }
+                });
         server.start();
         return server;
     }
@@ -341,11 +401,22 @@ public final class S {
         Headers headers = new Headers();
         ex.getRequestHeaders().forEach((k, vs) -> vs.forEach(v -> headers.add(k, v)));
         byte[] body = ex.getRequestBody().readAllBytes();
-        String target = ex.getRequestURI().getRawPath() + (ex.getRequestURI().getRawQuery() == null ? "" : "?" + ex.getRequestURI().getRawQuery());
+        String target =
+                ex.getRequestURI().getRawPath()
+                        + (ex.getRequestURI().getRawQuery() == null
+                                ? ""
+                                : "?" + ex.getRequestURI().getRawQuery());
         RawResponse r = handle(ex.getRequestMethod(), target, headers, body);
-        for (String[] kv : r.headers.entries()) if (!kv[0].equalsIgnoreCase("content-length")) ex.getResponseHeaders().add(kv[0], kv[1]);
+        for (String[] kv : r.headers.entries())
+            if (!kv[0].equalsIgnoreCase("content-length"))
+                ex.getResponseHeaders().add(kv[0], kv[1]);
         for (String c : r.setCookies) ex.getResponseHeaders().add("Set-Cookie", c);
-        boolean noBody = r.status == 204 || r.status == 205 || r.status == 304 || r.body.length == 0 || ex.getRequestMethod().equalsIgnoreCase("HEAD");
+        boolean noBody =
+                r.status == 204
+                        || r.status == 205
+                        || r.status == 304
+                        || r.body.length == 0
+                        || ex.getRequestMethod().equalsIgnoreCase("HEAD");
         if (noBody) {
             ex.sendResponseHeaders(r.status, -1);
         } else {

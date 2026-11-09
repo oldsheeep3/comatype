@@ -4,20 +4,24 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
-  * Endpoint descriptor (held by generated code).
-  * Arg is the argument the client passes, Req is the request the server handler receives, Res is the response.
+ * Endpoint descriptor (held by generated code). Arg is the argument the client passes, Req is the
+ * request the server handler receives, Res is the response.
  */
 public final class Endpoint<Arg, Req, Res> {
     public final String method;
     public final String path;
     public final String module;
     public final String baseUrl;
+
     /** From outermost to innermost */
     public final List<String> wraps;
+
     public final boolean cookie;
     public final CookieDef cookieDef;
+
     /** The `cache` setting (GET / QUERY only; null means no caching) */
     public CacheSpec cache;
+
     /** Names of the declared request headers included in the client cache key */
     public List<String> cacheHeaders = List.of();
 
@@ -29,9 +33,17 @@ public final class Endpoint<Arg, Req, Res> {
     public final Function<Res, RawResponse> buildResponse;
 
     private Endpoint(
-            String method, String path, String module, String baseUrl, List<String> wraps, boolean cookie, CookieDef cookieDef,
-            Function<Arg, RawRequest> buildRequest, Function<RawResponse, Res> parseResponse,
-            Function<RawRequest, Req> parseRequest, Function<Res, RawResponse> buildResponse) {
+            String method,
+            String path,
+            String module,
+            String baseUrl,
+            List<String> wraps,
+            boolean cookie,
+            CookieDef cookieDef,
+            Function<Arg, RawRequest> buildRequest,
+            Function<RawResponse, Res> parseResponse,
+            Function<RawRequest, Req> parseRequest,
+            Function<Res, RawResponse> buildResponse) {
         this.method = method;
         this.path = path;
         this.module = module;
@@ -53,14 +65,50 @@ public final class Endpoint<Arg, Req, Res> {
     }
 
     public static <Arg, Res> Endpoint<Arg, Void, Res> client(
-            String method, String path, String module, String baseUrl, List<String> wraps, boolean cookie, CookieDef cookieDef,
-            Function<Arg, RawRequest> buildRequest, Function<RawResponse, Res> parseResponse) {
-        return new Endpoint<>(method, path, module, baseUrl, wraps, cookie, cookieDef, buildRequest, parseResponse, null, null);
+            String method,
+            String path,
+            String module,
+            String baseUrl,
+            List<String> wraps,
+            boolean cookie,
+            CookieDef cookieDef,
+            Function<Arg, RawRequest> buildRequest,
+            Function<RawResponse, Res> parseResponse) {
+        return new Endpoint<>(
+                method,
+                path,
+                module,
+                baseUrl,
+                wraps,
+                cookie,
+                cookieDef,
+                buildRequest,
+                parseResponse,
+                null,
+                null);
     }
 
     public static <Req, Res> Endpoint<Void, Req, Res> server(
-            String method, String path, String module, String baseUrl, List<String> wraps, boolean cookie, CookieDef cookieDef,
-            Function<RawRequest, Req> parseRequest, Function<Res, RawResponse> buildResponse) {
-        return new Endpoint<>(method, path, module, baseUrl, wraps, cookie, cookieDef, null, null, parseRequest, buildResponse);
+            String method,
+            String path,
+            String module,
+            String baseUrl,
+            List<String> wraps,
+            boolean cookie,
+            CookieDef cookieDef,
+            Function<RawRequest, Req> parseRequest,
+            Function<Res, RawResponse> buildResponse) {
+        return new Endpoint<>(
+                method,
+                path,
+                module,
+                baseUrl,
+                wraps,
+                cookie,
+                cookieDef,
+                null,
+                null,
+                parseRequest,
+                buildResponse);
     }
 }

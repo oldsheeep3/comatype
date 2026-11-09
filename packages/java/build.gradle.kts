@@ -1,6 +1,14 @@
 plugins {
     `java-library`
     id("com.vanniktech.maven.publish")
+    id("com.diffplug.spotless")
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        googleJavaFormat("1.25.2").aosp()
+    }
 }
 
 // JDK 21 or later builds it; the output targets Java 21

@@ -4,12 +4,12 @@ package comatype.ktx
 
 import comatype.CacheSpec
 import comatype.ComatypeException
-import comatype.ResponseCache
 import comatype.CookieJar
 import comatype.Cookies
 import comatype.Endpoint
 import comatype.RawRequest
 import comatype.RawResponse
+import comatype.ResponseCache
 import comatype.S
 import java.io.IOException
 import java.net.URI
@@ -35,10 +35,12 @@ suspend fun <T> CompletableFuture<T>.await(): T = suspendCoroutine { c ->
 fun <T> blocking(block: suspend () -> T): T {
     val latch = CountDownLatch(1)
     var result: Result<T>? = null
-    block.startCoroutine(Continuation(EmptyCoroutineContext) {
-        result = it
-        latch.countDown()
-    })
+    block.startCoroutine(
+        Continuation(EmptyCoroutineContext) {
+            result = it
+            latch.countDown()
+        },
+    )
     latch.await()
     return result!!.getOrThrow()
 }
@@ -83,6 +85,7 @@ object CK {
     }
 
     @Volatile private var cfg = Config()
+
     @Volatile private var wrappers: Map<String, CWrap> = emptyMap()
     private val defaultClient: HttpClient by lazy { HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build() }
 

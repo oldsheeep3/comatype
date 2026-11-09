@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
-  * Dependency-free JSON. The tree is Map&lt;String,Object&gt; / List&lt;Object&gt; / String / Long / Double / Boolean / null.
+ * Dependency-free JSON. The tree is Map&lt;String,Object&gt; / List&lt;Object&gt; / String / Long /
+ * Double / Boolean / null.
  */
 public final class Json {
     private Json() {}
@@ -127,14 +128,30 @@ public final class Json {
                 if (i >= s.length()) throw err("途中で終わっています");
                 char e = s.charAt(i++);
                 switch (e) {
-                    case '"': b.append('"'); break;
-                    case '\\': b.append('\\'); break;
-                    case '/': b.append('/'); break;
-                    case 'b': b.append('\b'); break;
-                    case 'f': b.append('\f'); break;
-                    case 'n': b.append('\n'); break;
-                    case 'r': b.append('\r'); break;
-                    case 't': b.append('\t'); break;
+                    case '"':
+                        b.append('"');
+                        break;
+                    case '\\':
+                        b.append('\\');
+                        break;
+                    case '/':
+                        b.append('/');
+                        break;
+                    case 'b':
+                        b.append('\b');
+                        break;
+                    case 'f':
+                        b.append('\f');
+                        break;
+                    case 'n':
+                        b.append('\n');
+                        break;
+                    case 'r':
+                        b.append('\r');
+                        break;
+                    case 't':
+                        b.append('\t');
+                        break;
                     case 'u':
                         if (i + 4 > s.length()) throw err("\\u が不正です");
                         try {
@@ -199,8 +216,12 @@ public final class Json {
             b.append(v);
         } else if (v instanceof Double) {
             double d = (Double) v;
-            if (Double.isNaN(d) || Double.isInfinite(d)) throw new ValidationException("", "数値が有限ではありません");
-            b.append(d == Math.rint(d) && Math.abs(d) < 1e15 ? Long.toString((long) d) : Double.toString(d));
+            if (Double.isNaN(d) || Double.isInfinite(d))
+                throw new ValidationException("", "数値が有限ではありません");
+            b.append(
+                    d == Math.rint(d) && Math.abs(d) < 1e15
+                            ? Long.toString((long) d)
+                            : Double.toString(d));
         } else if (v instanceof Map) {
             b.append('{');
             boolean first = true;
@@ -231,13 +252,27 @@ public final class Json {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             switch (c) {
-                case '"': b.append("\\\""); break;
-                case '\\': b.append("\\\\"); break;
-                case '\n': b.append("\\n"); break;
-                case '\r': b.append("\\r"); break;
-                case '\t': b.append("\\t"); break;
-                case '\b': b.append("\\b"); break;
-                case '\f': b.append("\\f"); break;
+                case '"':
+                    b.append("\\\"");
+                    break;
+                case '\\':
+                    b.append("\\\\");
+                    break;
+                case '\n':
+                    b.append("\\n");
+                    break;
+                case '\r':
+                    b.append("\\r");
+                    break;
+                case '\t':
+                    b.append("\\t");
+                    break;
+                case '\b':
+                    b.append("\\b");
+                    break;
+                case '\f':
+                    b.append("\\f");
+                    break;
                 default:
                     if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
                     else b.append(c);

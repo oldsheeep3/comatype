@@ -12,17 +12,22 @@
   },
   "scripts": {
     "prepare": "husky || true",
-    "lint": "pnpm lint:js && pnpm lint:rust && pnpm lint:py && pnpm lint:go",
+    "lint": "pnpm lint:js && pnpm lint:rust && pnpm lint:py && pnpm lint:go && pnpm lint:jvm && pnpm lint:swift && pnpm lint:ruby",
     "lint:js": "biome check .",
     "lint:rust": "cargo fmt --all --check && cargo fmt --manifest-path packages/rust/Cargo.toml --check && cargo clippy --workspace --all-targets -- -D warnings && cargo clippy --manifest-path packages/rust/Cargo.toml --all-targets -- -D warnings",
     "lint:py": "uvx ruff check packages/python && uvx ruff format --check packages/python",
     "lint:go": "test -z \"$(gofmt -l packages/go)\" && (cd packages/go && go vet ./...)",
-    "format": "biome check --write . && cargo fmt --all && cargo fmt --manifest-path packages/rust/Cargo.toml && uvx ruff format packages/python && gofmt -w packages/go"
+    "format": "biome check --write . && cargo fmt --all && cargo fmt --manifest-path packages/rust/Cargo.toml && uvx ruff format packages/python && gofmt -w packages/go && gradle -p packages spotlessApply && swift format --in-place -r packages/swift/Sources && (cd packages/ruby && rubocop -A)",
+    "lint:jvm": "gradle -p packages spotlessCheck",
+    "lint:swift": "swift format lint --strict -r packages/swift/Sources",
+    "lint:ruby": "cd packages/ruby && rubocop"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,json,css}": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
     "*.rs": "rustfmt --edition 2021",
     "*.go": "gofmt -w",
-    "packages/python/**/*.py": "scripts/lint-staged-py.sh"
+    "packages/python/**/*.py": "scripts/lint-staged-py.sh",
+    "packages/swift/**/*.swift": "swift format --in-place",
+    "packages/ruby/**/*.rb": "scripts/lint-staged-rb.sh"
   }
 }

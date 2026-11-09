@@ -1,6 +1,22 @@
 plugins {
     kotlin("jvm")
     id("com.vanniktech.maven.publish")
+    id("com.diffplug.spotless")
+}
+
+spotless {
+    kotlin {
+        target("src/**/*.kt")
+        ktlint().editorConfigOverride(
+            mapOf(
+                "indent_size" to "4",
+                "ktlint_standard_max-line-length" to "disabled",
+                "ktlint_standard_no-wildcard-imports" to "disabled",
+                "ktlint_standard_function-signature" to "disabled",
+                "ktlint_standard_filename" to "disabled",
+            ),
+        )
+    }
 }
 
 tasks.withType<JavaCompile> { options.release.set(21) }

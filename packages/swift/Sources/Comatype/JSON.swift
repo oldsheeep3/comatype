@@ -137,7 +137,7 @@ struct JSONParser {
 
     mutating func lit(_ word: String, _ v: JSON) throws -> JSON {
         let w = Array(word.utf8)
-        guard i + w.count <= bytes.count, Array(bytes[i ..< i + w.count]) == w else { throw err("不正な値") }
+        guard i + w.count <= bytes.count, Array(bytes[i..<i + w.count]) == w else { throw err("不正な値") }
         i += w.count
         return v
     }
@@ -208,7 +208,8 @@ struct JSONParser {
             case UInt8(ascii: "t"): out.append(0x09)
             case UInt8(ascii: "u"):
                 var code = try hex4()
-                if (0xD800 ..< 0xDC00).contains(code), i + 1 < bytes.count, bytes[i] == UInt8(ascii: "\\"), bytes[i + 1] == UInt8(ascii: "u") {
+                if (0xD800..<0xDC00).contains(code), i + 1 < bytes.count, bytes[i] == UInt8(ascii: "\\"), bytes[i + 1] == UInt8(ascii: "u")
+                {
                     i += 2
                     let low = try hex4()
                     code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00)
@@ -223,7 +224,9 @@ struct JSONParser {
     }
 
     mutating func hex4() throws -> UInt32 {
-        guard i + 4 <= bytes.count, let s = String(bytes: bytes[i ..< i + 4], encoding: .utf8), let v = UInt32(s, radix: 16) else { throw err("\\u が不正です") }
+        guard i + 4 <= bytes.count, let s = String(bytes: bytes[i..<i + 4], encoding: .utf8), let v = UInt32(s, radix: 16) else {
+            throw err("\\u が不正です")
+        }
         i += 4
         return v
     }
@@ -234,11 +237,15 @@ struct JSONParser {
         if i < bytes.count, bytes[i] == UInt8(ascii: "-") { i += 1 }
         while i < bytes.count {
             let c = bytes[i]
-            if (UInt8(ascii: "0") ... UInt8(ascii: "9")).contains(c) { i += 1 }
-            else if [UInt8(ascii: "."), UInt8(ascii: "e"), UInt8(ascii: "E"), UInt8(ascii: "+"), UInt8(ascii: "-")].contains(c) { frac = true; i += 1 }
-            else { break }
+            if (UInt8(ascii: "0")...UInt8(ascii: "9")).contains(c) {
+                i += 1
+            } else if [UInt8(ascii: "."), UInt8(ascii: "e"), UInt8(ascii: "E"), UInt8(ascii: "+"), UInt8(ascii: "-")].contains(c) {
+                frac = true; i += 1
+            } else {
+                break
+            }
         }
-        guard let t = String(bytes: bytes[st ..< i], encoding: .utf8), !t.isEmpty, t != "-" else { throw err("不正な値") }
+        guard let t = String(bytes: bytes[st..<i], encoding: .utf8), !t.isEmpty, t != "-" else { throw err("不正な値") }
         if !frac, let n = Int64(t) { return .int(n) }
         guard let d = Double(t) else { throw err("不正な数値 \(t)") }
         return .double(d)
