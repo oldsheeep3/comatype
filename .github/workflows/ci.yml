@@ -105,7 +105,9 @@ jobs:
       - name: VS Code extension (test, then build the .vsix without publishing it)
         run: |
           pnpm --dir editors/vscode test
-          pnpm --dir editors/vscode package
+          ./scripts/package-vsix.sh universal
+          ./scripts/package-vsix.sh linux-x64 target/debug/comatype   # the platform build with a binary bundled
+          unzip -l editors/vscode/comatype-linux-x64-*.vsix | grep -q "extension/bin/comatype"
       - name: Website (typecheck, build, test)
         run: pnpm --dir docs check
       - name: Sample project
