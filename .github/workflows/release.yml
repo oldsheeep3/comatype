@@ -65,10 +65,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -92,7 +92,7 @@ jobs:
     needs: [verify, tag]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.22"
       - env:
@@ -113,7 +113,7 @@ jobs:
       id-token: write # PyPI trusted publishing (configure it for this repository and the `pypi` environment)
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
@@ -150,7 +150,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: current
       - name: Publish net.sheeplab.comatype:comatype and comatype-ktx to Maven Central
