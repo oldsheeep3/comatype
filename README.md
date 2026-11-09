@@ -1,6 +1,23 @@
-# Comatype
+<h1 align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="72">
+</picture>
+</h1>
 
 English | [日本語](README.ja.md)
+
+Total downloads:
+
+[![npm](https://img.shields.io/npm/dt/@comatype/typescript?label=npm&logo=npm)](https://www.npmjs.com/package/@comatype/typescript)
+[![PyPI](https://static.pepy.tech/badge/comatype?label=PyPI)](https://pepy.tech/project/comatype)
+[![crates.io](https://img.shields.io/crates/d/comatype?label=crates.io&logo=rust)](https://crates.io/crates/comatype)
+[![RubyGems](https://img.shields.io/gem/dt/comatype?label=RubyGems&logo=rubygems&logoColor=white)](https://rubygems.org/gems/comatype)
+
+Monthly downloads (crates.io and RubyGems do not publish a monthly count):
+
+[![npm](https://img.shields.io/npm/dm/@comatype/typescript?label=npm&logo=npm)](https://www.npmjs.com/package/@comatype/typescript)
+[![PyPI](https://img.shields.io/pypi/dm/comatype?label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/comatype/)
 
 Write your API once in `.comat` files. Comatype generates types, validation, clients and servers for eight languages from them.
 

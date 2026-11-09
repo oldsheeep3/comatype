@@ -1,3 +1,10 @@
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
 # @comatype/typescript
 
 Comatype runtime for TypeScript: the typed `fetch` client `c` and the server `s`. Works on Node, Bun, Deno and Cloudflare Workers.
