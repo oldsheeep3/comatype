@@ -1,0 +1,9 @@
+[package]
+name = "comatype-lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+comatype-core = { path = "../comatype-core" }
+serde_json = "1"
