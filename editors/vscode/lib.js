@@ -107,4 +107,44 @@ const TARGET_PRESETS = [
   { label: 'Python server', lang: 'python', role: 'server', root: './py-server' },
 ]
 
-module.exports = { findConfig, parseDiagnostics, importLinks, exportOpenApiArgs, importOpenApiArgs, TARGET_PRESETS, CONFIG_NAME }
+/** File name of the executable on a platform */
+function binaryName(platform = process.platform) {
+  return platform === 'win32' ? 'comatype.exe' : 'comatype'
+}
+
+/**
+ * Which `comatype` to run. A location the user set wins; otherwise the binary bundled in the extension
+ * (`bin/comatype`, present in the per-platform builds); otherwise `comatype` on PATH.
+ */
+function resolveBinary({ configured, extensionPath, platform = process.platform, exists = fs.existsSync }) {
+  const value = (configured ?? '').trim()
+  if (value && value !== 'comatype') return value
+  if (extensionPath) {
+    const bundled = path.join(extensionPath, 'bin', binaryName(platform))
+    if (exists(bundled)) return bundled
+  }
+  return 'comatype'
+}
+
+/** A file extracted from a .vsix may lose its executable bit */
+function ensureExecutable(file, platform = process.platform, chmod = fs.chmodSync) {
+  if (platform === 'win32' || !path.isAbsolute(file)) return
+  try {
+    chmod(file, 0o755)
+  } catch {
+    // read-only install location: nothing more we can do
+  }
+}
+
+module.exports = {
+  binaryName,
+  resolveBinary,
+  ensureExecutable,
+  findConfig,
+  parseDiagnostics,
+  importLinks,
+  exportOpenApiArgs,
+  importOpenApiArgs,
+  TARGET_PRESETS,
+  CONFIG_NAME,
+}

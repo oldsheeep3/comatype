@@ -116,7 +116,7 @@
         "comatype.path": {
           "type": "string",
           "default": "comatype",
-          "description": "Path to the comatype executable. Set it when comatype is not on PATH."
+          "description": "Path to the comatype executable. Leave it as `comatype` to use the binary bundled with the extension (platform builds) or the one on PATH."
         },
         "comatype.config": {
           "type": "string",

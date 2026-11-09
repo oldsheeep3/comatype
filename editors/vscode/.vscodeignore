@@ -2,6 +2,7 @@
 # language configuration, icon and the documents (see `vsce ls`).
 **
 !dist/extension.js
+!bin/**
 !syntaxes/**
 !snippets/**
 !schemas/**

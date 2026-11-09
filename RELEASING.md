@@ -33,9 +33,11 @@ Set it after the secrets above are in place (`gh secret set NPM_TOKEN`, ...).
 
 ## VS Code extension
 
-The `vscode` job builds `editors/vscode` into `comatype-X.Y.Z.vsix` (esbuild bundles the language client; `scripts/set-version.sh` stamps `VERSION` into `editors/vscode/package.json`), attaches it to the GitHub release `vX.Y.Z`, and publishes it to the VS Code Marketplace and Open VSX. A registry whose secret is not set is skipped with a warning, so the rest of the release is never blocked; set the secret and re-run the workflow to publish later. Pre-release versions (`0.1.0-rc.1`) are not published because the Marketplace does not accept them. CI builds the same `.vsix` on every pull request (the `web` job) without publishing it.
+The `binaries` job builds the `comatype` CLI for five platforms (Linux x64 / arm64 as static musl binaries, macOS x64 / arm64, Windows x64) and the `cli-release` job attaches them to the GitHub release as `comatype-<target>.tar.gz` / `.zip` plus `SHA256SUMS`; `install.sh` downloads them. No Rust toolchain is needed to use the CLI.
 
-To build one locally: `pnpm install && pnpm --dir editors/vscode package`.
+The `vscode` job then builds `editors/vscode` into one `.vsix` per platform with the matching binary bundled in `bin/` (`comatype-<platform>-X.Y.Z.vsix`) and a universal `comatype-X.Y.Z.vsix` without a binary (the fallback for other platforms; it uses `comatype` from `PATH`). esbuild bundles the language client; `scripts/set-version.sh` stamps `VERSION` into `editors/vscode/package.json`. The files are attached to the GitHub release `vX.Y.Z` and published to the VS Code Marketplace and Open VSX. A registry whose secret is not set is skipped with a warning, so the rest of the release is never blocked; set the secret and re-run the workflow to publish later. Pre-release versions (`0.1.0-rc.1`) are not published because the Marketplace does not accept them. CI builds a universal and a `linux-x64` `.vsix` on every pull request (the `web` job) without publishing.
+
+To build one locally: `cargo build --release -p comatype-cli && ./scripts/package-vsix.sh darwin-arm64 target/release/comatype` (or `./scripts/package-vsix.sh universal`).
 
 ### One-time setup: VS Code Marketplace
 
