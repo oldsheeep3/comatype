@@ -1,0 +1,15 @@
+{
+  "extends": "../typescript/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "declaration": true,
+    "rewriteRelativeImportExtensions": true,
+    "allowImportingTsExtensions": false,
+    "sourceMap": false,
+    "types": ["node"],
+    "typeRoots": ["../../node_modules/@types"],
+    "rootDir": "../typescript/src"
+  },
+  "include": ["../typescript/src"]
+}

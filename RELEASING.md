@@ -12,7 +12,7 @@ Branches: `main` is the release, `develop` is the next version, `hotfix` is for 
 
 | Registry | Package | Needs |
 |---|---|---|
-| npm | `@comatype/typescript` | secret `NPM_TOKEN` (an automation token; the `@comatype` scope must exist on npm and be yours) |
+| npm | `@comatype/typescript`, `@comatype/javascript` | secret `NPM_TOKEN` (an automation token; the `@comatype` scope must exist on npm and be yours) |
 | Go | `github.com/oldsheeep3/comatype/packages/go` | nothing: the tag `packages/go/vX.Y.Z` is the release |
 | PyPI | `comatype` | PyPI trusted publishing for this repository, workflow `release.yml`, environment `pypi` |
 | crates.io | `comatype` | secret `CARGO_REGISTRY_TOKEN` (the crate name must be free) |

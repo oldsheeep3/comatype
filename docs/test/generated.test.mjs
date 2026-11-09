@@ -39,6 +39,7 @@ test('examples/generated は comatype generate の出力と同じ', (t) => {
     )
   }
   assert.ok(statSync(join(base, 'swift')).isDirectory())
+  assert.ok(statSync(join(base, 'js')).isDirectory())
   assert.ok(statSync(join(base, 'csharp')).isDirectory())
 })
 
@@ -46,7 +47,7 @@ test('code-group のタブが、ビルドした HTML に出る', (t) => {
   const html = join(fileURLToPath(new URL('..', import.meta.url)), 'out/guide/generated-code/index.html')
   if (!existsSync(html)) return t.skip('docs/out がありません（pnpm build）')
   const text = readFileSync(html, 'utf8')
-  for (const lang of ['TypeScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby', 'C#']) {
+  for (const lang of ['TypeScript', 'JavaScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby', 'C#']) {
     assert.match(text, new RegExp(`role="tab"[^>]*>${lang}<`), `${lang} のタブがありません`)
   }
 })

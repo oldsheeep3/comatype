@@ -92,6 +92,7 @@ const EXT_LANG: Record<string, string> = {
   kt: 'kotlin',
   swift: 'swift',
   cs: 'csharp',
+  mjs: 'js',
 }
 
 /** From `// #region name` to `// #endregion name` (the heading lines are not included) */

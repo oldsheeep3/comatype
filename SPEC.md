@@ -13,7 +13,7 @@ Comatype は、`.comat` ファイルで API の型を 1 回だけ書き、各言
 - パーサは 1 つだけ作り、Rust 製の単一バイナリ `comatype` として配布する（各言語の環境に依存しない）。各言語に実装しない。パーサは `comatype-core` クレートにまとめ、CLI・LSP・WASM から共通で使う。
 - `comatype generate --lang <言語>` で、型・検証・`endpoint` などを生成する。
 - 各言語には薄いランタイム（`c` = クライアント、`s` = サーバ）を用意する。
-- 対象言語: TS / Go / Python / Rust / Java / Kotlin / Swift / Ruby / C#（client + server。実装済み）、Dart（未実装）。
+- 対象言語: TS / JS / Go / Python / Rust / Java / Kotlin / Swift / Ruby / C#（client + server。実装済み）、Dart（未実装）。
 
 ## 2. ファイル構成
 
@@ -54,7 +54,7 @@ Comatype は、`.comat` ファイルで API の型を 1 回だけ書き、各言
 
 | 言語 | 既定のディレクトリ |
 |---|---|
-| TS | `comatype` |
+| TS / JS | `comatype` |
 | Go | `comatype` |
 | Python / Ruby | `comatype_gen` |
 | Rust | `src/comatype_gen` |
@@ -541,6 +541,7 @@ s.init({ wrappers: { auth } })
 | Swift ジェネレータ・ランタイム | `crates/comatype-gen-swift`、`packages/swift` | 済（Foundation のみ。クライアントは async、サーバは async ハンドラ + POSIX ソケットの HTTP/1.1 サーバ（keep-alive・チャンク対応）。`swift run comatype-selftest`、`scripts/e2e-swift.sh`） |
 | Ruby ジェネレータ・ランタイム | `crates/comatype-gen-ruby`、`packages/ruby` | 済（標準ライブラリのみ。サーバは Rack 互換 + 簡易サーバ。要 Ruby 3.1 以上。`ruby packages/ruby/test/comatype_test.rb`、`scripts/e2e-ruby.sh`） |
 | C# ジェネレータ・ランタイム | `crates/comatype-gen-csharp`、`packages/csharp` | 済（標準ライブラリのみ。record・sealed な record の階層。クライアントは `HttpClient` の async、サーバは async / 同期のハンドラ + `HttpListener`。要 .NET 8 以上。`scripts/e2e-csharp.sh`） |
+| JavaScript ジェネレータ・ランタイム | `crates/comatype-gen-ts`（`generate_js`）、`packages/javascript` | 済（`--lang js`。値の `.js`（ES モジュール）と型の `.d.ts` を出す。ランタイムは `packages/typescript/src` を JS にビルドした `@comatype/javascript`。`scripts/e2e-js.sh`） |
 
 ```bash
 cargo run -p comatype-cli -- check --config usage

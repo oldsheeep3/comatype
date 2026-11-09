@@ -15,7 +15,7 @@ An error says **where** it is wrong.
 
 | Language | Type | Location |
 |---|---|---|
-| TypeScript | `ValidationError` | `path` (`body.email`, `params.id`, `tags[0]`) |
+| TypeScript / JavaScript | `ValidationError` | `path` (`body.email`, `params.id`, `tags[0]`) |
 | Go | `*comatype.ValidationError` | `Path` |
 | Python | `ComatypeValidationError` | `path` |
 | Rust | `comatype::Error::Validation(ValidationError)` | `path` |

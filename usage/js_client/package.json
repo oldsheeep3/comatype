@@ -1,0 +1,9 @@
+{
+  "name": "usage-js-client",
+  "private": true,
+  "type": "module",
+  "description": "Comatype usage sample (JavaScript). The runtime is not published to npm yet, so it is a local link",
+  "dependencies": {
+    "@comatype/javascript": "link:../../packages/javascript"
+  }
+}

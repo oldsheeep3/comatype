@@ -86,6 +86,18 @@ jobs:
           cd packages/typescript
           pnpm run build
           npm publish --access public --provenance
+      - name: Publish @comatype/javascript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if npm view "@comatype/javascript@$V" version >/dev/null 2>&1; then
+            echo "@comatype/javascript@$V is already published"
+            exit 0
+          fi
+          cd packages/javascript
+          pnpm run build
+          npm publish --access public --provenance
 
   go:
     # The Go module proxy serves tags: `packages/go/vX.Y.Z` is created by the tag job. Warm the proxy so the version is available right away.

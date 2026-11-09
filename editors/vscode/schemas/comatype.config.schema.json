@@ -46,7 +46,7 @@
       "additionalProperties": false,
       "properties": {
         "lang": {
-          "enum": ["ts", "go", "python", "rust", "java", "kotlin", "swift", "ruby", "csharp", "dart"],
+          "enum": ["ts", "js", "go", "python", "rust", "java", "kotlin", "swift", "ruby", "csharp", "dart"],
           "description": "Language to generate. `dart` is accepted but generating it is not supported yet."
         },
         "role": {
@@ -60,7 +60,7 @@
         },
         "out": {
           "type": "string",
-          "description": "Output location under root. Defaults per language: ts/go `comatype`, python/ruby `comatype_gen`, rust `src/comatype_gen`, java `src/main/java/comatype/gen`, kotlin `src/main/kotlin/comatype/gen`, swift `Sources/ComatypeGen`, csharp `ComatypeGen`, dart `lib/comatype_gen`."
+          "description": "Output location under root. Defaults per language: ts/js/go `comatype`, python/ruby `comatype_gen`, rust `src/comatype_gen`, java `src/main/java/comatype/gen`, kotlin `src/main/kotlin/comatype/gen`, swift `Sources/ComatypeGen`, csharp `ComatypeGen`, dart `lib/comatype_gen`."
         },
         "importPath": {
           "type": "string",
