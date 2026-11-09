@@ -22,7 +22,11 @@ export function SidebarNav({ groups }: { groups: SidebarGroup[] }) {
             <ul>
               {g.items.map((it) => (
                 <li key={it.href}>
-                  <Link href={withLocale(locale, it.href)} className={pathname === it.href ? 'active' : ''} aria-current={pathname === it.href ? 'page' : undefined}>
+                  <Link
+                    href={withLocale(locale, it.href)}
+                    className={pathname === it.href ? 'active' : ''}
+                    aria-current={pathname === it.href ? 'page' : undefined}
+                  >
                     {it.text[locale]}
                   </Link>
                 </li>

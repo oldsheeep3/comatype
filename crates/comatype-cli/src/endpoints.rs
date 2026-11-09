@@ -43,7 +43,8 @@ pub fn fmt_type(t: &Type) -> String {
 }
 
 fn fmt_fields(fields: &[Field]) -> String {
-    let inner: Vec<String> = fields.iter().map(|f| format!("{}{}: {}", f.name, if f.optional { "?" } else { "" }, fmt_type(&f.ty))).collect();
+    let inner: Vec<String> =
+        fields.iter().map(|f| format!("{}{}: {}", f.name, if f.optional { "?" } else { "" }, fmt_type(&f.ty))).collect();
     format!("{{ {} }}", inner.join(", "))
 }
 
@@ -70,7 +71,7 @@ fn details(e: &Endpoint) -> Vec<String> {
             None => format!("{} none", r.status),
         })
         .collect();
-    out.push(format!("→       {}", res.join(" | ")));
+    out.push(format!("->      {}", res.join(" | ")));
     let mut flags = Vec::new();
     if !e.wraps.is_empty() {
         flags.push(format!("wrap {}", e.wraps.join(" > ")));
@@ -92,7 +93,7 @@ fn details(e: &Endpoint) -> Vec<String> {
 
 fn group_label(wraps: &[String]) -> String {
     if wraps.is_empty() {
-        "wrap なし".to_string()
+        "no wrap".to_string()
     } else {
         format!("wrap: {}", wraps.join(" > "))
     }
@@ -110,7 +111,12 @@ pub fn render(ir_name: &str, endpoints: &[Endpoint], opts: &Options, multi: bool
     let color_of: BTreeMap<Vec<String>, Option<&str>> = keys
         .iter()
         .enumerate()
-        .map(|(i, k)| (k.clone(), if k.is_empty() { None } else { Some(PALETTE[(i.saturating_sub(usize::from(keys[0].is_empty()))) % PALETTE.len()]) }))
+        .map(|(i, k)| {
+            (
+                k.clone(),
+                if k.is_empty() { None } else { Some(PALETTE[(i.saturating_sub(usize::from(keys[0].is_empty()))) % PALETTE.len()]) },
+            )
+        })
         .collect();
 
     // Color of an intermediate path segment: among the endpoints below that segment, the most common wrap set (the earlier one in order on a tie). The last segment uses the endpoint's own wrap
@@ -170,7 +176,7 @@ pub fn render(ir_name: &str, endpoints: &[Endpoint], opts: &Options, multi: bool
     if opts.group {
         for k in &keys {
             let color = color_of.get(k).copied().flatten();
-            out.push_str(&format!("{}\n", paint(&format!("── {} ──", group_label(k)), color, opts.color)));
+            out.push_str(&format!("{}\n", paint(&format!("-- {} --", group_label(k)), color, opts.color)));
             for e in eps.iter().filter(|e| &e.wraps == k) {
                 emit(e, &mut out);
             }
@@ -183,7 +189,7 @@ pub fn render(ir_name: &str, endpoints: &[Endpoint], opts: &Options, multi: bool
         if opts.color && keys.iter().any(|k| !k.is_empty()) {
             out.push('\n');
             for k in &keys {
-                out.push_str(&format!("{} {}\n", paint("■", color_of.get(k).copied().flatten(), true), group_label(k)));
+                out.push_str(&format!("{} {}\n", paint("#", color_of.get(k).copied().flatten(), true), group_label(k)));
             }
         }
     }

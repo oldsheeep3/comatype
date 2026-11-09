@@ -118,7 +118,7 @@ impl CookieJar {
     pub fn get(&self, path: &str) -> BTreeMap<String, String> {
         let mut m = self.m.lock().unwrap();
         let now = Instant::now();
-        m.retain(|_, c| c.expires.map_or(true, |e| e > now));
+        m.retain(|_, c| c.expires.is_none_or(|e| e > now));
         m.iter()
             .filter(|(_, c)| {
                 let prefix = if c.path.ends_with('/') { c.path.clone() } else { format!("{}/", c.path) };
@@ -137,7 +137,8 @@ impl CookieJar {
             if name.is_empty() {
                 continue;
             }
-            let mut c = Stored { value: percent_decode(value, false).unwrap_or_else(|| value.to_string()), path: "/".into(), expires: None };
+            let mut c =
+                Stored { value: percent_decode(value, false).unwrap_or_else(|| value.to_string()), path: "/".into(), expires: None };
             let mut max_age: Option<i64> = None;
             for a in segs {
                 let (k, v) = a.trim().split_once('=').unwrap_or((a.trim(), ""));

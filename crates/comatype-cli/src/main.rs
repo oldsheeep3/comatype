@@ -9,34 +9,34 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 const USAGE: &str = "\
-使い方: comatype <コマンド> [オプション]
+Usage: comatype <command> [options]
 
-コマンド:
-  check [分野]     .comat を検査する（エラーがあれば終了コード 1）。分野: cache / path / wrap / cookie / status / import / type / all
-  format [dir]     ディレクトリ・ファイル名を推奨の書き方に直す（既定は提案だけ。--fix で直す、-y で確かめずに全部。直すものがあれば終了コード 1）
-  endpoints        エンドポイントを `GET /path` の形で列挙する（wrap ごとに path を色分け。-a: 型なども、-g: wrap ごとに区切る）
-  ir               検査して IR（JSON）を出力する
-  generate         targets に従ってコードを生成する（ts / go / python）
-  to-openapi       .comat から OpenAPI 3（YAML）を作る（-o で出力先。既定は標準出力）
-  from-openapi <file>  OpenAPI 3（YAML / JSON）から .comat と comatype.config.json を作る
-                   （--out DIR、--target lang:role:root を繰り返す、--generate で続けてコード生成、--force で上書き）
-  statuses         使えるステータスコードの一覧（--snippets: VS Code のスニペット、--json: JSON）
-  lsp              言語サーバ（LSP）を標準入出力で起動する（エディタ用）
-  parse <file>     1 ファイルを構文解析して AST（JSON）を出力する
+Commands:
+  check [topic]    check the .comat files (exit code 1 on errors). Topics: cache / path / wrap / cookie / status / import / type / all
+  format [dir]     rewrite directory and file names to the recommended layout (only proposes by default; --fix applies, -y applies without asking; exit code 1 if anything needs fixing)
+  endpoints        list the endpoints as `GET /path` (paths are colored per wrap; -a: also types etc., -g: group by wrap)
+  ir               check and print the IR (JSON)
+  generate         generate code for the targets in the config (ts / go / python / ...)
+  to-openapi       make OpenAPI 3 (YAML) from the .comat files (-o sets the output; default is stdout)
+  from-openapi <file>  make .comat files and comatype.config.json from OpenAPI 3 (YAML / JSON)
+                   (--out DIR, repeat --target lang:role:root, --generate also generates code, --force overwrites)
+  statuses         list the usable status codes (--snippets: VS Code snippets, --json: JSON)
+  lsp              run the language server (LSP) over stdin/stdout (for editors)
+  parse <file>     parse one file and print the AST (JSON)
 
-オプション:
-  --config <path>  comatype.config.json（またはそのディレクトリ）。既定は ./comatype.config.json
-  --service <名前> 対象の service。既定は全部
-  -o <file>        ir の出力先。既定は標準出力
-  --lang <言語>    generate の対象言語を絞る
-  --role <役割>    generate の対象を client / server に絞る
-  --snippets       statuses をスニペット(JSON)で出力する
-  --json           statuses を JSON で出力する
-  --dry-run        generate で、書かずに出力先だけ表示する
-  --fix, -y        format で、直す / 確かめずに直す
-  -a, --all        endpoints で、メソッドに加えて型・wrap・cache なども出す
-  -g, --group      endpoints で、wrap（順番も含めて完全一致）ごとに区切る
-  --color / --no-color  endpoints の色分け（既定は、端末のときだけ色を付ける）
+Options:
+  --config <path>  comatype.config.json (or its directory). Default: ./comatype.config.json
+  --service <name> the service to use. Default: all
+  -o <file>        output file of ir. Default: stdout
+  --lang <lang>    restrict generate to one language
+  --role <role>    restrict generate to client / server
+  --snippets       print statuses as snippets (JSON)
+  --json           print statuses as JSON
+  --dry-run        with generate, only show the output paths without writing
+  --fix, -y        with format: apply / apply without asking
+  -a, --all        with endpoints: also print types, wrap, cache and so on besides the methods
+  -g, --group      with endpoints: separate by wrap (exact match including order)
+  --color / --no-color  colors of endpoints (default: colors only on a terminal)
 ";
 
 struct Args {
@@ -62,18 +62,37 @@ struct Args {
 
 fn parse_args() -> Result<Args, String> {
     let mut it = std::env::args().skip(1);
-    let cmd = it.next().ok_or("コマンドがありません")?;
-    let mut a = Args { cmd, positional: vec![], config: PathBuf::from("comatype.config.json"), service: None, out: None, lang: None, role: None, dry_run: false, snippets: false, json: false, targets: vec![], force: false, generate: false, all: false, group: false, fix: false, yes: false, color: None };
+    let cmd = it.next().ok_or("missing command")?;
+    let mut a = Args {
+        cmd,
+        positional: vec![],
+        config: PathBuf::from("comatype.config.json"),
+        service: None,
+        out: None,
+        lang: None,
+        role: None,
+        dry_run: false,
+        snippets: false,
+        json: false,
+        targets: vec![],
+        force: false,
+        generate: false,
+        all: false,
+        group: false,
+        fix: false,
+        yes: false,
+        color: None,
+    };
     while let Some(x) = it.next() {
         match x.as_str() {
-            "--config" => a.config = it.next().ok_or("--config に値がありません")?.into(),
-            "--service" => a.service = Some(it.next().ok_or("--service に値がありません")?),
-            "--lang" => a.lang = Some(it.next().ok_or("--lang に値がありません")?),
-            "--role" => a.role = Some(it.next().ok_or("--role に値がありません")?),
+            "--config" => a.config = it.next().ok_or("--config needs a value")?.into(),
+            "--service" => a.service = Some(it.next().ok_or("--service needs a value")?),
+            "--lang" => a.lang = Some(it.next().ok_or("--lang needs a value")?),
+            "--role" => a.role = Some(it.next().ok_or("--role needs a value")?),
             "--dry-run" => a.dry_run = true,
             "--snippets" => a.snippets = true,
-            "--out" => a.out = Some(it.next().ok_or("--out に値がありません")?.into()),
-            "--target" => a.targets.push(it.next().ok_or("--target に値がありません")?),
+            "--out" => a.out = Some(it.next().ok_or("--out needs a value")?.into()),
+            "--target" => a.targets.push(it.next().ok_or("--target needs a value")?),
             "--force" => a.force = true,
             "--generate" => a.generate = true,
             "--json" => a.json = true,
@@ -83,8 +102,8 @@ fn parse_args() -> Result<Args, String> {
             "--group" | "-g" => a.group = true,
             "--color" => a.color = Some(true),
             "--no-color" => a.color = Some(false),
-            "-o" => a.out = Some(it.next().ok_or("-o に値がありません")?.into()),
-            s if s.starts_with('-') => return Err(format!("未知のオプション {s}")),
+            "-o" => a.out = Some(it.next().ok_or("-o needs a value")?.into()),
+            s if s.starts_with('-') => return Err(format!("unknown option {s}")),
             _ => a.positional.push(x),
         }
     }
@@ -104,14 +123,17 @@ pub fn main() -> ExitCode {
         "format" => {
             // dirpath is a directory containing `.comat` files (comatDir), or a directory containing comatype.config.json (all comatDirs of its services). If omitted, the config's comatDir
             let mut dirs: Vec<PathBuf> = Vec::new();
-            let targets: Vec<PathBuf> = if args.positional.is_empty() { vec![args.config.clone()] } else { args.positional.iter().map(PathBuf::from).collect() };
+            let targets: Vec<PathBuf> =
+                if args.positional.is_empty() { vec![args.config.clone()] } else { args.positional.iter().map(PathBuf::from).collect() };
             for t in targets {
                 let cfg = if t.is_dir() { t.join("comatype.config.json") } else { t.clone() };
                 if cfg.is_file() {
                     match config::load(&cfg) {
-                        Ok((c, base)) => dirs.extend(c.services.values().map(|s| base.join(&s.comat_dir).components().collect::<PathBuf>())),
+                        Ok((c, base)) => {
+                            dirs.extend(c.services.values().map(|s| base.join(&s.comat_dir).components().collect::<PathBuf>()))
+                        }
                         Err(d) => {
-                            d.iter().for_each(|d| report::print(d));
+                            d.iter().for_each(report::print);
                             return ExitCode::from(1);
                         }
                     }
@@ -125,10 +147,10 @@ pub fn main() -> ExitCode {
             let res = project::check_config(&args.config, args.service.as_deref());
             let errors = res.diagnostics.iter().filter(|d| d.severity == Severity::Error).count();
             for d in res.diagnostics.iter().filter(|d| d.severity == Severity::Error) {
-                report::print(&d);
+                report::print(d);
             }
             let Some(ir) = res.ir else {
-                eprintln!("エラー {errors} 件があるので、エンドポイントを列挙できません（`comatype check` で確かめてください）");
+                eprintln!("cannot list the endpoints because there are {errors} error(s) (run `comatype check`)");
                 return ExitCode::from(1);
             };
             use std::io::IsTerminal;
@@ -140,23 +162,23 @@ pub fn main() -> ExitCode {
         "check" | "ir" => {
             let res = project::check_config(&args.config, args.service.as_deref());
             for d in &res.diagnostics {
-                report::print(&d);
+                report::print(d);
             }
             let errors = res.diagnostics.iter().filter(|d| d.severity == Severity::Error).count();
             let warnings = res.diagnostics.len() - errors;
             let Some(ir) = res.ir else {
-                report::error(&format!("エラー {errors} 件、警告 {warnings} 件"));
+                report::error(&format!("{errors} error(s), {warnings} warning(s)"));
                 return ExitCode::from(1);
             };
             if args.cmd == "check" {
                 let eps: usize = ir.services.values().map(|s| s.endpoints.len()).sum();
-                report::info(&format!("OK: エンドポイント {eps} 件、警告 {warnings} 件"));
+                report::info(&format!("OK: {eps} endpoint(s), {warnings} warning(s)"));
             } else {
                 let json = serde_json::to_string_pretty(&ir).unwrap();
                 match &args.out {
                     Some(p) => {
                         if let Err(e) = std::fs::write(p, json + "\n") {
-                            eprintln!("書けません: {e}");
+                            eprintln!("cannot write: {e}");
                             return ExitCode::from(1);
                         }
                     }
@@ -183,7 +205,7 @@ pub fn main() -> ExitCode {
         }
         "parse" => {
             let Some(file) = args.positional.first() else {
-                eprintln!("ファイルを指定してください\n\n{USAGE}");
+                eprintln!("specify a file\n\n{USAGE}");
                 return ExitCode::from(2);
             };
             match project::parse_only(file.as_ref()) {
@@ -202,7 +224,7 @@ pub fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         other => {
-            eprintln!("未知のコマンド {other}\n\n{USAGE}");
+            eprintln!("unknown command {other}\n\n{USAGE}");
             ExitCode::from(2)
         }
     }
@@ -210,13 +232,13 @@ pub fn main() -> ExitCode {
 
 /// Topics that `comatype check <topic>` can filter by
 const TOPICS: &[(&str, &str)] = &[
-    ("cache", "cache の指定（get / query だけ、defaults / init では無視、wrap との組み合わせ）"),
-    ("path", "path の導出・重複・動的セグメント"),
-    ("wrap", "wrap と wrapper の宣言（宣言の有無、使われていない wrapper）"),
-    ("cookie", "cookie と init.comat の cookie の宣言"),
-    ("status", "ステータスコードと本文の型"),
-    ("import", "import（未使用、解決できない）"),
-    ("type", "型・制約・ヘッダ（上のどれでもないもの）"),
+    ("cache", "cache settings (get / query only, ignored in defaults / init, combination with wrap)"),
+    ("path", "path derivation, duplicates, dynamic segments"),
+    ("wrap", "wrap and wrapper declarations (missing declarations, unused wrappers)"),
+    ("cookie", "cookie and the cookie declaration in init.comat"),
+    ("status", "status codes and body types"),
+    ("import", "import (unused, unresolved)"),
+    ("type", "types, constraints, headers (anything not above)"),
 ];
 
 /// Which topic a diagnostic belongs to (decided from the message)
@@ -224,13 +246,13 @@ fn topic_of(msg: &str) -> &'static str {
     let m = msg.to_lowercase();
     if m.contains("cache") {
         "cache"
-    } else if m.contains("wrap") || m.contains("ラッパー") {
+    } else if m.contains("wrap") {
         "wrap"
     } else if m.contains("cookie") {
         "cookie"
-    } else if m.contains("path") || m.contains("パス") || m.contains("重複") || m.contains("モジュール名") {
+    } else if m.contains("path") || m.contains("duplicate") || m.contains("module name") {
         "path"
-    } else if m.contains("ステータス") || m.contains(" s2") || m.contains(" s4") || m.contains(" s5") || m.contains("status") {
+    } else if m.contains(" s2") || m.contains(" s4") || m.contains(" s5") || m.contains("status") {
         "status"
     } else if m.contains("import") {
         "import"
@@ -243,52 +265,56 @@ fn topic_of(msg: &str) -> &'static str {
 fn check_topic(args: &Args) -> ExitCode {
     let topic = args.positional[0].as_str();
     if topic != "all" && !TOPICS.iter().any(|(t, _)| *t == topic) {
-        eprintln!("未知の分野 `{topic}`。使える分野:");
+        eprintln!("unknown topic `{topic}`. Available topics:");
         for (t, d) in TOPICS {
             eprintln!("  {t:<7} {d}");
         }
-        eprintln!("  all     全部");
+        eprintln!("  all     everything");
         return ExitCode::from(2);
     }
     let res = project::check_config(&args.config, args.service.as_deref());
     let picked: Vec<_> = res.diagnostics.iter().filter(|d| topic == "all" || topic_of(&d.message) == topic).collect();
     for d in &picked {
-        report::print(&d);
+        report::print(d);
     }
     let errors = picked.iter().filter(|d| d.severity == Severity::Error).count();
     // If there is an error outside the chosen topic and the IR cannot be built, the check has not been done
     let other_errors = res.diagnostics.iter().filter(|d| d.severity == Severity::Error).count() - errors;
     if other_errors > 0 {
-        report::info(&format!("{topic} 以外にエラーが {other_errors} 件あります。`comatype check` で全体を見てください"));
+        report::info(&format!("there are {other_errors} error(s) outside {topic}; run `comatype check` to see all of them"));
     }
     if errors > 0 {
-        report::error(&format!("{topic}: エラー {errors} 件、警告 {} 件", picked.len() - errors));
+        report::error(&format!("{topic}: {errors} error(s), {} warning(s)", picked.len() - errors));
     } else {
-        report::info(&format!("{topic}: エラー 0 件、警告 {} 件", picked.len()));
+        report::info(&format!("{topic}: 0 error(s), {} warning(s)", picked.len()));
     }
-    if errors > 0 || (res.ir.is_none() && other_errors > 0) { ExitCode::from(1) } else { ExitCode::SUCCESS }
+    if errors > 0 || (res.ir.is_none() && other_errors > 0) {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn generate(args: &Args) -> ExitCode {
     let res = project::check_config(&args.config, args.service.as_deref());
     for d in &res.diagnostics {
-        report::print(&d);
+        report::print(d);
     }
     let Some(ir) = res.ir else {
-        report::error("エラーがあるので生成しません");
+        report::error("not generating because there are errors");
         return ExitCode::from(1);
     };
     let (cfg, base) = match config::load(&args.config) {
         Ok(v) => v,
         Err(d) => {
-            d.iter().for_each(|d| report::print(&d));
+            d.iter().for_each(report::print);
             return ExitCode::from(1);
         }
     };
     let mut written = 0;
     for (name, svc) in &ir.services {
         for target in &cfg.services[name].targets {
-            if args.lang.as_deref().map_or(false, |l| l != target.lang) || args.role.as_deref().map_or(false, |r| r != target.role) {
+            if args.lang.as_deref().is_some_and(|l| l != target.lang) || args.role.as_deref().is_some_and(|r| r != target.role) {
                 continue;
             }
             let out = base.join(config::resolve_out(&cfg, name, target));
@@ -297,7 +323,8 @@ fn generate(args: &Args) -> ExitCode {
                 "go" => {
                     let role = if target.role == "client" { comatype_gen_go::Role::Client } else { comatype_gen_go::Role::Server };
                     match go_import_path(target, &out) {
-                        Ok(ip) => comatype_gen_go::generate(svc, role, &ip).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>()),
+                        Ok(ip) => comatype_gen_go::generate(svc, role, &ip)
+                            .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>()),
                         Err(e) => Err(e),
                     }
                 }
@@ -307,11 +334,13 @@ fn generate(args: &Args) -> ExitCode {
                 }
                 "java" => {
                     let role = if target.role == "client" { comatype_gen_java::Role::Client } else { comatype_gen_java::Role::Server };
-                    comatype_gen_java::generate(svc, role, &jvm_package(target, &out)).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
+                    comatype_gen_java::generate(svc, role, &jvm_package(target, &out))
+                        .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
                 }
                 "kotlin" => {
                     let role = if target.role == "client" { comatype_gen_kotlin::Role::Client } else { comatype_gen_kotlin::Role::Server };
-                    comatype_gen_kotlin::generate(svc, role, &jvm_package(target, &out)).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
+                    comatype_gen_kotlin::generate(svc, role, &jvm_package(target, &out))
+                        .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
                 }
                 "swift" => {
                     let role = if target.role == "client" { comatype_gen_swift::Role::Client } else { comatype_gen_swift::Role::Server };
@@ -326,7 +355,7 @@ fn generate(args: &Args) -> ExitCode {
                     comatype_gen_rust::generate(svc, role).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
                 }
                 other => {
-                    eprintln!("skip: {name} {other} {}（未対応の言語）", target.role);
+                    eprintln!("skip: {name} {other} {}(unsupported language)", target.role);
                     continue;
                 }
             };
@@ -358,7 +387,7 @@ fn generate(args: &Args) -> ExitCode {
             if target.lang == "rust" && !args.dry_run {
                 // Format with rustfmt if available (otherwise leave as is)
                 if let Ok(rd) = std::fs::read_dir(&out) {
-                    for e in rd.flatten().filter(|e| e.path().extension().map_or(false, |x| x == "rs")) {
+                    for e in rd.flatten().filter(|e| e.path().extension().is_some_and(|x| x == "rs")) {
                         let _ = std::process::Command::new("rustfmt").args(["--edition", "2021"]).arg(e.path()).status();
                     }
                 }
@@ -370,7 +399,7 @@ fn generate(args: &Args) -> ExitCode {
         }
     }
     if !args.dry_run {
-        eprintln!("生成: {written} ファイル");
+        eprintln!("generated: {written} file(s)");
     }
     ExitCode::SUCCESS
 }
@@ -411,7 +440,7 @@ fn go_import_path(target: &config::Target, out: &std::path::Path) -> Result<Stri
             let module = text
                 .lines()
                 .find_map(|l| l.trim().strip_prefix("module ").map(|m| m.trim().trim_matches('"').to_string()))
-                .ok_or_else(|| format!("{} に module の行がありません", gomod.display()))?;
+                .ok_or_else(|| format!("{} has no module line", gomod.display()))?;
             let rel = out.strip_prefix(d).map_err(|e| e.to_string())?;
             let rel = rel.to_string_lossy().replace('\\', "/");
             return Ok(if rel.is_empty() { module } else { format!("{module}/{rel}") });
@@ -419,7 +448,7 @@ fn go_import_path(target: &config::Target, out: &std::path::Path) -> Result<Stri
         cur = d.parent();
     }
     Err(format!(
-        "{} の import path を決められません（root から上に go.mod が無いので、comatype.config.json の target に \"importPath\": \"example.com/app/comatype\" を書いてください）",
+        "cannot decide the import path of {} (there is no go.mod above root; write \"importPath\": \"example.com/app/comatype\" in the target of comatype.config.json)",
         out.display()
     ))
 }
@@ -438,7 +467,7 @@ fn statuses(args: &Args) -> ExitCode {
                     }
                 }
             }
-            Err(d) => d.iter().for_each(|d| report::print(&d)),
+            Err(d) => d.iter().for_each(report::print),
         }
     }
     if args.snippets {
@@ -468,7 +497,11 @@ fn statuses(args: &Args) -> ExitCode {
         println!("{}", serde_json::to_string_pretty(&list).unwrap());
     } else {
         for (c, m) in &table {
-            println!("s{c}  {m}{}{}", if status::no_body(*c) { "  （本文なし）" } else { "" }, if custom.contains(c) { "  （追加）" } else { "" });
+            println!(
+                "s{c}  {m}{}{}",
+                if status::no_body(*c) { "  (no body)" } else { "" },
+                if custom.contains(c) { "  (added)" } else { "" }
+            );
         }
     }
     ExitCode::SUCCESS
@@ -478,26 +511,30 @@ fn statuses(args: &Args) -> ExitCode {
 fn to_openapi(args: &Args) -> ExitCode {
     let res = project::check_config(&args.config, args.service.as_deref());
     for d in &res.diagnostics {
-        report::print(&d);
+        report::print(d);
     }
     let Some(ir) = res.ir else {
-        eprintln!("エラーがあるので出力しません");
+        eprintln!("not writing the output because there are errors");
         return ExitCode::from(1);
     };
     let (cfg, _) = match config::load(&args.config) {
         Ok(v) => v,
         Err(d) => {
-            d.iter().for_each(|d| report::print(&d));
+            d.iter().for_each(report::print);
             return ExitCode::from(1);
         }
     };
     if ir.services.len() != 1 {
-        eprintln!("service が {} 個あります（--service で 1 つ選んでください: {}）", ir.services.len(), ir.services.keys().cloned().collect::<Vec<_>>().join(", "));
+        eprintln!(
+            "there are {} services (choose one with --service: {})",
+            ir.services.len(),
+            ir.services.keys().cloned().collect::<Vec<_>>().join(", ")
+        );
         return ExitCode::from(2);
     }
     let (name, svc) = ir.services.iter().next().unwrap();
     let doc = comatype_openapi::export(name, svc, &cfg.status_table());
-    let text = if args.out.as_ref().map_or(false, |p| p.extension().map_or(false, |e| e == "json")) {
+    let text = if args.out.as_ref().is_some_and(|p| p.extension().is_some_and(|e| e == "json")) {
         serde_json::to_string_pretty(&doc).unwrap() + "\n"
     } else {
         comatype_openapi::to_yaml(&doc)
@@ -505,10 +542,10 @@ fn to_openapi(args: &Args) -> ExitCode {
     match &args.out {
         Some(p) => {
             if let Err(e) = std::fs::write(p, text) {
-                eprintln!("書けません: {e}");
+                eprintln!("cannot write: {e}");
                 return ExitCode::from(1);
             }
-            eprintln!("OpenAPI を書きました: {}", p.display());
+            eprintln!("wrote OpenAPI: {}", p.display());
         }
         None => print!("{text}"),
     }
@@ -518,13 +555,13 @@ fn to_openapi(args: &Args) -> ExitCode {
 /// OpenAPI → .comat (and the config file). With --generate, also generates code right away
 fn from_openapi(args: &Args) -> ExitCode {
     let Some(file) = args.positional.first() else {
-        eprintln!("OpenAPI のファイルを指定してください\n\n{USAGE}");
+        eprintln!("specify an OpenAPI file\n\n{USAGE}");
         return ExitCode::from(2);
     };
     let text = match std::fs::read_to_string(file) {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("読めません: {file}: {e}");
+            eprintln!("cannot read: {file}: {e}");
             return ExitCode::from(1);
         }
     };
@@ -545,14 +582,14 @@ fn from_openapi(args: &Args) -> ExitCode {
     let out_dir = args.out.clone().unwrap_or_else(|| PathBuf::from("."));
     let config_path = out_dir.join("comatype.config.json");
     if !args.force && (out_dir.join("comatfiles").exists() || config_path.exists()) {
-        eprintln!("{} に comatfiles か comatype.config.json が既にあります（--force で上書き）", out_dir.display());
+        eprintln!("{} already has comatfiles or comatype.config.json (--force overwrites)", out_dir.display());
         return ExitCode::from(1);
     }
     let mut targets = Vec::new();
     for t in &args.targets {
         let parts: Vec<&str> = t.splitn(3, ':').collect();
         if parts.len() != 3 || !["client", "server"].contains(&parts[1]) {
-            eprintln!("--target は lang:role:root の形で書いてください（例: ts:client:./client）: {t}");
+            eprintln!("--target must be written as lang:role:root (for example ts:client:./client): {t}");
             return ExitCode::from(2);
         }
         targets.push(serde_json::json!({"lang": parts[0], "role": parts[1], "root": parts[2]}));
@@ -567,39 +604,63 @@ fn from_openapi(args: &Args) -> ExitCode {
         let path = out_dir.join(rel);
         if let Some(dir) = path.parent() {
             if let Err(e) = std::fs::create_dir_all(dir) {
-                eprintln!("作れません: {}: {e}", dir.display());
+                eprintln!("cannot create: {}: {e}", dir.display());
                 return ExitCode::from(1);
             }
         }
         if let Err(e) = std::fs::write(&path, content) {
-            eprintln!("書けません: {}: {e}", path.display());
+            eprintln!("cannot write: {}: {e}", path.display());
             return ExitCode::from(1);
         }
     }
     if let Err(e) = std::fs::write(&config_path, serde_json::to_string_pretty(&cfg).unwrap() + "\n") {
-        eprintln!("書けません: {}: {e}", config_path.display());
+        eprintln!("cannot write: {}: {e}", config_path.display());
         return ExitCode::from(1);
     }
     for w in &imported.warnings {
         eprintln!("warning: {w}");
     }
-    eprintln!("{} 個のファイルと {} を書きました（追加のステータスコード {} 件）", imported.files.len(), config_path.display(), imported.additional_status_codes.len());
+    eprintln!(
+        "wrote {} file(s) and {} ({} additional status code(s))",
+        imported.files.len(),
+        config_path.display(),
+        imported.additional_status_codes.len()
+    );
 
     // Whether what was written passes the check
     let res = project::check_config(&config_path, None);
     for d in &res.diagnostics {
-        report::print(&d);
+        report::print(d);
     }
     if res.ir.is_none() {
-        eprintln!("生成した .comat に、エラーがあります（上の診断を見てください）");
+        eprintln!("the generated .comat files have errors (see the diagnostics above)");
         return ExitCode::from(1);
     }
     if args.generate {
         if args.targets.is_empty() {
-            eprintln!("--generate には、--target lang:role:root が要ります（例: --target ts:client:./client）");
+            eprintln!("--generate needs --target lang:role:root (for example --target ts:client:./client)");
             return ExitCode::from(2);
         }
-        let gen_args = Args { cmd: "generate".into(), positional: vec![], config: config_path, service: None, out: None, lang: None, role: None, dry_run: false, snippets: false, json: false, targets: vec![], force: false, generate: false, all: false, group: false, fix: false, yes: false, color: None };
+        let gen_args = Args {
+            cmd: "generate".into(),
+            positional: vec![],
+            config: config_path,
+            service: None,
+            out: None,
+            lang: None,
+            role: None,
+            dry_run: false,
+            snippets: false,
+            json: false,
+            targets: vec![],
+            force: false,
+            generate: false,
+            all: false,
+            group: false,
+            fix: false,
+            yes: false,
+            color: None,
+        };
         return generate(&gen_args);
     }
     ExitCode::SUCCESS

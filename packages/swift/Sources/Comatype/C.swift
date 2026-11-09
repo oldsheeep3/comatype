@@ -1,6 +1,7 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 /// Client. Call it like `try await C.get(Endpoint, arg)`.
@@ -100,7 +101,8 @@ public enum C {
         for (k, v) in conf.headers where !raw.headers.contains(k) { raw.headers.set(k, v) }
         if !raw.headers.contains("Accept") { raw.headers.set("Accept", "application/json") }
         if ep.cookie, let jar = conf.cookieJar {
-            for (k, v) in jar.get(raw.path) where !k.hasPrefix(ResponseCache.cookiePrefix) { raw.cookies[k] = v } // Do not send cache cookies back
+            // Do not send cache cookies back
+            for (k, v) in jar.get(raw.path) where !k.hasPrefix(ResponseCache.cookiePrefix) { raw.cookies[k] = v }
         }
         let resp = try await run(chain, 0, raw) { try await transport(ep, conf, $0) }
         return try parse(resp)
@@ -120,21 +122,27 @@ public enum C {
         }
         while b.hasSuffix("/") { b.removeLast() }
         var url = b + r.path
-        if !r.query.isEmpty { url += "?" + r.query.map { "\(Wire.percentEncode($0.0))=\(Wire.percentEncode($0.1))" }.joined(separator: "&") }
+        if !r.query.isEmpty {
+            url += "?" + r.query.map { "\(Wire.percentEncode($0.0))=\(Wire.percentEncode($0.1))" }.joined(separator: "&")
+        }
         guard let u = URL(string: url) else { throw ComatypeError.config("URL が不正です: \(url)") }
         // Cache (GET / QUERY): memory or cookie. The key is method, URL, body and the declared request headers
         var cacheKey: String?
         if let spec = ep.cache, spec.memory || (spec.cookie && conf.cookieJar != nil) {
             let key = ResponseCache.clientKey(r.method, url, r.body, ep.cacheHeaders, r.headers)
             cacheKey = key
-            let hit = spec.memory ? cache.get(key) : conf.cookieJar?.get("/")[ResponseCache.cookieName(key)].flatMap { ResponseCache.decodeCookie($0) }
+            let hit =
+                spec.memory
+                ? cache.get(key) : conf.cookieJar?.get("/")[ResponseCache.cookieName(key)].flatMap { ResponseCache.decodeCookie($0) }
             if let hit = hit { return hit }
         }
         var req = URLRequest(url: u)
         req.httpMethod = r.method.uppercased()
         for (k, v) in r.headers.items { req.addValue(v, forHTTPHeaderField: k) }
         if !r.cookies.isEmpty, !r.headers.contains("Cookie") {
-            req.setValue(r.cookies.sorted { $0.key < $1.key }.map { "\($0.key)=\(Wire.percentEncode($0.value))" }.joined(separator: "; "), forHTTPHeaderField: "Cookie")
+            req.setValue(
+                r.cookies.sorted { $0.key < $1.key }.map { "\($0.key)=\(Wire.percentEncode($0.value))" }.joined(separator: "; "),
+                forHTTPHeaderField: "Cookie")
         }
         req.httpShouldHandleCookies = false
         if !r.body.isEmpty { req.httpBody = r.body }
@@ -160,7 +168,8 @@ public enum C {
                 cache.set(key, out, ttlMs: spec.ttlMs)
             } else if let jar = conf.cookieJar, let v = ResponseCache.encodeCookie(out) {
                 let name = ResponseCache.cookieName(key)
-                jar.store(["\(name)=\(v); Path=/; Max-Age=\(max(1, (spec.ttlMs + 999) / 1000))"]) // The cookie ttl is in seconds (rounded up)
+                // The cookie ttl is in seconds (rounded up)
+                jar.store(["\(name)=\(v); Path=/; Max-Age=\(max(1, (spec.ttlMs + 999) / 1000))"])
                 rememberCacheCookie(name)
             }
         }
@@ -175,7 +184,9 @@ public enum C {
         for (i, p) in parts.enumerated() {
             let t = p.trimmingCharacters(in: .whitespaces)
             // A new cookie starts if the line begins with `name=` (the `Wed` in the attribute `Expires=Wed` is preceded by `Expires=`)
-            let prevEndsWithExpires = cur.lowercased().hasSuffix("expires=") || cur.lowercased().range(of: "expires=[A-Za-z]{3}$", options: .regularExpression) != nil
+            let prevEndsWithExpires =
+                cur.lowercased().hasSuffix("expires=")
+                || cur.lowercased().range(of: "expires=[A-Za-z]{3}$", options: .regularExpression) != nil
             if i > 0, !prevEndsWithExpires, t.range(of: "^[^=;\\s]+=", options: .regularExpression) != nil {
                 out.append(cur.trimmingCharacters(in: .whitespaces))
                 cur = t
@@ -188,7 +199,9 @@ public enum C {
     }
 
     private static func setCookies(_ http: HTTPURLResponse, _ url: URL) -> [String] {
-        guard let sc = http.allHeaderFields.first(where: { ($0.key as? String)?.lowercased() == "set-cookie" })?.value as? String else { return [] }
+        guard let sc = http.allHeaderFields.first(where: { ($0.key as? String)?.lowercased() == "set-cookie" })?.value as? String else {
+            return []
+        }
         return splitSetCookie(sc)
     }
 }

@@ -61,7 +61,10 @@ module Comatype
         fail!(path, "time は HH:MM:SS の形式にしてください") unless s.match?(/\A([01]\d|2[0-3]):[0-5]\d:[0-5]\d\z/)
         s
       when :datetime
-        fail!(path, "datetime は RFC 3339 の形式にしてください") unless s.match?(/\A\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})\z/)
+        unless s.match?(/\A\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})\z/)
+          fail!(path,
+                "datetime は RFC 3339 の形式にしてください")
+        end
         begin
           Time.iso8601(s.upcase)
         rescue ArgumentError
@@ -123,7 +126,7 @@ module Comatype
       v =
         case kind
         when :bool
-          fail!(path, "真偽値にしてください（#{describe(j)} でした）") unless j == true || j == false
+          fail!(path, "真偽値にしてください（#{describe(j)} でした）") unless [true, false].include?(j)
           j
         when :int
           ok = j.is_a?(Integer) || (j.is_a?(Float) && j == j.floor && j.abs < 9e15)
@@ -181,7 +184,7 @@ module Comatype
     def validate_scalar(kind, constraint, v, path)
       case kind
       when :string then fail!(path, "文字列にしてください") unless v.is_a?(String)
-      when :bool then fail!(path, "真偽値にしてください") unless v == true || v == false
+      when :bool then fail!(path, "真偽値にしてください") unless [true, false].include?(v)
       when :int, :int64 then fail!(path, "整数にしてください") unless v.is_a?(Integer)
       when :date then fail!(path, "date は Date にしてください") unless v.is_a?(Date)
       when :datetime then fail!(path, "datetime は Time にしてください") unless v.is_a?(Time)

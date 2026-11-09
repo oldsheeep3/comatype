@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Literal, Optional
+from typing import Any, ClassVar, Literal
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from comatype import CookieDef, Endpoint, Status, scalars as sc
-from comatype import Cookie
+from comatype import Cookie, CookieDef, Endpoint, Status
+from comatype import scalars as sc
 
 
 class User(BaseModel):
@@ -19,8 +19,8 @@ class User(BaseModel):
     followers: sc.Int64
     uid: sc.Uuidv4
     created_at: sc.DateTime = Field(alias="createdAt")
-    nick: Optional[str] = Field(default=None, json_schema_extra={"omit_none": True})
-    deleted: Optional[str]  # nullable (required)
+    nick: str | None = Field(default=None, json_schema_extra={"omit_none": True})
+    deleted: str | None  # nullable (required)
 
 
 class ApiError(BaseModel):
@@ -32,20 +32,20 @@ class Params(BaseModel):
 
 
 class Search(BaseModel):
-    verbose: Optional[bool] = Field(default=None, json_schema_extra={"omit_none": True})
-    limit: Optional[int] = Field(default=None, json_schema_extra={"omit_none": True})
-    tag: Optional[list[str]] = Field(default=None, json_schema_extra={"omit_none": True})
+    verbose: bool | None = Field(default=None, json_schema_extra={"omit_none": True})
+    limit: int | None = Field(default=None, json_schema_extra={"omit_none": True})
+    tag: list[str] | None = Field(default=None, json_schema_extra={"omit_none": True})
 
 
 class ReqHeaders(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    x_n: Optional[int] = Field(default=None, alias="X-N", json_schema_extra={"omit_none": True})
+    x_n: int | None = Field(default=None, alias="X-N", json_schema_extra={"omit_none": True})
 
 
 class RespHeaders(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     allow: list[str] = Field(alias="Allow")
-    x_count: Optional[int] = Field(default=None, alias="X-Count", json_schema_extra={"omit_none": True})
+    x_count: int | None = Field(default=None, alias="X-Count", json_schema_extra={"omit_none": True})
 
 
 @dataclass(kw_only=True)
@@ -56,7 +56,7 @@ class S200(Status):
     _headers: ClassVar[Any] = RespHeaders
     Res = User
     Headers = RespHeaders
-    data: Optional[User] = None
+    data: User | None = None
     headers: RespHeaders
     cookie: str | Cookie | None = None
 
@@ -76,7 +76,7 @@ class S404(Status):
     _body: ClassVar[Any] = ApiError
     _headers: ClassVar[Any] = None
     Res = ApiError
-    error: Optional[ApiError] = None
+    error: ApiError | None = None
 
 
 @dataclass(kw_only=True)
@@ -85,7 +85,7 @@ class S401(Status):
     _kind: ClassVar[Literal["data", "error"]] = "error"
     _body: ClassVar[Any] = ApiError
     _headers: ClassVar[Any] = None
-    error: Optional[ApiError] = None
+    error: ApiError | None = None
     cookie: str | Cookie | None = None
 
 
@@ -102,7 +102,15 @@ COOKIE = CookieDef(name="session", http_only=True, secure=True, same_site="lax")
 
 
 def endpoint(method: str, path: str, **kw: Any) -> Endpoint[Any, Any, Any]:
-    base: dict[str, Any] = dict(method=method, path=path, module=f"{method}{path}", responses=(S200, S204, S404, S401), cookie=True, cookie_def=COOKIE, request_cls=lambda **kw: kw)
+    base: dict[str, Any] = dict(
+        method=method,
+        path=path,
+        module=f"{method}{path}",
+        responses=(S200, S204, S404, S401),
+        cookie=True,
+        cookie_def=COOKIE,
+        request_cls=lambda **kw: kw,
+    )
     base.update(kw)
     return Endpoint(**base)
 

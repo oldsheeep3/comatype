@@ -41,7 +41,10 @@ pub fn generate(svc: &Service, role: Role) -> Result<Vec<GenFile>, String> {
             check_module_segment(s, &ep.file)?;
         }
         if segs[0] == "models" || segs[0] == "comatype_init" {
-            return Err(format!("{} は Python では生成先の `{}` が予約済みのモジュール名と衝突します（名前を変えてください）", ep.file, segs[0]));
+            return Err(format!(
+                "{} は Python では生成先の `{}` が予約済みのモジュール名と衝突します（名前を変えてください）",
+                ep.file, segs[0]
+            ));
         }
         for i in 1..segs.len() {
             dirs.insert(segs[..i].join("/"));
@@ -56,9 +59,9 @@ pub fn generate(svc: &Service, role: Role) -> Result<Vec<GenFile>, String> {
             return Err(format!("`{d}` がモジュール（{}）とディレクトリの両方になります", paths[d]));
         }
     }
-    files.push(GenFile { path: "__init__.py".into(), content: format!("{HEADER}") });
+    files.push(GenFile { path: "__init__.py".into(), content: HEADER.to_string() });
     for d in dirs {
-        files.push(GenFile { path: format!("{d}/__init__.py"), content: format!("{HEADER}") });
+        files.push(GenFile { path: format!("{d}/__init__.py"), content: HEADER.to_string() });
     }
     Ok(files)
 }
@@ -73,8 +76,19 @@ const KEYWORDS: &[&str] = &[
 
 /// Names that get a trailing `_` because they would collide with attributes of pydantic's BaseModel
 const MODEL_ATTRS: &[&str] = &[
-    "json", "dict", "copy", "schema", "schema_json", "validate", "construct", "parse_obj", "parse_raw", "parse_file", "from_orm",
-    "update_forward_refs", "fields",
+    "json",
+    "dict",
+    "copy",
+    "schema",
+    "schema_json",
+    "validate",
+    "construct",
+    "parse_obj",
+    "parse_raw",
+    "parse_file",
+    "from_orm",
+    "update_forward_refs",
+    "fields",
 ];
 
 fn check_module_segment(s: &str, file: &str) -> Result<(), String> {
@@ -101,7 +115,7 @@ pub fn snake(s: &str) -> String {
         }
         if c.is_ascii_uppercase() && i > 0 {
             let prev_lower = chars[i - 1].is_ascii_lowercase() || chars[i - 1].is_ascii_digit();
-            let next_lower = chars.get(i + 1).map_or(false, |n| n.is_ascii_lowercase());
+            let next_lower = chars.get(i + 1).is_some_and(|n| n.is_ascii_lowercase());
             let prev_upper = chars[i - 1].is_ascii_uppercase();
             if (prev_lower || (prev_upper && next_lower)) && !out.ends_with('_') {
                 out.push('_');
@@ -264,9 +278,13 @@ impl<'a> Py<'a> {
                 let t = if inner.nullable { format!("_t.Optional[{}]", inner.ty) } else { inner.ty };
                 Ok(plain(&format!("list[{t}]")))
             }
-            Type::Union { variants } if variants.iter().all(|v| matches!(v, Type::Literal { .. } | Type::Null)) && variants.iter().any(|v| matches!(v, Type::Literal { .. })) => {
+            Type::Union { variants }
+                if variants.iter().all(|v| matches!(v, Type::Literal { .. } | Type::Null))
+                    && variants.iter().any(|v| matches!(v, Type::Literal { .. })) =>
+            {
                 // A union of string literals is merged into a single Literal
-                let lits: Vec<String> = variants.iter().filter_map(|v| if let Type::Literal { value } = v { Some(pystr(value)) } else { None }).collect();
+                let lits: Vec<String> =
+                    variants.iter().filter_map(|v| if let Type::Literal { value } = v { Some(pystr(value)) } else { None }).collect();
                 Ok(PyTy { ty: format!("_t.Literal[{}]", lits.join(", ")), nullable: variants.iter().any(|v| matches!(v, Type::Null)) })
             }
             Type::Union { variants } => {
@@ -531,7 +549,13 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
     let ctx_wrappers: Vec<&Wrapper> = ep.wraps.iter().filter_map(|w| svc.wrappers.iter().find(|x| &x.name == w)).collect();
     if role == Role::Server {
         let bases: Vec<String> = ctx_wrappers.iter().map(|w| format!("_i.{}Ctx", cap(&w.name))).collect();
-        push(format!("class Ctx{}:\n    \"\"\"有効なラッパーが足した値（req.ctx.user のように読む）\"\"\"\n", if bases.is_empty() { String::new() } else { format!("({})", bases.join(", ")) }), &mut body);
+        push(
+            format!(
+                "class Ctx{}:\n    \"\"\"有効なラッパーが足した値（req.ctx.user のように読む）\"\"\"\n",
+                if bases.is_empty() { String::new() } else { format!("({})", bases.join(", ")) }
+            ),
+            &mut body,
+        );
     }
     let mut rq = String::from("@_dc.dataclass(kw_only=True)\nclass Request:\n    \"\"\"リクエスト全体\"\"\"\n\n");
     for (n, t, has_default) in &req_fields {
@@ -555,7 +579,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         }
         push(cls, &mut body);
     }
-    let resp = if ep.responses.is_empty() { "_t.NoReturn".to_string() } else { ep.responses.iter().map(|r| format!("S{}", r.status)).collect::<Vec<_>>().join(" | ") };
+    let resp = if ep.responses.is_empty() {
+        "_t.NoReturn".to_string()
+    } else {
+        ep.responses.iter().map(|r| format!("S{}", r.status)).collect::<Vec<_>>().join(" | ")
+    };
     push(format!("Response: _t.TypeAlias = {resp}"), &mut body);
 
     // Descriptor

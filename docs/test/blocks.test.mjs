@@ -1,12 +1,13 @@
 // The code in the specification is real:
 //  - every ```comat code block passes comatype's parser (deliberately wrong ones are ```comat invalid)
 //  - every file pulled in by <<< exists
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
+import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const docs = fileURLToPath(new URL('..', import.meta.url))
@@ -27,7 +28,9 @@ test('ページが揃っている（サイドバーのリンク先がすべて�
   const site = readFileSync(join(docs, 'lib/site.ts'), 'utf8')
   // TODO: remove the guide filter once the guide pages (content/*/guide) are published
   const guidePublished = existsSync(join(docs, 'content/en/guide'))
-  const links = [...new Set([...site.matchAll(/href: '(\/(?:guide|language|runtime|reference)\/[^']*)'/g)].map((m) => m[1]))].filter((l) => guidePublished || !l.startsWith('/guide/'))
+  const links = [...new Set([...site.matchAll(/href: '(\/(?:guide|language|runtime|reference)\/[^']*)'/g)].map((m) => m[1]))].filter(
+    (l) => guidePublished || !l.startsWith('/guide/'),
+  )
   assert.ok(links.length >= 15, `リンクが少なすぎます: ${links.length}`)
   for (const locale of ['en', 'ja-jp']) {
     for (const l of links) {
@@ -80,7 +83,7 @@ test('```comat のコードブロックは、すべて構文解析を通る', (t
 test('Playground の見本は、構文解析を通る（わざと間違えた行も、構文は正しい）', (t) => {
   if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
   const src = readFileSync(join(docs, 'components/Playground.tsx'), 'utf8')
-  const texts = [...src.matchAll(/text: `([\s\S]*?)`,\n  \}/g)].map((m) => m[1])
+  const texts = [...src.matchAll(/text: `([\s\S]*?)`,\n {2}\}/g)].map((m) => m[1])
   assert.ok(texts.length >= 4, `見本が少なすぎます: ${texts.length}`)
   const dir = mkdtempSync(join(tmpdir(), 'comat-play-'))
   texts.forEach((text, i) => {

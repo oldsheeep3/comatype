@@ -22,3 +22,5 @@ __pycache__
 .venv
 .kotlin
 *.egg-info
+*.vsix
+editors/vscode/bin

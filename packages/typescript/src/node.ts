@@ -1,9 +1,9 @@
 // Connect to the Node http server: `import { serve } from '@comatype/typescript/node'`
 
-import http from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { s as defaultServer } from './server.ts'
+import http from 'node:http'
 import type { Server } from './server.ts'
+import { s as defaultServer } from './server.ts'
 
 export function nodeListener(server: Server = defaultServer) {
   return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {

@@ -75,7 +75,10 @@ fn export_maps_paths_params_bodies_and_responses() {
     assert_eq!(put["operationId"], "user_put__id");
     assert_eq!(put["tags"], json!(["user"]));
     let params = put["parameters"].as_array().unwrap();
-    assert_eq!(params[0], json!({"name": "id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid", "x-comatype": "uuidv4"}}));
+    assert_eq!(
+        params[0],
+        json!({"name": "id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid", "x-comatype": "uuidv4"}})
+    );
     assert_eq!(params[1]["name"], "dry");
     assert_eq!(params[1]["required"], false);
     assert_eq!(put["requestBody"]["required"], true);
@@ -84,11 +87,15 @@ fn export_maps_paths_params_bodies_and_responses() {
     assert_eq!(put["responses"]["404"]["description"], "Not Found");
     assert_eq!(put["responses"]["404"]["content"]["application/json"]["schema"]["properties"]["message"], json!({"type": "string"}));
     assert!(put["responses"]["204"].get("content").is_none());
-    assert_eq!(put["responses"]["401"]["description"], "Unauthorized", "ラッパーのステータスも入る");
+    assert_eq!(put["responses"]["401"]["description"], "Unauthorized", "the status of the wrapper is included");
     assert_eq!(put["x-comatype-wraps"], json!(["auth"]));
 
     // QUERY does not exist in 3.0, so it goes in an extension key
-    assert!(doc["paths"]["/query_user"].get("x-comatype-query").is_some() || doc["paths"]["/"].get("x-comatype-query").is_some() || doc["paths"].as_object().unwrap().values().any(|p| p.get("x-comatype-query").is_some()));
+    assert!(
+        doc["paths"]["/query_user"].get("x-comatype-query").is_some()
+            || doc["paths"]["/"].get("x-comatype-query").is_some()
+            || doc["paths"].as_object().unwrap().values().any(|p| p.get("x-comatype-query").is_some())
+    );
 
     let u = &doc["components"]["schemas"]["U"];
     assert_eq!(u["required"], json!(["id", "name", "role", "big", "at", "kind", "tags", "home"]));
@@ -224,17 +231,23 @@ fn import_converts_an_openapi_document_into_a_checkable_project() {
     assert!(pet.contains("...Base,") && pet.contains("name: string(1..20),"), "{pet}");
     assert!(pet.contains("kind?: Kind,") && pet.contains("status?: \"available\" | \"pending\" | \"not-available\","), "{pet}");
     assert!(pet.contains("owner?: string | null,") && pet.contains("born?: date | null,"), "{pet}");
-    assert!(pet.contains("weight?: json,") && pet.contains("meta?: json,") && pet.contains("either?: string | int,") && pet.contains("many?: json[],"), "{pet}");
+    assert!(
+        pet.contains("weight?: json,")
+            && pet.contains("meta?: json,")
+            && pet.contains("either?: string | int,")
+            && pet.contains("many?: json[],"),
+        "{pet}"
+    );
     assert!(pet.contains(r#"nick?: string(pattern: "^[a-z]+\\d$"),"#), "{pet}");
     assert!(file(&imp, "types/Kind.comat").contains("enum Kind {\n    cat,\n    dog,\n}"));
     assert!(file(&imp, "types/Base.comat").contains("id: uuid,"), "{}", file(&imp, "types/Base.comat"));
-    assert!(imp.files.iter().all(|(p, _)| p != "types/Id.comat"), "alias は inline");
+    assert!(imp.files.iter().all(|(p, _)| p != "types/Id.comat"), "alias is inlined");
     assert!(file(&imp, "types/NewPet.comat").contains("child?: {\n        x: int64,\n    },"), "{}", file(&imp, "types/NewPet.comat"));
 
     // Warnings
     let w = imp.warnings.join("\n");
-    for needle in ["default", "number", "additionalProperties", "ユニオンの配列", "trace", "JSON ではない", "204"] {
-        assert!(w.contains(needle), "警告に {needle} がありません:\n{w}");
+    for needle in ["default", "number", "additionalProperties", "an array of a union", "trace", "that is not JSON", "204"] {
+        assert!(w.contains(needle), "the warnings lack {needle}:\n{w}");
     }
     let _ = fs::remove_dir_all(root);
 }

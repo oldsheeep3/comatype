@@ -53,7 +53,7 @@ public struct LocalDate: Hashable, CustomStringConvertible {
         let (y, m, d) = (p[0], p[1], p[2])
         let leap = (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
         let days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        guard (1 ... 12).contains(m), d >= 1, d <= days[m - 1] else { return nil }
+        guard (1...12).contains(m), d >= 1, d <= days[m - 1] else { return nil }
         return LocalDate(year: y, month: m, day: d)
     }
 }

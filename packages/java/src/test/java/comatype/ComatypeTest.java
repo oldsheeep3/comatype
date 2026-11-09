@@ -32,8 +32,14 @@ public final class ComatypeTest {
         check(!throwsValidation(() -> new Email("a@b.co").validate("e")), "email ok");
         check(throwsValidation(() -> new Email("nope").validate("e")), "email ng");
         check(throwsValidation(() -> new Phone("0901").validate("p")), "phone ng");
-        check(!throwsValidation(() -> Codec.parseUuid("3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10", "u", 4)), "uuidv4 ok");
-        check(throwsValidation(() -> Codec.parseUuid("3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10", "u", 4)), "uuidv4 ng");
+        check(
+                !throwsValidation(
+                        () -> Codec.parseUuid("3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10", "u", 4)),
+                "uuidv4 ok");
+        check(
+                throwsValidation(
+                        () -> Codec.parseUuid("3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10", "u", 4)),
+                "uuidv4 ng");
         check(throwsValidation(() -> Codec.parseDate("2023-02-29", "d")), "うるう日でない");
         check(!throwsValidation(() -> Codec.parseDate("2024-02-29", "d")), "うるう日");
         check(Codec.int64("9007199254740993", "n") == 9007199254740993L, "int64");
@@ -43,7 +49,10 @@ public final class ComatypeTest {
         check(throwsValidation(() -> Check.oneOf("k", "x", "a", "b")), "oneOf");
 
         CookieDef def = new CookieDef("session", true, true, "lax", null, null, null);
-        check(Cookies.serialize(def, CookieValue.of("v").maxAge(3600)).equals("session=v; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"), "Set-Cookie");
+        check(
+                Cookies.serialize(def, CookieValue.of("v").maxAge(3600))
+                        .equals("session=v; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"),
+                "Set-Cookie");
         CookieJar jar = new CookieJar();
         jar.store(List.of("session=v; Path=/; Max-Age=3600; HttpOnly"));
         check("v".equals(jar.get("/x").get("session")), "jar 保持");
@@ -78,15 +87,28 @@ public final class ComatypeTest {
         String cv = ResponseCache.encodeCookie(cr);
         check(cv != null && cv.matches("[A-Za-z0-9_-]+"), "cookie 値");
         RawResponse back = ResponseCache.decodeCookie(cv);
-        check(back != null && back.status == 200 && "あ".equals(back.headers.get("x-a")) && new String(back.body).equals("{\"n\":1}"), "cookie 往復");
+        check(
+                back != null
+                        && back.status == 200
+                        && "あ".equals(back.headers.get("x-a"))
+                        && new String(back.body).equals("{\"n\":1}"),
+                "cookie 往復");
         RawResponse big = new RawResponse(200);
         big.body = new byte[5000];
         check(ResponseCache.encodeCookie(big) == null, "cookie 大きすぎる");
         check(ResponseCache.decodeCookie("!!!") == null, "cookie 壊れた値");
         Headers h1 = new Headers().set("x-v", "1").set("authorization", "a");
         Headers h2 = new Headers().set("x-v", "1").set("authorization", "b");
-        check(ResponseCache.clientKey("get", "u", new byte[0], List.of("X-V"), h1).equals(ResponseCache.clientKey("get", "u", new byte[0], List.of("X-V"), h2)), "client キーは宣言したヘッダだけ");
-        check(!ResponseCache.serverKey("get", "/n", h1, new byte[0]).equals(ResponseCache.serverKey("get", "/n", h2, new byte[0])), "server キーは全ヘッダ");
+        check(
+                ResponseCache.clientKey("get", "u", new byte[0], List.of("X-V"), h1)
+                        .equals(
+                                ResponseCache.clientKey(
+                                        "get", "u", new byte[0], List.of("X-V"), h2)),
+                "client キーは宣言したヘッダだけ");
+        check(
+                !ResponseCache.serverKey("get", "/n", h1, new byte[0])
+                        .equals(ResponseCache.serverKey("get", "/n", h2, new byte[0])),
+                "server キーは全ヘッダ");
 
         if (failed > 0) System.exit(1);
         System.out.println("java runtime tests: OK");

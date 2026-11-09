@@ -1,7 +1,8 @@
 // The Playground's small check (lint.ts), loaded as TypeScript through Node's type stripping
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { test } from 'node:test'
 import { lintComat } from '../lib/lint.ts'
 
 const statuses = JSON.parse(readFileSync(new URL('../data/status-codes.json', import.meta.url), 'utf8'))
@@ -31,7 +32,10 @@ test('括弧の対応', () => {
 
 test('登録の無いステータスコードはエラー', () => {
   const p = lint('s200 none\ns499 none\n  s306\n')
-  assert.deepEqual(p.map((x) => x.line), [2, 3])
+  assert.deepEqual(
+    p.map((x) => x.line),
+    [2, 3],
+  )
   assert.ok(p[0].message.startsWith('ステータスコード 499 は未定義です') && p[1].message.startsWith('ステータスコード 306 は未定義です'))
 })
 

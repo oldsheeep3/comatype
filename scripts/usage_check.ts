@@ -1,11 +1,12 @@
 // Check that the types of the generated usage node_client/comatype work as intended (tsc only, nothing is run)
-import { s200, s404, endpoint, Body, type Response, type Request } from './node_client/comatype/user/put__id'
-import { s200 as postOk, Body as PostBody } from './node_client/comatype/post_user'
-import { s200 as optionsOk } from './node_client/comatype/options_user'
-import { s204 as deleted } from './node_client/comatype/user/delete__id'
-import type { UserData } from './node_client/comatype/types'
-import type { Wrappers, AuthCtx } from './node_client/comatype/init'
+
 import type { ComatypeWrap } from '@comatype/typescript'
+import type { AuthCtx, Wrappers } from './node_client/comatype/init'
+import { s200 as optionsOk } from './node_client/comatype/options_user'
+import { type Body as PostBody, s200 as postOk } from './node_client/comatype/post_user'
+import type { UserData } from './node_client/comatype/types'
+import { s204 as deleted } from './node_client/comatype/user/delete__id'
+import { Body, endpoint, type Request, type Response, s200, s404 } from './node_client/comatype/user/put__id'
 
 declare const user: UserData
 
@@ -21,8 +22,8 @@ s200({ data: { name: 1 } })
 
 // s200.Res
 const res: s200.Res = user
-const err: s404.Res = { code: 'a', message: 'b' }
-void res, err
+const _err: s404.Res = { code: 'a', message: 'b' }
+void res, _err
 
 // No body means no argument
 deleted()
@@ -48,14 +49,14 @@ if (r.status === 200) {
 // Request is { params, body } (headers are optional)
 const req: Request = { params: { id: '3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10' }, body: user }
 // @ts-expect-error params is required
-const bad: Request = { body: user }
-void req, bad
+const _bad: Request = { body: user }
+void req, _bad
 
 // The body of post_user has no uid
 const pb: PostBody = { name: 'a', email: 'a@b.co', phone: '+8190' }
 // @ts-expect-error uid is empty, so it cannot be sent
-const pb2: PostBody = { name: 'a', email: 'a@b.co', phone: '+8190', uid: 'x' }
-void pb, pb2
+const _pb2: PostBody = { name: 'a', email: 'a@b.co', phone: '+8190', uid: 'x' }
+void pb, _pb2
 postOk({ data: { name: 'a', email: 'a@b.co', phone: '+8190', uid: '3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10' } })
 
 // endpoint carries metadata
@@ -65,20 +66,20 @@ void endpoint.method, Body
 const auth: ComatypeWrap<AuthCtx> = async (req, next) => next({ ...req, ctx: { ...req.ctx, user } })
 const w: Wrappers = { auth }
 // @ts-expect-error auth is missing
-const w2: Wrappers = {}
-void w, w2
+const _w2: Wrappers = {}
+void w, _w2
 
 // ---- Client c ----
 import { c, createCookieJar } from '@comatype/typescript'
-import { path as putPath, s200 as putOk, s404 as putNotFound } from './node_client/comatype/user/put__id'
-import { path as postPath, s200 as postUserOk } from './node_client/comatype/post_user'
-import { path as getUserPath, s200 as getUserOk, s404 as getUserNotFound } from './node_client/comatype/get_user'
-import { path as listPath, s200 as listOk } from './node_client/comatype/user/get'
-import { path as profilePath, s200 as profileOk } from './node_client/comatype/user/profile/get'
+import { s404 as getUserNotFound, s200 as getUserOk, path as getUserPath } from './node_client/comatype/get_user'
 import { path as optionsPath } from './node_client/comatype/options_user'
-import { path as deletePath, s204 as deleteOk, s404 as deleteNotFound } from './node_client/comatype/user/delete__id'
-import { path as queryPath, s200 as queryOk, Body as QueryBody } from './node_client/comatype/query_user'
-import { path as loginPath, s200 as loginOk, s401 as loginUnauthorized } from './node_client/comatype/user/post_login'
+import { path as postPath, s200 as postUserOk } from './node_client/comatype/post_user'
+import { type Body as QueryBody, s200 as queryOk, path as queryPath } from './node_client/comatype/query_user'
+import { s404 as deleteNotFound, s204 as deleteOk, path as deletePath } from './node_client/comatype/user/delete__id'
+import { s200 as listOk, path as listPath } from './node_client/comatype/user/get'
+import { s200 as loginOk, path as loginPath, s401 as loginUnauthorized } from './node_client/comatype/user/post_login'
+import { s200 as profileOk, path as profilePath } from './node_client/comatype/user/profile/get'
+import { s404 as putNotFound, s200 as putOk, path as putPath } from './node_client/comatype/user/put__id'
 
 async function clientUsage(id: string, input: UserData, q: QueryBody) {
   // put: { params, body } + success + error
@@ -153,14 +154,14 @@ c.init({ baseUrl: 'http://x' })
 
 // ---- Server s ----
 import { s } from '@comatype/typescript'
-import { path as sPutPath, s200 as sPutOk, s404 as sPutNotFound } from './node_client/comatype/user/put__id'
-import { path as sPostPath, s200 as sPostOk } from './node_client/comatype/post_user'
-import { path as sGetPath, s200 as sGetOk } from './node_client/comatype/get_user'
-import { path as sListPath, s200 as sListOk } from './node_client/comatype/user/get'
-import { path as sProfilePath, s200 as sProfileOk } from './node_client/comatype/user/profile/get'
-import { path as sPingPath, s200 as sPingOk } from './node_client/comatype/user/get_ping'
-import { path as sOptionsPath, s200 as sOptionsOk } from './node_client/comatype/options_user'
-import { path as sDeletePath, s204 as sDeleteOk, s404 as sDeleteNotFound } from './node_client/comatype/user/delete__id'
+import { s200 as sGetOk, path as sGetPath } from './node_client/comatype/get_user'
+import { s200 as sOptionsOk, path as sOptionsPath } from './node_client/comatype/options_user'
+import { s200 as sPostOk, path as sPostPath } from './node_client/comatype/post_user'
+import { s404 as sDeleteNotFound, s204 as sDeleteOk, path as sDeletePath } from './node_client/comatype/user/delete__id'
+import { s200 as sListOk, path as sListPath } from './node_client/comatype/user/get'
+import { s200 as sPingOk, path as sPingPath } from './node_client/comatype/user/get_ping'
+import { s200 as sProfileOk, path as sProfilePath } from './node_client/comatype/user/profile/get'
+import { s404 as sPutNotFound, s200 as sPutOk, path as sPutPath } from './node_client/comatype/user/put__id'
 
 // put: params.id / body are typed. The data is UserData
 s.put(sPutPath, async (req) => {
@@ -226,7 +227,8 @@ s.init({ wrappers: { auth }, onError: (e) => void e })
 s.init({ wrappers: {} })
 
 // ---- Issuing cookies ----
-import { path as lPath, s200 as lOk } from './node_client/comatype/user/post_login'
+import { s200 as lOk, path as lPath } from './node_client/comatype/user/post_login'
+
 const uid = '3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10'
 s.post(lPath, () => lOk({ data: { uid }, cookie: { session: 'token' } }))
 s.post(lPath, () => lOk({ data: { uid }, cookie: { session: { value: 'token', maxAge: 3600, expires: new Date() } } }))

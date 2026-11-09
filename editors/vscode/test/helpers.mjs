@@ -2,8 +2,8 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import vscodeTextmate from 'vscode-textmate'
 import vscodeOniguruma from 'vscode-oniguruma'
+import vscodeTextmate from 'vscode-textmate'
 
 const { Registry, parseRawGrammar, INITIAL } = vscodeTextmate
 const { loadWASM, OnigScanner, OnigString } = vscodeOniguruma
@@ -17,12 +17,11 @@ const registry = new Registry({
     createOnigScanner: (sources) => new OnigScanner(sources),
     createOnigString: (s) => new OnigString(s),
   }),
-  loadGrammar: async (scope) =>
-    scope === 'source.comat' ? parseRawGrammar(readFileSync(grammarPath, 'utf8'), grammarPath) : null,
+  loadGrammar: async (scope) => (scope === 'source.comat' ? parseRawGrammar(readFileSync(grammarPath, 'utf8'), grammarPath) : null),
 })
 export const grammar = await registry.loadGrammar('source.comat')
 
-/** テキストを行ごとにトークン化する。戻り値: 行 → [{ text, scopes: ['source.comat', ...] }] */
+/** Tokenizes text line by line. Returns: line -> [{ text, scopes: ['source.comat', ...] }] */
 export function tokenize(text) {
   let ruleStack = INITIAL
   return text.split('\n').map((line) => {
@@ -32,7 +31,7 @@ export function tokenize(text) {
   })
 }
 
-/** 1 行の中の、text に一致するトークンのスコープ（最も内側のもの）。無ければ undefined */
+/** The scopes of the token in a line that matches text (the innermost one). undefined if there is none */
 export function scopeOf(line, text, nth = 0) {
   const hits = tokenize(line)[0].filter((t) => t.text === text)
   return hits[nth]?.scopes.at(-1)

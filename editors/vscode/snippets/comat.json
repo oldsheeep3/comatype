@@ -4,7 +4,7 @@
     "body": [
       "import ${1:UserData} from ${2:../types/UserData.comat}"
     ],
-    "description": "型を別のファイルから import する"
+    "description": "Import a type from another file"
   },
   "type": {
     "prefix": "type",
@@ -13,7 +13,7 @@
       "\t${2:name}: ${3|string,bool,int,email,phone,uuid,uuidv4,uuidv7,date,datetime,time,int64,decimal,url,bytes,json|},",
       "}"
     ],
-    "description": "型の宣言"
+    "description": "Declare a type"
   },
   "enum": {
     "prefix": "enum",
@@ -32,7 +32,7 @@
       "\t${1:id}: ${2:uuidv4},",
       "}"
     ],
-    "description": "path パラメータ（__id のファイル名に対応）"
+    "description": "Path parameters (match the [id] directory or file name)"
   },
   "search": {
     "prefix": "search",
@@ -41,14 +41,14 @@
       "\t${1:limit}?: ${2:int},",
       "}"
     ],
-    "description": "クエリ文字列"
+    "description": "Query string"
   },
   "body": {
     "prefix": "body",
     "body": [
       "body ${1:UserData}"
     ],
-    "description": "リクエストのボディ（エンドポイントに 1 つ）"
+    "description": "Request body (one per endpoint)"
   },
   "body-inline": {
     "prefix": "bodyo",
@@ -57,7 +57,7 @@
       "\t${1:name}: ${2:string},",
       "}"
     ],
-    "description": "リクエストのボディ（その場で書く）"
+    "description": "Request body (written inline)"
   },
   "s200-headers": {
     "prefix": "sheaders",
@@ -66,42 +66,42 @@
       "\t${3:Allow}: ${4:string[]},",
       "}"
     ],
-    "description": "レスポンスヘッダつきのステータス（sNNN <型>, { ... }）"
+    "description": "Status with response headers (sNNN <type>, { ... })"
   },
   "path": {
     "prefix": "path",
     "body": [
       "path ${1|/,./|}${2:fix/path}"
     ],
-    "description": "path の明示（/ は固定、./ はディレクトリからの相対。非推奨）"
+    "description": "Explicit path (/ is fixed, ./ is relative to the directory; deprecated)"
   },
   "wrap": {
     "prefix": "wrap",
     "body": [
       "wrap ${1:auth}"
     ],
-    "description": "ラッパーを有効にする"
+    "description": "Enable a wrapper"
   },
   "wrap-off": {
     "prefix": "wrapoff",
     "body": [
       "wrap ${1:auth} off"
     ],
-    "description": "ラッパーを無効にする"
+    "description": "Disable a wrapper"
   },
   "cookie": {
     "prefix": "cookie",
     "body": [
       "cookie ${1|on,off|}"
     ],
-    "description": "cookie を送受信する / しない"
+    "description": "Send and receive cookies / do not"
   },
   "cache": {
     "prefix": "cache",
     "body": [
       "cache ${1|off,60000,60000 cookie|}"
     ],
-    "description": "GET / QUERY のレスポンスのキャッシュ（off / ttl ミリ秒 / ttl ミリ秒 cookie）"
+    "description": "Cache of GET / QUERY responses (off / ttl in ms / ttl in ms cookie)"
   },
   "header": {
     "prefix": "header",
@@ -110,7 +110,7 @@
       "\t\"${2:X-Request-Id}\"?: ${3:uuid},",
       "}"
     ],
-    "description": "ヘッダ（header: 両方、headerReq: リクエスト、headerRes: レスポンス）"
+    "description": "Headers (header: both, headerReq: request, headerRes: response)"
   },
   "init": {
     "prefix": "init",
@@ -130,7 +130,7 @@
       "\ts401 ${6:ApiError}",
       "}"
     ],
-    "description": "init.comat の雛形"
+    "description": "Template of init.comat"
   },
   "wrapper": {
     "prefix": "wrapper",
@@ -142,6 +142,6 @@
       "\ts401 ${4:ApiError}",
       "}"
     ],
-    "description": "ラッパーの宣言（init.comat）"
+    "description": "Wrapper declaration (init.comat)"
   }
 }

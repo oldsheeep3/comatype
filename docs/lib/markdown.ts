@@ -3,25 +3,25 @@
 //   - `::: tip` / `::: warning` / `::: code-group` containers
 //   - Code highlighting uses shiki. `.comat` uses the same TextMate grammar as the VS Code extension
 //   - Places where React components such as `<StatusTable />` are inserted
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
+import rehypeShikiFromHighlighter from '@shikijs/rehype/core'
+import GithubSlugger from 'github-slugger'
+import type { Element, Root as HastRoot } from 'hast'
+import type { Code, Parent as MdastParent, Root as MdastRoot } from 'mdast'
+import { toString as mdastToString } from 'mdast-util-to-string'
 import type { ReactNode } from 'react'
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime'
-import { unified } from 'unified'
-import remarkParse from 'remark-parse'
-import remarkGfm from 'remark-gfm'
-import remarkDirective from 'remark-directive'
-import remarkRehype from 'remark-rehype'
-import rehypeSlug from 'rehype-slug'
 import rehypeReact from 'rehype-react'
-import { createHighlighter } from 'shiki'
+import rehypeSlug from 'rehype-slug'
+import remarkDirective from 'remark-directive'
+import remarkGfm from 'remark-gfm'
+import remarkParse from 'remark-parse'
+import remarkRehype from 'remark-rehype'
 import type { BundledLanguage } from 'shiki'
-import rehypeShikiFromHighlighter from '@shikijs/rehype/core'
+import { createHighlighter } from 'shiki'
+import { unified } from 'unified'
 import { visit } from 'unist-util-visit'
-import { toString as mdastToString } from 'mdast-util-to-string'
-import GithubSlugger from 'github-slugger'
-import type { Root as MdastRoot, Code, Parent as MdastParent } from 'mdast'
-import type { Root as HastRoot, Element } from 'hast'
 import comatGrammar from '../../editors/vscode/syntaxes/comat.tmLanguage.json'
 import { mdComponents } from '../components/md'
 import { type Locale, withLocale } from './i18n'
@@ -74,7 +74,23 @@ function normalizeContainers(md: string): string {
 // ---- remark plugins ----
 
 const EXT_LANG: Record<string, string> = {
-  comat: 'comat', ts: 'ts', tsx: 'tsx', js: 'js', go: 'go', py: 'python', json: 'json', yml: 'yaml', yaml: 'yaml', toml: 'toml', sh: 'bash', md: 'md', rs: 'rust', java: 'java', rb: 'ruby', kt: 'kotlin', swift: 'swift',
+  comat: 'comat',
+  ts: 'ts',
+  tsx: 'tsx',
+  js: 'js',
+  go: 'go',
+  py: 'python',
+  json: 'json',
+  yml: 'yaml',
+  yaml: 'yaml',
+  toml: 'toml',
+  sh: 'bash',
+  md: 'md',
+  rs: 'rust',
+  java: 'java',
+  rb: 'ruby',
+  kt: 'kotlin',
+  swift: 'swift',
 }
 
 /** From `// #region name` to `// #endregion name` (the heading lines are not included) */
@@ -131,7 +147,13 @@ function remarkContainers() {
   return (tree: MdastRoot, file: { data: Record<string, unknown> }) => {
     const titles = CALLOUT_TITLE[localeOfFile(file)]
     visit(tree, (node, index, parent) => {
-      const n = node as unknown as { type: string; name?: string; children: unknown[]; data?: Record<string, unknown>; attributes?: Record<string, string> }
+      const n = node as unknown as {
+        type: string
+        name?: string
+        children: unknown[]
+        data?: Record<string, unknown>
+        attributes?: Record<string, string>
+      }
       if (n.type === 'textDirective' || n.type === 'leafDirective') {
         if (!parent || index === undefined) return
         const label = n.children.length ? `[${mdastToString(n as never)}]` : ''
@@ -152,7 +174,11 @@ function remarkContainers() {
         title = mdastToString(first as never)
         n.children.shift()
       }
-      n.children.unshift({ type: 'paragraph', data: { hName: 'p', hProperties: { className: ['callout-title'] } }, children: [{ type: 'text', value: title }] })
+      n.children.unshift({
+        type: 'paragraph',
+        data: { hName: 'p', hProperties: { className: ['callout-title'] } },
+        children: [{ type: 'text', value: title }],
+      })
     })
   }
 }
@@ -185,10 +211,20 @@ function rehypeCodeGroup() {
     visit(tree, 'element', (node: Element) => {
       if (node.tagName !== 'code-group') return
       // shiki sometimes returns pre wrapped in a root, so unwrap it
-      node.children = node.children.flatMap((c) => ((c as { type: string }).type === 'root' ? ((c as unknown as { children: Element['children'] }).children) : [c]))
+      node.children = node.children.flatMap((c) =>
+        (c as { type: string }).type === 'root' ? (c as unknown as { children: Element['children'] }).children : [c],
+      )
       const titles = node.children
         .filter((c): c is Element => c.type === 'element' && c.tagName === 'pre')
-        .map((pre, i) => String(pre.properties?.['data-title'] ?? pre.properties?.['dataTitle'] ?? pre.properties?.['data-lang'] ?? pre.properties?.['dataLang'] ?? `${i + 1}`))
+        .map((pre, i) =>
+          String(
+            pre.properties?.['data-title'] ??
+              pre.properties?.['dataTitle'] ??
+              pre.properties?.['data-lang'] ??
+              pre.properties?.['dataLang'] ??
+              `${i + 1}`,
+          ),
+        )
       node.properties = { ...node.properties, dataTitles: JSON.stringify(titles) }
       node.children = node.children.filter((c) => c.type === 'element')
     })
@@ -199,7 +235,21 @@ function rehypeCodeGroup() {
 
 const LANGS = [
   { ...(comatGrammar as object), name: 'comat', aliases: ['comatype'] },
-  'ts', 'tsx', 'js', 'go', 'python', 'json', 'yaml', 'toml', 'bash', 'rust', 'markdown', 'java', 'kotlin', 'swift', 'ruby',
+  'ts',
+  'tsx',
+  'js',
+  'go',
+  'python',
+  'json',
+  'yaml',
+  'toml',
+  'bash',
+  'rust',
+  'markdown',
+  'java',
+  'kotlin',
+  'swift',
+  'ruby',
 ] as unknown as BundledLanguage[]
 
 let processorPromise: Promise<ReturnType<typeof buildProcessor>> | undefined

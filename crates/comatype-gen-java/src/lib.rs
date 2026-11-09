@@ -36,7 +36,10 @@ pub fn generate(svc: &Service, role: Role, package: &str) -> Result<Vec<GenFile>
     for ep in &svc.endpoints {
         let m = module_class(&ep.module);
         if m == "Types" || m == "Init" {
-            return Err(format!("{} は Java では生成先のクラス名 `{m}` が Types / Init と衝突します（ファイルかディレクトリの名前を変えてください）", ep.file));
+            return Err(format!(
+                "{} は Java では生成先のクラス名 `{m}` が Types / Init と衝突します（ファイルかディレクトリの名前を変えてください）",
+                ep.file
+            ));
         }
         if let Some(prev) = seen.insert(m.clone(), &ep.file) {
             return Err(format!("{} と {prev} が同じクラス名 `{m}` になります", ep.file));
@@ -75,10 +78,64 @@ fn reindent(code: &str) -> String {
 // ---- Names ----
 
 const KEYWORDS: &[&str] = &[
-    "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum",
-    "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native", "new",
-    "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws",
-    "transient", "try", "void", "volatile", "while", "true", "false", "null", "var", "record", "yield", "sealed", "permits",
+    "abstract",
+    "assert",
+    "boolean",
+    "break",
+    "byte",
+    "case",
+    "catch",
+    "char",
+    "class",
+    "const",
+    "continue",
+    "default",
+    "do",
+    "double",
+    "else",
+    "enum",
+    "extends",
+    "final",
+    "finally",
+    "float",
+    "for",
+    "goto",
+    "if",
+    "implements",
+    "import",
+    "instanceof",
+    "int",
+    "interface",
+    "long",
+    "native",
+    "new",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "short",
+    "static",
+    "strictfp",
+    "super",
+    "switch",
+    "synchronized",
+    "this",
+    "throw",
+    "throws",
+    "transient",
+    "try",
+    "void",
+    "volatile",
+    "while",
+    "true",
+    "false",
+    "null",
+    "var",
+    "record",
+    "yield",
+    "sealed",
+    "permits",
 ];
 
 pub fn words(s: &str) -> Vec<String> {
@@ -93,7 +150,7 @@ pub fn words(s: &str) -> Vec<String> {
             continue;
         }
         let prev_lower = i > 0 && chars[i - 1].is_ascii_lowercase();
-        let next_lower = chars.get(i + 1).map_or(false, |n| n.is_ascii_lowercase());
+        let next_lower = chars.get(i + 1).is_some_and(|n| n.is_ascii_lowercase());
         let prev_upper = i > 0 && chars[i - 1].is_ascii_uppercase();
         if c.is_ascii_uppercase() && !cur.is_empty() && (prev_lower || (prev_upper && next_lower)) {
             out.push(std::mem::take(&mut cur));
@@ -114,13 +171,21 @@ fn cap(w: &str) -> String {
 /// Type name (PascalCase)
 pub fn pascal(s: &str) -> String {
     let out: String = words(s).iter().map(|w| cap(&w.to_ascii_lowercase())).collect::<Vec<_>>().concat();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("V{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("V{out}")
+    } else {
+        out
+    }
 }
 
 /// `user/put__id` → `UserPutId`
 pub fn module_class(module: &str) -> String {
     let out: String = module.split(|c: char| !c.is_ascii_alphanumeric()).filter(|w| !w.is_empty()).map(cap).collect();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("M{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("M{out}")
+    } else {
+        out
+    }
 }
 
 /// Field name (camelCase)
@@ -131,16 +196,24 @@ pub fn camel(s: &str) -> String {
         let w = w.to_ascii_lowercase();
         out.push_str(&if i == 0 { w } else { cap(&w) });
     }
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) {
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
         out = format!("f{}", cap(&out));
     }
-    if KEYWORDS.contains(&out.as_str()) { format!("{out}_") } else { out }
+    if KEYWORDS.contains(&out.as_str()) {
+        format!("{out}_")
+    } else {
+        out
+    }
 }
 
 /// enum constant (UPPER_SNAKE)
 pub fn constant(s: &str) -> String {
     let out = words(s).iter().map(|w| w.to_ascii_uppercase()).collect::<Vec<_>>().join("_");
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("V_{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("V_{out}")
+    } else {
+        out
+    }
 }
 
 fn jstr(s: &str) -> String {
@@ -366,13 +439,18 @@ impl<'a> Gen<'a> {
                             "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" => {
                                 s.push_str(&format!("comatype.Check.len({path}, comatype.Wire.str({var}), {}, {});\n", opt(min), opt(max)))
                             }
-                            "int" | "int64" => s.push_str(&format!("comatype.Check.range({path}, (double) (long) {var}, {}, {});\n", opt(min), opt(max))),
+                            "int" | "int64" => {
+                                s.push_str(&format!("comatype.Check.range({path}, (double) (long) {var}, {}, {});\n", opt(min), opt(max)))
+                            }
                             "decimal" => s.push_str(&format!("comatype.Check.range({path}, {var}, {}, {});\n", opt(min), opt(max))),
                             _ => {}
                         }
                     }
                     Some(Constraint::Pattern { value }) => {
-                        if matches!(name.as_str(), "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" | "decimal") {
+                        if matches!(
+                            name.as_str(),
+                            "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" | "decimal"
+                        ) {
                             s.push_str(&format!("comatype.Check.pattern({path}, comatype.Wire.str({var}), {});\n", jstr(value)));
                         }
                     }
@@ -462,7 +540,11 @@ impl<'a> Gen<'a> {
             let cap_name = cap(&fname);
             withers.push_str(&format!(
                 "public {name} with{cap_name}({ty} v) {{\nreturn new {name}({});\n}}\n",
-                fields.iter().map(|g| if camel(&g.name) == fname { "v".to_string() } else { camel(&g.name) }).collect::<Vec<_>>().join(", ")
+                fields
+                    .iter()
+                    .map(|g| if camel(&g.name) == fname { "v".to_string() } else { camel(&g.name) })
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ));
         }
         let implements = if mode == Mode::Json { " implements comatype.JsonType" } else { "" };
@@ -471,7 +553,9 @@ impl<'a> Gen<'a> {
             body.push_str(&format!("public void validate(String path) {{\n{checks}}}\n"));
         }
         if mode == Mode::Json {
-            body.push_str(&format!("public Object encode() {{\njava.util.Map<String, Object> m = new java.util.LinkedHashMap<>();\n{puts}return m;\n}}\n"));
+            body.push_str(&format!(
+                "public Object encode() {{\njava.util.Map<String, Object> m = new java.util.LinkedHashMap<>();\n{puts}return m;\n}}\n"
+            ));
             body.push_str(&format!(
                 "public static {name} decode(Object j, String path) {{\nvar m = comatype.Codec.object(j, path);\nvar v = new {name}({});\nv.validate(path);\nreturn v;\n}}\n",
                 args.join(", ")
@@ -479,7 +563,10 @@ impl<'a> Gen<'a> {
         }
         if mode != Mode::Json || true {
             if all_optional && !fields.is_empty() {
-                body.push_str(&format!("public static {name} empty() {{\nreturn new {name}({});\n}}\n", fields.iter().map(|_| "null").collect::<Vec<_>>().join(", ")));
+                body.push_str(&format!(
+                    "public static {name} empty() {{\nreturn new {name}({});\n}}\n",
+                    fields.iter().map(|_| "null").collect::<Vec<_>>().join(", ")
+                ));
             }
             if !fields.is_empty() {
                 body.push_str(&withers);
@@ -730,7 +817,10 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         variants.push_str(&format!("public record S{c}({}) implements Response {{}}\n", comps.join(", ")));
         permits.push(format!("S{c}"));
     }
-    body.push_str(&format!("/** 全ステータスのレスポンス */\npublic sealed interface Response permits {} {{}}\n\n{variants}\n", permits.join(", ")));
+    body.push_str(&format!(
+        "/** 全ステータスのレスポンス */\npublic sealed interface Response permits {} {{}}\n\n{variants}\n",
+        permits.join(", ")
+    ));
 
     // Descriptor
     let arg = if has("params") || has("search") || has("headers") {
@@ -741,7 +831,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         "comatype.NoArg".to_string()
     };
     let res_ty = if role == Role::Server && cookie { "comatype.S.Reply<Response>".to_string() } else { "Response".to_string() };
-    let wraps = if ep.wraps.is_empty() { "java.util.List.of()".to_string() } else { format!("java.util.List.of({})", ep.wraps.iter().map(|w| jstr(w)).collect::<Vec<_>>().join(", ")) };
+    let wraps = if ep.wraps.is_empty() {
+        "java.util.List.of()".to_string()
+    } else {
+        format!("java.util.List.of({})", ep.wraps.iter().map(|w| jstr(w)).collect::<Vec<_>>().join(", "))
+    };
     let base = svc.base_url.as_ref().map_or("null".to_string(), |u| jstr(u));
     let cd = match (&svc.cookie, ep.cookie) {
         (Some(c), true) => cookie_def_java(c),
@@ -772,13 +866,22 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let mut f = format!("private static comatype.RawRequest buildRequest({arg} arg) {{\ncomatype.RawRequest raw = new comatype.RawRequest({}, {});\n", jstr(&ep.method), jstr(&ep.path));
             if arg == "Request" {
                 if has("params") {
-                    f.push_str(&format!("arg.params().validate(\"\");\ncomatype.Wire.fillPath(raw, {});\n", wire_pairs(&ep.params, "arg.params()")));
+                    f.push_str(&format!(
+                        "arg.params().validate(\"\");\ncomatype.Wire.fillPath(raw, {});\n",
+                        wire_pairs(&ep.params, "arg.params()")
+                    ));
                 }
                 if has("search") {
-                    f.push_str(&format!("arg.search().validate(\"\");\ncomatype.Wire.addQuery(raw, {});\n", wire_pairs(&ep.search, "arg.search()")));
+                    f.push_str(&format!(
+                        "arg.search().validate(\"\");\ncomatype.Wire.addQuery(raw, {});\n",
+                        wire_pairs(&ep.search, "arg.search()")
+                    ));
                 }
                 if has("headers") {
-                    f.push_str(&format!("arg.headers().validate(\"\");\ncomatype.Wire.setHeaders(raw.headers, {});\n", wire_pairs(&ep.request_headers, "arg.headers()")));
+                    f.push_str(&format!(
+                        "arg.headers().validate(\"\");\ncomatype.Wire.setHeaders(raw.headers, {});\n",
+                        wire_pairs(&ep.request_headers, "arg.headers()")
+                    ));
                 }
                 if has("body") {
                     f.push_str("raw.body = encodeBody(arg.body());\nraw.headers.set(\"Content-Type\", \"application/json\");\n");
@@ -814,11 +917,17 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let mut f = String::from("private static Request parseRequest(comatype.RawRequest raw) {\n");
             let mut inits = Vec::new();
             if has("params") {
-                f.push_str(&format!("var params = {};\nparams.validate(\"\");\n", wire_build("Params", &ep.params, &g, "comatype.Wire.paramValues(raw, {})", false)));
+                f.push_str(&format!(
+                    "var params = {};\nparams.validate(\"\");\n",
+                    wire_build("Params", &ep.params, &g, "comatype.Wire.paramValues(raw, {})", false)
+                ));
                 inits.push("params");
             }
             if has("search") {
-                f.push_str(&format!("var search = {};\nsearch.validate(\"\");\n", wire_build("Search", &ep.search, &g, "comatype.Wire.queryValues(raw, {})", false)));
+                f.push_str(&format!(
+                    "var search = {};\nsearch.validate(\"\");\n",
+                    wire_build("Search", &ep.search, &g, "comatype.Wire.queryValues(raw, {})", false)
+                ));
                 inits.push("search");
             }
             if has("headers") {
@@ -858,7 +967,10 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
                     b.push_str(&format!("out.body = encodeS{c}(r.body());\nout.headers.set(\"Content-Type\", \"application/json\");\n"));
                 }
                 if !r.headers.is_empty() {
-                    b.push_str(&format!("r.headers().validate(\"\");\ncomatype.Wire.setHeaders(out.headers, {});\n", wire_pairs(&r.headers, "r.headers()")));
+                    b.push_str(&format!(
+                        "r.headers().validate(\"\");\ncomatype.Wire.setHeaders(out.headers, {});\n",
+                        wire_pairs(&r.headers, "r.headers()")
+                    ));
                 }
             }
             b.push_str("} else {\nthrow new comatype.ComatypeException(\"宣言されていないレスポンスです: \" + res);\n}\n");
@@ -939,7 +1051,10 @@ fn init_file(svc: &Service, names: &BTreeMap<String, String>, role: Role, packag
         comps.join(", "),
         indent(&indent(&entries))
     ));
-    Ok(format!("{HEADER}package {package};\n\n/** init.comat から生成 */\npublic final class Init {{\n    private Init() {{}}\n\n{}}}\n", indent(body.trim_end())))
+    Ok(format!(
+        "{HEADER}package {package};\n\n/** init.comat から生成 */\npublic final class Init {{\n    private Init() {{}}\n\n{}}}\n",
+        indent(body.trim_end())
+    ))
 }
 
 #[cfg(test)]

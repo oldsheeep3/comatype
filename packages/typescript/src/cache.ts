@@ -52,7 +52,7 @@ export class MemoryCache<T> {
 
 /** Whether a response may be cached (2xx, no Set-Cookie) */
 export function cacheable(res: RawResponse): boolean {
-  return res.status >= 200 && res.status < 300 && !(res.cookies && res.cookies.length)
+  return res.status >= 200 && res.status < 300 && !res.cookies?.length
 }
 
 /** FNV-1a (64-bit) as hex. Used for cookie names */

@@ -1,12 +1,12 @@
 'use client'
 
+import type * as Monaco from 'monaco-editor'
 // A place to write .comat and try the highlighting and the small check.
 // The check only covers bracket matching and the status-code rules (the real check is `comatype check` / the VS Code extension).
 import { useCallback, useRef, useState } from 'react'
-import type * as Monaco from 'monaco-editor'
-import { ComatEditor } from './ComatEditor'
-import { lintComat, type Problem } from '../lib/lint'
 import statuses from '../data/status-codes.json'
+import { lintComat, type Problem } from '../lib/lint'
+import { ComatEditor } from './ComatEditor'
 import { useLocale } from './useLocale'
 
 interface Example {
@@ -178,25 +178,28 @@ export function Playground() {
   const monacoRef = useRef<typeof Monaco>(undefined)
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(undefined)
 
-  const check = useCallback((value: string) => {
-    const found = lintComat(value, statuses, locale)
-    setProblems(found)
-    const monaco = monacoRef.current
-    const model = editorRef.current?.getModel()
-    if (!monaco || !model) return
-    monaco.editor.setModelMarkers(
-      model,
-      'comatype-playground',
-      found.map((p) => ({
-        startLineNumber: p.line,
-        startColumn: p.column,
-        endLineNumber: p.line,
-        endColumn: p.endColumn,
-        message: p.message,
-        severity: p.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
-      })),
-    )
-  }, [locale])
+  const check = useCallback(
+    (value: string) => {
+      const found = lintComat(value, statuses, locale)
+      setProblems(found)
+      const monaco = monacoRef.current
+      const model = editorRef.current?.getModel()
+      if (!monaco || !model) return
+      monaco.editor.setModelMarkers(
+        model,
+        'comatype-playground',
+        found.map((p) => ({
+          startLineNumber: p.line,
+          startColumn: p.column,
+          endLineNumber: p.line,
+          endColumn: p.endColumn,
+          message: p.message,
+          severity: p.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+        })),
+      )
+    },
+    [locale],
+  )
 
   const onReady = useCallback(
     (monaco: typeof Monaco, editor: Monaco.editor.IStandaloneCodeEditor) => {
@@ -232,7 +235,9 @@ export function Playground() {
             </option>
           ))}
         </select>
-        <span className={problems.length === 0 ? 'summary ok' : 'summary'}>{problems.length === 0 ? t.ok : t.problems(problems.length)}</span>
+        <span className={problems.length === 0 ? 'summary ok' : 'summary'}>
+          {problems.length === 0 ? t.ok : t.problems(problems.length)}
+        </span>
       </div>
       <ComatEditor value={text} height={420} onChange={onChange} onReady={onReady} />
       {problems.length > 0 && (

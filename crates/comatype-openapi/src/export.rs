@@ -32,13 +32,13 @@ fn scalar(name: &str, constraint: &Option<Constraint>) -> Value {
         "int64" => obj(vec![
             ("type", json!("string")),
             ("pattern", json!("^-?\\d+$")),
-            ("description", json!("64 ビット整数（通信上は文字列）")),
+            ("description", json!("64-bit integer (a string on the wire)")),
             (EXT, json!("int64")),
         ]),
         "decimal" => obj(vec![
             ("type", json!("string")),
             ("pattern", json!("^-?\\d+(\\.\\d+)?$")),
-            ("description", json!("小数（通信上は文字列）")),
+            ("description", json!("decimal number (a string on the wire)")),
             (EXT, json!("decimal")),
         ]),
         "url" => obj(vec![("type", json!("string")), ("format", json!("uri"))]),
@@ -87,7 +87,11 @@ impl Ctx {
                     json!({"type": "string", "enum": vals})
                 } else if rest.len() == 1 {
                     let inner = self.schema(rest[0]);
-                    if inner.get("$ref").is_some() { json!({"allOf": [inner]}) } else { inner }
+                    if inner.get("$ref").is_some() {
+                        json!({"allOf": [inner]})
+                    } else {
+                        inner
+                    }
                 } else {
                     json!({"oneOf": rest.iter().map(|v| self.schema(v)).collect::<Vec<_>>()})
                 };
@@ -208,7 +212,7 @@ pub fn export(title: &str, svc: &Service, statuses: &StatusTable) -> Value {
 
     let mut doc = Map::new();
     doc.insert("openapi".into(), json!("3.0.3"));
-    doc.insert("info".into(), json!({"title": title, "version": "1.0.0", "description": "Comatype から生成"}));
+    doc.insert("info".into(), json!({"title": title, "version": "1.0.0", "description": "Generated from Comatype"}));
     if let Some(u) = &svc.base_url {
         doc.insert("servers".into(), json!([{"url": u}]));
     }
@@ -218,5 +222,5 @@ pub fn export(title: &str, svc: &Service, statuses: &StatusTable) -> Value {
 }
 
 pub fn to_yaml(v: &Value) -> String {
-    serde_yaml::to_string(v).expect("YAML にできない値はありません")
+    serde_yaml::to_string(v).expect("every value can be written as YAML")
 }

@@ -31,11 +31,7 @@ export function coerce(schema: Schema<any> | undefined, v: string | string[] | u
 }
 
 /** Coerce per key of an object schema. With `ci`, keys are looked up case-insensitively (for headers) */
-export function coerceObject(
-  schema: Schema<any>,
-  src: Record<string, string | string[] | undefined>,
-  ci = false,
-): Record<string, unknown> {
+export function coerceObject(schema: Schema<any>, src: Record<string, string | string[] | undefined>, ci = false): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   const lower: Record<string, string | string[] | undefined> = {}
   if (ci) for (const [k, v] of Object.entries(src)) lower[k.toLowerCase()] = v

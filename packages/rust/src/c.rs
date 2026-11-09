@@ -2,7 +2,9 @@
 //!
 //! The argument type `Arg` follows the request shape: `Request` if there are params / search, `Body` if only a body, `NoArg` otherwise.
 
-use crate::cache::{cache_cookie_name, cacheable, client_cache_key, decode_cache_cookie, encode_cache_cookie, MemoryCache, CACHE_COOKIE_PREFIX};
+use crate::cache::{
+    cache_cookie_name, cacheable, client_cache_key, decode_cache_cookie, encode_cache_cookie, MemoryCache, CACHE_COOKIE_PREFIX,
+};
 use crate::cookie::CookieJar;
 use crate::error::{Error, Result};
 use crate::raw::{Endpoint, RawRequest, RawResponse};
@@ -17,6 +19,7 @@ pub type Next<'a> = &'a dyn Fn(RawRequest) -> Result<RawResponse>;
 
 /// A wrapper implementation. It can rewrite both the request and the response. One per `wrapper <name>` in `init.comat`.
 #[derive(Clone)]
+#[allow(clippy::type_complexity)]
 pub struct ComatypeWrap(pub Arc<dyn Fn(RawRequest, Next) -> Result<RawResponse> + Send + Sync>);
 
 impl ComatypeWrap {
@@ -142,7 +145,10 @@ fn transport<Arg, Req, Res>(ep: &Endpoint<Arg, Req, Res>, conf: &Config, r: RawR
         .or_else(|| std::env::var("COMATYPE_BASE_URL").ok().filter(|v| !v.is_empty()))
         .or_else(|| ep.base_url.map(str::to_string))
         .ok_or_else(|| {
-            Error::Config("base url がありません（Config.base_url、環境変数 COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）".into())
+            Error::Config(
+                "base url がありません（Config.base_url、環境変数 COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）"
+                    .into(),
+            )
         })?;
     let mut url = format!("{}{}", base.trim_end_matches('/'), r.path);
     if !r.query.is_empty() {
@@ -166,32 +172,28 @@ fn transport<Arg, Req, Res>(ep: &Endpoint<Arg, Req, Res>, conf: &Config, r: RawR
             cache_key = Some(key);
         }
     }
-    let mut builder = ureq::AgentBuilder::new().redirects(0);
+    // Redirects are not followed, an HTTP error status is a normal response (not a transport error), and QUERY is allowed
+    let mut config = ureq::Agent::config_builder().max_redirects(0).http_status_as_error(false).allow_non_standard_methods(true);
     if let Some(t) = conf.timeout {
-        builder = builder.timeout(t);
+        config = config.timeout_global(Some(t));
     }
-    let mut req = builder.build().request(&r.method.to_ascii_uppercase(), &url);
+    let agent: ureq::Agent = config.build().into();
+    let mut builder = ureq::http::Request::builder().method(r.method.to_ascii_uppercase().as_str()).uri(&url);
     for (k, v) in r.headers.iter() {
-        req = req.set(k, v);
+        builder = builder.header(k, v);
     }
     if !r.cookies.is_empty() && !r.headers.contains("Cookie") {
         let pairs: Vec<String> = r.cookies.iter().map(|(k, v)| format!("{k}={}", percent_encode(v))).collect();
-        req = req.set("Cookie", &pairs.join("; "));
+        builder = builder.header("Cookie", pairs.join("; "));
     }
-    let res = if r.body.is_empty() { req.call() } else { req.send_bytes(&r.body) };
-    let res = match res {
-        Ok(r) => r,
-        Err(ureq::Error::Status(_, r)) => r,
-        Err(e) => return Err(Error::Transport(e.to_string())),
-    };
-    let mut out = RawResponse::new(res.status());
-    for name in res.headers_names() {
-        for v in res.all(&name) {
-            out.headers.add(&name, v);
-        }
+    let request = builder.body(r.body.clone()).map_err(|e| Error::Transport(e.to_string()))?;
+    let res = agent.run(request).map_err(|e| Error::Transport(e.to_string()))?;
+    let mut out = RawResponse::new(res.status().as_u16());
+    for (name, v) in res.headers() {
+        out.headers.add(name.as_str(), String::from_utf8_lossy(v.as_bytes()).into_owned());
     }
-    out.set_cookies = res.all("set-cookie").iter().map(|s| s.to_string()).collect();
-    res.into_reader().read_to_end(&mut out.body).map_err(|e| Error::Transport(e.to_string()))?;
+    out.set_cookies = res.headers().get_all("set-cookie").iter().map(|v| String::from_utf8_lossy(v.as_bytes()).into_owned()).collect();
+    res.into_body().into_reader().read_to_end(&mut out.body).map_err(|e| Error::Transport(e.to_string()))?;
     if ep.cookie && !out.set_cookies.is_empty() {
         if let Some(jar) = &conf.cookie_jar {
             jar.store(&out.set_cookies);

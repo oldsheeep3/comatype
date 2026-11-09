@@ -10,13 +10,16 @@ import java.util.TreeMap;
 public final class RawRequest {
     /** Lowercase (get, post, ...) */
     public String method;
+
     /** The path after filling in params (client), or the received path (server) */
     public String path;
+
     public Headers headers = new Headers();
     public List<String[]> query = new ArrayList<>();
     public Map<String, String> params = new LinkedHashMap<>();
     public byte[] body = new byte[0];
     public Map<String, String> cookies = new TreeMap<>();
+
     /** ctx added by server wrappers (wrapper name -> value) */
     public Map<String, Object> contexts = new LinkedHashMap<>();
 

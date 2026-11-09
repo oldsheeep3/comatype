@@ -1,6 +1,7 @@
 // React components applied to Markdown elements (the `components` of rehype-react)
-import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+
 import Link from 'next/link'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { CodeBlock } from './CodeBlock'
 import { CodeGroup } from './CodeGroup'
 import { StatusTable } from './StatusTable'

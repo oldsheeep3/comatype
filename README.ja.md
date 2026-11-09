@@ -26,18 +26,21 @@ TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ cl
 
 | 言語 | ランタイムのパッケージ | 状態 |
 |---|---|---|
-| TypeScript | `@comatype/typescript`（npm） | リリースの仕組みは用意済み。未公開 |
-| Go | `github.com/oldsheeep3/comatype/packages/go` | リリースの仕組みは用意済み。未公開 |
-| Python | `comatype`（PyPI） | リリースの仕組みは用意済み。未公開 |
-| Rust | `comatype`（crates.io） | リリースの仕組みは用意済み。未公開 |
-| Java / Kotlin | `net.sheeplab.comatype:comatype`、`:comatype-ktx`（Maven Central） | リリースの仕組みは用意済み。未公開 |
-| Ruby | `comatype`（RubyGems） | リリースの仕組みは用意済み。未公開 |
-| Swift | `packages/swift` | このリポジトリ内のみ |
+| TypeScript | `@comatype/typescript`（npm） | 公開済み（各パッケージの README を参照） |
+| Go | [`github.com/oldsheeep3/comatype/packages/go`](https://pkg.go.dev/github.com/oldsheeep3/comatype/packages/go) | 公開済み（各パッケージの README を参照） |
+| Python | `comatype`（PyPI） | 公開済み（各パッケージの README を参照） |
+| Rust | `comatype`（crates.io） | 公開済み（各パッケージの README を参照） |
+| Java / Kotlin | [`net.sheeplab.comatype:comatype`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype)、[`:comatype-ktx`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype-ktx)（Maven Central） | 公開済み（各パッケージの README を参照） |
+| Ruby | `comatype`（RubyGems） | 公開済み（各パッケージの README を参照） |
+| Swift | [`packages/swift`](packages/swift) | このリポジトリ内のみ |
+| VS Code 拡張 | `comatype.comatype`（VS Code Marketplace、Open VSX） | リリースの準備は完了、未公開 |
 
 ## コマンドライン
 
 ```bash
-cargo build -p comatype-cli       # `comatype`（短い別名は `comat`）をビルド
+# ビルド済みのバイナリを入れる（macOS・Linux。Windows はリリースページの zip）
+curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh
+# ソースからビルドする場合:  cargo install --git https://github.com/oldsheeep3/comatype comatype-cli
 
 comatype check                    # 全 .comat を検査
 comatype generate                 # comatype.config.json の targets にコードを生成

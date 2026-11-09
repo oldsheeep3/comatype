@@ -1,12 +1,12 @@
 // Replaces vscode and checks what activate registers and the check flow (real CLI → diagnostics)
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import Module, { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join, dirname } from 'node:path'
-import { createRequire } from 'node:module'
-import Module from 'node:module'
+import { join } from 'node:path'
+import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
@@ -14,32 +14,70 @@ const root = fileURLToPath(new URL('../../..', import.meta.url))
 const bin = join(root, 'target/debug/comatype')
 
 function makeVscode(state) {
-  class Range { constructor(a, b, c, d) { Object.assign(this, { sl: a, sc: b, el: c, ec: d }) } }
-  class Diagnostic { constructor(range, message, severity) { Object.assign(this, { range, message, severity }) } }
-  class DocumentLink { constructor(range, target) { Object.assign(this, { range, target }) } }
+  class Range {
+    constructor(a, b, c, d) {
+      Object.assign(this, { sl: a, sc: b, el: c, ec: d })
+    }
+  }
+  class Diagnostic {
+    constructor(range, message, severity) {
+      Object.assign(this, { range, message, severity })
+    }
+  }
+  class DocumentLink {
+    constructor(range, target) {
+      Object.assign(this, { range, target })
+    }
+  }
   const subs = (x) => x
   return {
-    Range, Diagnostic, DocumentLink,
+    Range,
+    Diagnostic,
+    DocumentLink,
     DiagnosticSeverity: { Error: 0, Warning: 1 },
     StatusBarAlignment: { Left: 1 },
     Uri: { file: (p) => ({ fsPath: p, scheme: 'file', toString: () => p }) },
-    SnippetString: class { constructor(value) { this.value = value } },
+    SnippetString: class {
+      constructor(value) {
+        this.value = value
+      }
+    },
     languages: {
       createDiagnosticCollection: () => ({
         map: new Map(),
-        clear() { this.map.clear() },
-        set(uri, list) { this.map.set(uri.fsPath, list); state.diags = this.map },
+        clear() {
+          this.map.clear()
+        },
+        set(uri, list) {
+          this.map.set(uri.fsPath, list)
+          state.diags = this.map
+        },
         dispose() {},
       }),
-      registerDocumentLinkProvider: (sel, provider) => { state.links = provider; return subs({}) },
+      registerDocumentLinkProvider: (_sel, provider) => {
+        state.links = provider
+        return subs({})
+      },
     },
     window: {
       createOutputChannel: () => ({ appendLine() {}, show() {}, dispose() {} }),
-      createStatusBarItem: () => { state.status = { text: '', show() {}, hide() {}, dispose() {} }; return state.status },
+      createStatusBarItem: () => {
+        state.status = { text: '', show() {}, hide() {}, dispose() {} }
+        return state.status
+      },
       activeTextEditor: state.editor,
-      showInformationMessage: async (...a) => { (state.messages ??= []).push(a[0]); return undefined },
-      showWarningMessage: async (...a) => { (state.messages ??= []).push(a[0]); return undefined },
-      showErrorMessage: async (...a) => { (state.messages ??= []).push(a[0]); return undefined },
+      showInformationMessage: async (...a) => {
+        ;(state.messages ??= []).push(a[0])
+        return undefined
+      },
+      showWarningMessage: async (...a) => {
+        ;(state.messages ??= []).push(a[0])
+        return undefined
+      },
+      showErrorMessage: async (...a) => {
+        ;(state.messages ??= []).push(a[0])
+        return undefined
+      },
       showSaveDialog: async () => state.saveTo,
       showOpenDialog: async () => state.openQueue?.shift(),
       showQuickPick: async (items) => state.pick?.(items),
@@ -47,12 +85,19 @@ function makeVscode(state) {
     },
     workspace: {
       workspaceFolders: state.folders,
-      getConfiguration: () => ({ get: (k) => ({ path: bin, config: '', checkOnSave: true, 'languageServer.enabled': false, ...state.settings })[k] }),
+      getConfiguration: () => ({
+        get: (k) => ({ path: bin, config: '', checkOnSave: true, 'languageServer.enabled': false, ...state.settings })[k],
+      }),
       onDidSaveTextDocument: () => ({}),
       onDidOpenTextDocument: () => ({}),
       openTextDocument: async (u) => u,
     },
-    commands: { registerCommand: (id, fn) => { state.commands[id] = fn; return {} } },
+    commands: {
+      registerCommand: (id, fn) => {
+        state.commands[id] = fn
+        return {}
+      },
+    },
   }
 }
 
@@ -85,8 +130,8 @@ function load(state) {
   return { activate: async (...a) => ext.activate(...a), restore: () => (Module._load = orig) }
 }
 
-test('activate: コマンドとリンクを登録し、check が診断を出す', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('activate: registers the commands and links, and check publishes diagnostics', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const dir = mkdtempSync(join(tmpdir(), 'comat-ext-'))
   mkdirSync(join(dir, 'comatfiles'))
   writeFileSync(join(dir, 'comatype.config.json'), '{"services":{"api":{"comatDir":"./comatfiles"}}}')
@@ -94,17 +139,28 @@ test('activate: コマンドとリンクを登録し、check が診断を出す'
   const file = join(dir, 'comatfiles/get_a.comat')
   writeFileSync(file, 'path /a\ns200 Missing\n')
 
-  const state = { commands: {}, folders: [{ uri: { fsPath: dir } }], editor: { document: { uri: { fsPath: file, scheme: 'file' }, languageId: 'comat' } } }
+  const state = {
+    commands: {},
+    folders: [{ uri: { fsPath: dir } }],
+    editor: { document: { uri: { fsPath: file, scheme: 'file' }, languageId: 'comat' } },
+  }
   const ext = load(state)
   const context = { subscriptions: [] }
   ext.activate(context)
-  assert.deepEqual(Object.keys(state.commands).sort(), ['comatype.check', 'comatype.exportOpenApi', 'comatype.generate', 'comatype.importOpenApi', 'comatype.restartServer', 'comatype.showStatusCodes'])
+  assert.deepEqual(Object.keys(state.commands).sort(), [
+    'comatype.check',
+    'comatype.exportOpenApi',
+    'comatype.generate',
+    'comatype.importOpenApi',
+    'comatype.restartServer',
+    'comatype.showStatusCodes',
+  ])
 
   // Wait for the check started by activate to finish, then run it again with the command
   await state.commands['comatype.check']()
   for (let i = 0; i < 100 && !state.diags; i++) await new Promise((r) => setTimeout(r, 50))
   const list = state.diags.get(file)
-  assert.ok(list, `診断が出ていません: ${[...state.diags.keys()]}`)
+  assert.ok(list, `no diagnostics were published: ${[...state.diags.keys()]}`)
   const err = list.find((d) => d.severity === 0)
   assert.match(err.message, /Missing/)
   assert.equal(err.range.sl, 1)
@@ -117,7 +173,7 @@ test('activate: コマンドとリンクを登録し、check が診断を出す'
   assert.equal(links[0].target.fsPath, join(dir, 'types/a.comat'))
 })
 
-test('設定ファイルが見つからなければ、何もしない', async () => {
+test('does nothing when no config file is found', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'comat-none-'))
   const state = { commands: {}, folders: [{ uri: { fsPath: dir } }], editor: undefined }
   const ext = load(state)
@@ -126,8 +182,7 @@ test('設定ファイルが見つからなければ、何もしない', async ()
   assert.equal(state.diags, undefined)
 })
 
-
-test('言語サーバを使う: comatype lsp を起動し、再起動できる', async () => {
+test('language server: starts comatype lsp and can restart it', async () => {
   const state = { commands: {}, folders: [], editor: undefined, settings: { 'languageServer.enabled': true, path: '/opt/bin/comatype' } }
   const ext = load(state)
   const context = { subscriptions: [] }
@@ -138,14 +193,21 @@ test('言語サーバを使う: comatype lsp を起動し、再起動できる',
   assert.deepEqual(client.clientOptions.documentSelector, [{ scheme: 'file', language: 'comat' }])
   assert.deepEqual(client.log, ['start'])
   // Diagnostics come from the language server, so the extension itself publishes none (comatype.check restarts it)
-  assert.deepEqual(Object.keys(state.commands).sort(), ['comatype.check', 'comatype.exportOpenApi', 'comatype.generate', 'comatype.importOpenApi', 'comatype.restartServer', 'comatype.showStatusCodes'])
+  assert.deepEqual(Object.keys(state.commands).sort(), [
+    'comatype.check',
+    'comatype.exportOpenApi',
+    'comatype.generate',
+    'comatype.importOpenApi',
+    'comatype.restartServer',
+    'comatype.showStatusCodes',
+  ])
   await state.commands['comatype.restartServer']()
   assert.equal(state.clients.length, 2)
   assert.deepEqual(client.log, ['start', 'stop'])
   assert.deepEqual(state.clients[1].log, ['start'])
 })
 
-test('言語サーバを起動できなくても、拡張は壊れない（エラーを出す）', async () => {
+test('the extension survives a language server that cannot start (it shows an error)', async () => {
   const state = { commands: {}, folders: [], editor: undefined, startFails: true, settings: { 'languageServer.enabled': true } }
   const messages = []
   const ext = load(state)
@@ -154,10 +216,9 @@ test('言語サーバを起動できなくても、拡張は壊れない（エ�
   void messages
 })
 
-
 // ---- OpenAPI commands (run with the real comatype) ----
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
 function openApiProject() {
   const dir = mkdtempSync(join(tmpdir(), 'comat-oa-'))
@@ -168,8 +229,8 @@ function openApiProject() {
   return dir
 }
 
-test('Export OpenAPI: 保存先を選ぶと、openapi.yml が書かれる', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('Export OpenAPI: choosing a destination writes openapi.yml', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const dir = openApiProject()
   const out = join(dir, 'out/openapi.yml')
   mkdirSync(join(dir, 'out'))
@@ -184,8 +245,8 @@ test('Export OpenAPI: 保存先を選ぶと、openapi.yml が書かれる', asyn
   assert.match(yml, /description: Not Found/)
 })
 
-test('Export OpenAPI: 保存先を選ばなければ何もしない', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('Export OpenAPI: does nothing when no destination is chosen', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const dir = openApiProject()
   const state = { commands: {}, folders: [{ uri: { fsPath: dir } }], editor: undefined, saveTo: undefined }
   const ext = load(state)
@@ -194,15 +255,17 @@ test('Export OpenAPI: 保存先を選ばなければ何もしない', async (t) 
   assert.equal(readdirSync(dir).includes('openapi.yml'), false)
 })
 
-test('Import OpenAPI: .comat と設定を作り、選んだ言語のコードまで生成する', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('Import OpenAPI: makes the .comat files and config, and generates code for the chosen languages', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const src = openApiProject()
   const spec = join(src, 'openapi.yml')
   const exp = spawnSync(bin, ['to-openapi', '--config', src, '-o', spec])
   assert.equal(exp.status, 0)
   const dest = mkdtempSync(join(tmpdir(), 'comat-import-'))
   const state = {
-    commands: {}, folders: [], editor: undefined,
+    commands: {},
+    folders: [],
+    editor: undefined,
     openQueue: [[{ fsPath: spec }], [{ fsPath: dest }]],
     pick: (items) => items.filter((i) => i.description === 'ts:client:./client'),
   }
@@ -211,15 +274,20 @@ test('Import OpenAPI: .comat と設定を作り、選んだ言語のコードま
   await state.commands['comatype.importOpenApi']()
   assert.ok(existsSync(join(dest, 'comatfiles/get_a.comat')), state.messages)
   assert.ok(existsSync(join(dest, 'comatype.config.json')))
-  assert.ok(existsSync(join(dest, 'client/comatype/get_a.ts')), '--generate でコードまで作る')
-  assert.match(readFileSync(join(dest, 'comatfiles/get_a.comat'), 'utf8'), /s404\n/, '既定の本文は省略した形に戻る')
+  assert.ok(existsSync(join(dest, 'client/comatype/get_a.ts')), '--generate also makes the code')
+  assert.match(readFileSync(join(dest, 'comatfiles/get_a.comat'), 'utf8'), /s404\n/, 'the default body is written back in the omitted form')
 })
 
-test('Show Status Codes: 一覧から選ぶと、スニペットを挿入する', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('Show Status Codes: choosing from the list inserts a snippet', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const inserted = []
   const state = {
-    commands: {}, folders: [], editor: { document: { uri: { fsPath: '/x/y.comat', scheme: 'file' }, languageId: 'comat' }, insertSnippet: (s) => inserted.push(s.value) },
+    commands: {},
+    folders: [],
+    editor: {
+      document: { uri: { fsPath: '/x/y.comat', scheme: 'file' }, languageId: 'comat' },
+      insertSnippet: (s) => inserted.push(s.value),
+    },
     pick: (items) => {
       assert.equal(items.length, 62)
       return items.find((i) => i.label === 's404')

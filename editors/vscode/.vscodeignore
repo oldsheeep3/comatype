@@ -1,2 +1,16 @@
-test/**
-node_modules/**
+# Everything is excluded except what the manifest needs: the bundle in dist/, grammar, snippets, schema,
+# language configuration, icon and the documents (see `vsce ls`).
+**
+!dist/extension.js
+!bin/**
+!syntaxes/**
+!snippets/**
+!schemas/**
+!language-configuration.json
+!images/icon.png
+!images/comat-light.svg
+!images/comat-dark.svg
+!package.json
+!README.md
+!LICENSE
+!CHANGELOG.md

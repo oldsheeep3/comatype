@@ -40,14 +40,7 @@ impl Diagnostic {
     }
 
     fn new(severity: Severity, file: &str, span: Span, message: impl Into<String>) -> Self {
-        Diagnostic {
-            severity,
-            file: file.to_string(),
-            line: span.line,
-            col: span.col,
-            message: message.into(),
-            syntax: false,
-        }
+        Diagnostic { severity, file: file.to_string(), line: span.line, col: span.col, message: message.into(), syntax: false }
     }
 
     pub fn is_error(&self) -> bool {

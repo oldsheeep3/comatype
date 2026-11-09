@@ -1,8 +1,9 @@
 // Check the result of the static export (out/). Run `pnpm build` first
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const docs = fileURLToPath(new URL('..', import.meta.url))

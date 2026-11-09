@@ -1,12 +1,24 @@
 // Serve out/ (the result of the static export) locally to check it: pnpm --dir docs serve [port]
-import { createServer } from 'node:http'
+
 import { existsSync, readFileSync, statSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../out', import.meta.url))
 const port = Number(process.argv[2] ?? 4173)
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain', '.ico': 'image/x-icon' }
+const types = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain',
+  '.ico': 'image/x-icon',
+}
 
 createServer((req, res) => {
   const url = decodeURIComponent((req.url ?? '/').split('?')[0])

@@ -21,7 +21,13 @@ export function ThemeToggle() {
   }
 
   return (
-    <button type="button" className="icon-button" onClick={toggle} aria-label={dark ? text.light : text.dark} title={dark ? text.light : text.dark}>
+    <button
+      type="button"
+      className="icon-button"
+      onClick={toggle}
+      aria-label={dark ? text.light : text.dark}
+      title={dark ? text.light : text.dark}
+    >
       <span aria-hidden>{dark ? '☀' : '☾'}</span>
     </button>
   )

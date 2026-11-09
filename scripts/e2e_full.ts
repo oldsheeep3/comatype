@@ -1,21 +1,20 @@
 // Run the generated node_client of usage against the generated node_server (the real s)
 import assert from 'node:assert/strict'
 import type { AddressInfo } from 'node:net'
-import { c, s, createClient, createCookieJar, type ComatypeWrap } from '@comatype/typescript'
+import { type ComatypeWrap, c, createClient, createCookieJar, s } from '@comatype/typescript'
 import { serve } from '@comatype/typescript/node'
-
-import * as postUser from './node_client/comatype/post_user'
 import * as getUser from './node_client/comatype/get_user'
-import * as putUser from './node_client/comatype/user/put__id'
+import { s401 } from './node_client/comatype/init'
+import * as optionsUser from './node_client/comatype/options_user'
+import * as postUser from './node_client/comatype/post_user'
+import * as queryUser from './node_client/comatype/query_user'
+import type { UserData } from './node_client/comatype/types'
 import * as deleteUser from './node_client/comatype/user/delete__id'
 import * as listUsers from './node_client/comatype/user/get'
-import * as profile from './node_client/comatype/user/profile/get'
 import * as ping from './node_client/comatype/user/get_ping'
 import * as login from './node_client/comatype/user/post_login'
-import * as queryUser from './node_client/comatype/query_user'
-import * as optionsUser from './node_client/comatype/options_user'
-import { s401 } from './node_client/comatype/init'
-import type { UserData } from './node_client/comatype/types'
+import * as profile from './node_client/comatype/user/profile/get'
+import * as putUser from './node_client/comatype/user/put__id'
 
 // ---- Server (per-app storage and wrappers) ----
 const db = new Map<string, UserData>()
@@ -57,9 +56,7 @@ s.post(login.path, (req) =>
     ? login.s200({ data: { uid: '3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10' }, cookie: { session: { value: SESSION, maxAge: 3600 } } })
     : login.s401({ error: { code: 'bad', message: 'wrong' } }),
 )
-s.query(queryUser.path, (req) =>
-  queryUser.s200({ data: [...db.values()].filter((u) => !req.body.name || u.name.includes(req.body.name)) }),
-)
+s.query(queryUser.path, (req) => queryUser.s200({ data: [...db.values()].filter((u) => !req.body.name || u.name.includes(req.body.name)) }))
 s.options(optionsUser.path, () => optionsUser.s200({ headers: { Allow: ['GET', 'POST', 'OPTIONS'] } }))
 
 const srv = await serve({ port: 0 })
@@ -142,7 +139,11 @@ const ok = await viaCookie.post(login.path, { email: 'a@b.co', password: 'pw' },
 assert.equal(ok.status, 200)
 assert.deepEqual(jar.get('/'), { session: SESSION }, 'Set-Cookie が jar に入る')
 assert.equal((await viaCookie.get(profile.path, profile.s200)).status, 200, 'cookie だけで認証される')
-const raw = await fetch(`${base}/user/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'a@b.co', password: 'pw' }) })
+const raw = await fetch(`${base}/user/login`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ email: 'a@b.co', password: 'pw' }),
+})
 assert.equal(raw.headers.get('set-cookie'), `session=${SESSION}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax`)
 
 srv.close()

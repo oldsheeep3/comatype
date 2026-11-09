@@ -1,11 +1,11 @@
 // The parts that do not depend on VS Code (split out so they can be tested)
-'use strict'
+
 const fs = require('node:fs')
 const path = require('node:path')
 
 const CONFIG_NAME = 'comatype.config.json'
 
-/** startDir から上に向かって comatype.config.json を探す。無ければ undefined */
+/** Looks for comatype.config.json upwards from startDir. Returns undefined if there is none */
 function findConfig(startDir, exists = fs.existsSync) {
   let dir = path.resolve(startDir)
   for (;;) {
@@ -25,9 +25,9 @@ const TAG_NO_POS = /^\[(error|warn)\]\s+(\S.*?)\s{2}(.*)$/
 const severityOf = (tag) => (tag === 'warn' ? 'warning' : tag)
 
 /**
- * `comatype check` の出力（標準エラー）を診断にする。
- * 行は `[warn]  comatfiles/get_user.comat:5:1  メッセージ`（旧形式の `comatfiles/get_user.comat:5:1: warning: ...` も読める。パスは設定ファイルのあるディレクトリから）
- * 戻り値の line / col は 0 始まり。位置の無い診断は line = 0, col = 0
+ * Turns the output of `comatype check` (standard error) into diagnostics.
+ * Lines look like `[warn]  comatfiles/get_user.comat:5:1  message` (the old form `comatfiles/get_user.comat:5:1: warning: ...` is read too; paths are relative to the directory of the config file).
+ * line / col in the result are 0-based. A diagnostic without a position has line = 0, col = 0.
  */
 function parseDiagnostics(output, baseDir) {
   const out = []
@@ -35,7 +35,13 @@ function parseDiagnostics(output, baseDir) {
     const line = raw.trimEnd()
     let m = TAG_WITH_POS.exec(line)
     if (m) {
-      out.push({ file: path.resolve(baseDir, m[2]), line: Number(m[3]) - 1, col: Math.max(0, Number(m[4]) - 1), severity: severityOf(m[1]), message: m[5] })
+      out.push({
+        file: path.resolve(baseDir, m[2]),
+        line: Number(m[3]) - 1,
+        col: Math.max(0, Number(m[4]) - 1),
+        severity: severityOf(m[1]),
+        message: m[5],
+      })
       continue
     }
     m = TAG_NO_POS.exec(line)
@@ -45,11 +51,17 @@ function parseDiagnostics(output, baseDir) {
     }
     m = WITH_POS.exec(line)
     if (m) {
-      out.push({ file: path.resolve(baseDir, m[1]), line: Number(m[2]) - 1, col: Math.max(0, Number(m[3]) - 1), severity: m[4], message: m[5] })
+      out.push({
+        file: path.resolve(baseDir, m[1]),
+        line: Number(m[2]) - 1,
+        col: Math.max(0, Number(m[3]) - 1),
+        severity: m[4],
+        message: m[5],
+      })
       continue
     }
     m = NO_POS.exec(line)
-    if (m && !/^(エラー|OK)/.test(line)) {
+    if (m && !/^(\d+ error|OK)/.test(line)) {
       out.push({ file: path.resolve(baseDir, m[1]), line: 0, col: 0, severity: m[2], message: m[3] })
     }
   }
@@ -58,7 +70,7 @@ function parseDiagnostics(output, baseDir) {
 
 const IMPORT = /^(\s*import\s+[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*\s+from\s+)(\S+)/
 
-/** import 文のパスの位置。クリックでそのファイルを開くリンクにする */
+/** The position of the path in an import statement; it becomes a link that opens the file. */
 function importLinks(text) {
   const links = []
   text.split(/\r?\n/).forEach((line, i) => {
@@ -68,14 +80,14 @@ function importLinks(text) {
   return links
 }
 
-/** `comatype to-openapi` の引数 */
+/** Arguments of `comatype to-openapi` */
 function exportOpenApiArgs(config, outFile, service) {
   return ['to-openapi', '--config', config, '-o', outFile, ...(service ? ['--service', service] : [])]
 }
 
 /**
- * `comatype from-openapi` の引数。targets は { lang, role, root } の配列。generate が真なら、続けてコード生成する
- * （targets が無いと生成できないので、generate は偽にする）
+ * Arguments of `comatype from-openapi`. targets is an array of { lang, role, root }. If generate is true, code is generated afterwards
+ * (code cannot be generated without targets, so generate is false then)
  */
 function importOpenApiArgs(file, outDir, targets, generate, force) {
   const args = ['from-openapi', file, '--out', outDir]
@@ -85,7 +97,7 @@ function importOpenApiArgs(file, outDir, targets, generate, force) {
   return args
 }
 
-/** 取り込みのときに選べる、コード生成の候補（lang:role:root） */
+/** Code generation targets that can be chosen on import (lang:role:root) */
 const TARGET_PRESETS = [
   { label: 'TypeScript client', lang: 'ts', role: 'client', root: './client' },
   { label: 'TypeScript server', lang: 'ts', role: 'server', root: './server' },
@@ -95,4 +107,44 @@ const TARGET_PRESETS = [
   { label: 'Python server', lang: 'python', role: 'server', root: './py-server' },
 ]
 
-module.exports = { findConfig, parseDiagnostics, importLinks, exportOpenApiArgs, importOpenApiArgs, TARGET_PRESETS, CONFIG_NAME }
+/** File name of the executable on a platform */
+function binaryName(platform = process.platform) {
+  return platform === 'win32' ? 'comatype.exe' : 'comatype'
+}
+
+/**
+ * Which `comatype` to run. A location the user set wins; otherwise the binary bundled in the extension
+ * (`bin/comatype`, present in the per-platform builds); otherwise `comatype` on PATH.
+ */
+function resolveBinary({ configured, extensionPath, platform = process.platform, exists = fs.existsSync }) {
+  const value = (configured ?? '').trim()
+  if (value && value !== 'comatype') return value
+  if (extensionPath) {
+    const bundled = path.join(extensionPath, 'bin', binaryName(platform))
+    if (exists(bundled)) return bundled
+  }
+  return 'comatype'
+}
+
+/** A file extracted from a .vsix may lose its executable bit */
+function ensureExecutable(file, platform = process.platform, chmod = fs.chmodSync) {
+  if (platform === 'win32' || !path.isAbsolute(file)) return
+  try {
+    chmod(file, 0o755)
+  } catch {
+    // read-only install location: nothing more we can do
+  }
+}
+
+module.exports = {
+  binaryName,
+  resolveBinary,
+  ensureExecutable,
+  findConfig,
+  parseDiagnostics,
+  importLinks,
+  exportOpenApiArgs,
+  importOpenApiArgs,
+  TARGET_PRESETS,
+  CONFIG_NAME,
+}

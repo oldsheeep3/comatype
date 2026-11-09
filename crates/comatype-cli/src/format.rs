@@ -37,7 +37,7 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         }
         if p.is_dir() {
             walk(&p, out);
-        } else if p.extension().map_or(false, |e| e == "comat") {
+        } else if p.extension().is_some_and(|e| e == "comat") {
             out.push(p);
         }
     }
@@ -54,7 +54,8 @@ fn bracket(name: &str) -> Option<&str> {
 
 /// New relative path of one file (None if nothing changes) and the reason
 fn rewrite(rel: &Path) -> Option<(PathBuf, String)> {
-    let comps: Vec<String> = rel.components().filter_map(|c| if let Component::Normal(s) = c { s.to_str().map(String::from) } else { None }).collect();
+    let comps: Vec<String> =
+        rel.components().filter_map(|c| if let Component::Normal(s) = c { s.to_str().map(String::from) } else { None }).collect();
     let (file, dirs) = comps.split_last()?;
     let mut reasons = Vec::new();
     let mut out: Vec<String> = Vec::new();
@@ -62,7 +63,7 @@ fn rewrite(rel: &Path) -> Option<(PathBuf, String)> {
         match old_dynamic(d) {
             Some(n) => {
                 out.push(format!("[{n}]"));
-                reasons.push(format!("ディレクトリ名 `{d}` は廃止（→ `[{n}]`）"));
+                reasons.push(format!("directory name `{d}` is removed (-> `[{n}]`)"));
             }
             None => out.push(d.clone()),
         }
@@ -73,9 +74,9 @@ fn rewrite(rel: &Path) -> Option<(PathBuf, String)> {
         if let Some((m, seg)) = stem.split_once('_') {
             if METHODS.contains(&m) {
                 let (name, why) = if let Some(n) = bracket(seg) {
-                    (Some(n.to_string()), format!("ファイル名 `{file}` の `[{n}]` は非推奨（→ `[{n}]/{m}.comat`）"))
+                    (Some(n.to_string()), format!("`[{n}]` in file name `{file}` is deprecated (-> `[{n}]/{m}.comat`)"))
                 } else if let Some(n) = old_dynamic(seg).or_else(|| seg.strip_prefix('_')) {
-                    (Some(n.to_string()), format!("ファイル名 `{file}` の `{seg}` は廃止（→ `[{n}]/{m}.comat`）"))
+                    (Some(n.to_string()), format!("`{seg}` in file name `{file}` is removed (-> `[{n}]/{m}.comat`)"))
                 } else {
                     (None, String::new())
                 };
@@ -91,15 +92,17 @@ fn rewrite(rel: &Path) -> Option<(PathBuf, String)> {
         return None;
     }
     out.push(new_file);
-    Some((out.iter().collect(), reasons.join("、")))
+    Some((out.iter().collect(), reasons.join(", ")))
 }
 
 fn has_relative_path_directive(text: &str) -> bool {
     text.lines().any(|l| {
         let t = l.trim_start();
-        t.strip_prefix("path").map_or(false, |r| r.starts_with(char::is_whitespace) && {
-            let v = r.trim().trim_matches(|c| c == '\'' || c == '"');
-            v == "." || v.starts_with("./")
+        t.strip_prefix("path").is_some_and(|r| {
+            r.starts_with(char::is_whitespace) && {
+                let v = r.trim().trim_matches(|c| c == '\'' || c == '"');
+                v == "." || v.starts_with("./")
+            }
         })
     })
 }
@@ -117,19 +120,25 @@ pub fn plan(root: &Path) -> Plan {
         let text = std::fs::read_to_string(f).unwrap_or_default();
         let new_level = to.parent().map_or(0, |p| p.components().count()) != f.parent().map_or(0, |p| p.components().count());
         if new_level && has_relative_path_directive(&text) {
-            plan.skipped.push((f.clone(), "`path ./...`（そのファイルのディレクトリからの相対）があるので、ディレクトリを足すと path が変わります。`path` を直してから、手で動かしてください".into()));
+            plan.skipped.push((f.clone(), "the file has `path ./...` (relative to its directory), so adding a directory would change the path. Fix `path` first, then move it by hand".into()));
             continue;
         }
         if existing.contains(&lexical(&to)) || to.exists() {
-            plan.skipped.push((f.clone(), format!("移動先 {} がすでにあります", new_rel.display())));
+            plan.skipped.push((f.clone(), format!("the destination {} already exists", new_rel.display())));
             continue;
         }
-        if new_level && to.parent().map_or(false, |d| d.join("defaults.comat").exists()) {
-            plan.skipped.push((f.clone(), format!("移動先のディレクトリ {} に defaults.comat があり、効く設定が変わります。手で確かめてください", to.parent().unwrap().strip_prefix(root).unwrap_or(Path::new("")).display())));
+        if new_level && to.parent().is_some_and(|d| d.join("defaults.comat").exists()) {
+            plan.skipped.push((
+                f.clone(),
+                format!(
+                    "the destination directory {} has a defaults.comat, which would change the effective settings. Check by hand",
+                    to.parent().unwrap().strip_prefix(root).unwrap_or(Path::new("")).display()
+                ),
+            ));
             continue;
         }
         if let Some(prev) = targets.insert(lexical(&to), f.clone()) {
-            plan.skipped.push((f.clone(), format!("{} と同じ場所に動かすことになります", prev.display())));
+            plan.skipped.push((f.clone(), format!("it would be moved to the same place as {}", prev.display())));
             continue;
         }
         plan.moves.push(Move { from: f.clone(), to, reason });
@@ -162,7 +171,11 @@ fn relative(from_dir: &Path, to: &Path) -> String {
     let mut parts: Vec<String> = vec!["..".into(); a.len() - common];
     parts.extend(b[common..].iter().map(|s| s.to_string_lossy().to_string()));
     let joined = parts.join("/");
-    if joined.starts_with("..") { joined } else { format!("./{joined}") }
+    if joined.starts_with("..") {
+        joined
+    } else {
+        format!("./{joined}")
+    }
 }
 
 /// Rewrites relative `import` paths after the move. `moves`: old → new (textually collapsed paths). Returns the files that were rewritten
@@ -228,7 +241,7 @@ pub fn apply(root: &Path, moves: &[Move]) -> Result<Vec<PathBuf>, String> {
         if let Some(d) = m.to.parent() {
             std::fs::create_dir_all(d).map_err(|e| format!("{}: {e}", d.display()))?;
         }
-        std::fs::rename(&m.from, &m.to).map_err(|e| format!("{} → {}: {e}", m.from.display(), m.to.display()))?;
+        std::fs::rename(&m.from, &m.to).map_err(|e| format!("{} -> {}: {e}", m.from.display(), m.to.display()))?;
     }
     let changed = fix_imports(root, &map);
     // Tidies up original directories that became empty (leaves them if they have content)
@@ -258,31 +271,36 @@ pub fn run(dirs: &[PathBuf], opts: &Options, report_info: &dyn Fn(&str)) -> i32 
     let mut pending = 0;
     for root in dirs {
         if !root.is_dir() {
-            eprintln!("ディレクトリがありません: {}", root.display());
+            eprintln!("no such directory: {}", root.display());
             return 2;
         }
         let plan = plan(root);
         for (p, why) in &plan.skipped {
-            report_info(&format!("スキップ {}: {why}", show(root, p)));
+            report_info(&format!("skipped {}: {why}", show(root, p)));
         }
         if plan.moves.is_empty() {
-            report_info(&format!("{}: 直すものはありません", root.display()));
+            report_info(&format!("{}: nothing to fix", root.display()));
             continue;
         }
         for m in &plan.moves {
-            println!("{}  →  {}", show(root, &m.from), show(root, &m.to));
+            println!("{}  ->  {}", show(root, &m.from), show(root, &m.to));
             println!("    {}", m.reason);
         }
         if !opts.fix {
             pending += plan.moves.len();
-            report_info(&format!("{}: 直せるものが {} 件あります。`comatype format {} --fix` で直せます（`-y` で、確かめずに全部）", root.display(), plan.moves.len(), root.display()));
+            report_info(&format!(
+                "{}: {} item(s) can be fixed. Run `comatype format {} --fix` (add `-y` to apply all without asking)",
+                root.display(),
+                plan.moves.len(),
+                root.display()
+            ));
             continue;
         }
         let mut accepted: Vec<Move> = Vec::new();
         let mut all = opts.yes;
         let stdin = std::io::stdin();
         if !all && !stdin.is_terminal() {
-            eprintln!("対話できない環境です。`--fix -y` で、確かめずに全部を直すか、端末で実行してください");
+            eprintln!("this environment is not interactive. Use `--fix -y` to fix everything without asking, or run it in a terminal");
             return 2;
         }
         for m in &plan.moves {
@@ -290,7 +308,7 @@ pub fn run(dirs: &[PathBuf], opts: &Options, report_info: &dyn Fn(&str)) -> i32 
                 accepted.push(m.clone());
                 continue;
             }
-            print!("{} を動かしますか？ [y]es / [n]o / [a]ll / [q]uit: ", show(root, &m.from));
+            print!("Move {}? [y]es / [n]o / [a]ll / [q]uit: ", show(root, &m.from));
             let _ = std::io::stdout().flush();
             let mut line = String::new();
             if stdin.lock().read_line(&mut line).unwrap_or(0) == 0 {
@@ -307,19 +325,27 @@ pub fn run(dirs: &[PathBuf], opts: &Options, report_info: &dyn Fn(&str)) -> i32 
             }
         }
         if accepted.is_empty() {
-            report_info("何も直しませんでした");
+            report_info("nothing was fixed");
             continue;
         }
         match apply(root, &accepted) {
             Ok(changed) => {
-                report_info(&format!("{} 件を動かしました（import を書き換えたファイル: {} 件）。モジュール名が変わるので、`comatype generate` で作り直してください", accepted.len(), changed.len()));
+                report_info(&format!(
+                    "moved {} item(s) (files with rewritten imports: {}). Module names changed, so run `comatype generate` again",
+                    accepted.len(),
+                    changed.len()
+                ));
                 pending += plan.moves.len() - accepted.len();
             }
             Err(e) => {
-                eprintln!("直せませんでした: {e}");
+                eprintln!("could not fix: {e}");
                 return 2;
             }
         }
     }
-    if pending > 0 && !opts.fix { 1 } else { 0 }
+    if pending > 0 && !opts.fix {
+        1
+    } else {
+        0
+    }
 }

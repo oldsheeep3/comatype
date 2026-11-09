@@ -21,7 +21,7 @@ pub struct Imported {
 
 /// Reads YAML or JSON text (JSON is a subset of YAML). Numeric keys such as `200:` become strings
 pub fn parse_document(text: &str) -> Result<Value, String> {
-    let y: serde_yaml::Value = serde_yaml::from_str(text).map_err(|e| format!("YAML / JSON として読めません: {e}"))?;
+    let y: serde_yaml::Value = serde_yaml::from_str(text).map_err(|e| format!("cannot read as YAML / JSON: {e}"))?;
     Ok(yaml_to_json(y))
 }
 
@@ -87,7 +87,11 @@ fn quote(s: &str) -> String {
 }
 
 fn key(name: &str) -> String {
-    if is_ident(name) { name.to_string() } else { quote(name) }
+    if is_ident(name) {
+        name.to_string()
+    } else {
+        quote(name)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -129,7 +133,7 @@ impl<'a> Conv<'a> {
 
     fn expr(&mut self, s: &Value, indent: usize, depth: usize) -> String {
         if depth > 12 {
-            self.warn("型の入れ子が深すぎるので json にしました");
+            self.warn("the type nesting is too deep, so json was used");
             return "json".into();
         }
         if let Some(r) = s.get("$ref").and_then(Value::as_str) {
@@ -144,14 +148,14 @@ impl<'a> Conv<'a> {
                         self.names[&n].clone()
                     }
                     None => {
-                        self.warn(format!("{r} が見つからないので json にしました"));
+                        self.warn(format!("{r} was not found, so json was used"));
                         "json".into()
                     }
                 },
                 None => match self.lookup(r) {
                     Some(t) => self.expr(t, indent, depth + 1),
                     None => {
-                        self.warn(format!("{r} が見つからないので json にしました"));
+                        self.warn(format!("{r} was not found, so json was used"));
                         "json".into()
                     }
                 },
@@ -205,7 +209,7 @@ impl<'a> Conv<'a> {
                 }
                 return strs.iter().map(|v| quote(v)).collect::<Vec<_>>().join(" | ");
             }
-            self.warn("文字列以外の enum は、元の型にしました");
+            self.warn("an enum that is not made of strings was replaced by its base type");
         }
         if let Some(c) = s.get("const").and_then(Value::as_str) {
             return quote(c);
@@ -219,7 +223,7 @@ impl<'a> Conv<'a> {
                     None => "json".into(),
                 };
                 if item.contains(" | ") {
-                    self.warn("ユニオンの配列は表せないので、json[] にしました");
+                    self.warn("an array of a union cannot be expressed, so json[] was used");
                     "json[]".into()
                 } else {
                     format!("{item}[]")
@@ -230,11 +234,13 @@ impl<'a> Conv<'a> {
                 let (lo, hi) = (s.get("minimum").and_then(Value::as_i64), s.get("maximum").and_then(Value::as_i64));
                 match (lo, hi) {
                     (None, None) => "int".into(),
-                    _ => format!("int({}..{})", lo.map(|v| v.to_string()).unwrap_or_default(), hi.map(|v| v.to_string()).unwrap_or_default()),
+                    _ => {
+                        format!("int({}..{})", lo.map(|v| v.to_string()).unwrap_or_default(), hi.map(|v| v.to_string()).unwrap_or_default())
+                    }
                 }
             }
             Some("number") => {
-                self.warn("number（小数）は表せないので json にしました（金額などは decimal を使います）");
+                self.warn("number (a fractional value) cannot be expressed, so json was used (use decimal for money and the like)");
                 "json".into()
             }
             Some("boolean") => "bool".into(),
@@ -276,7 +282,7 @@ impl<'a> Conv<'a> {
         let lines = self.fields(s, indent + 1, depth);
         if lines.is_empty() {
             if s.get("additionalProperties").is_some() {
-                self.warn("additionalProperties（map）は表せないので json にしました");
+                self.warn("additionalProperties (a map) cannot be expressed, so json was used");
             }
             return "json".into();
         }
@@ -303,7 +309,8 @@ impl<'a> Conv<'a> {
                 }
             }
         }
-        let required: BTreeSet<&str> = s.get("required").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+        let required: BTreeSet<&str> =
+            s.get("required").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
         if let Some(props) = s.get("properties").and_then(Value::as_object) {
             for (name, ps) in props {
                 let e = self.expr(ps, indent, depth + 1);
@@ -358,26 +365,23 @@ fn block(cv: &mut Conv, kw: &str, params: &[&Param]) -> String {
 /// Body type. Only JSON content types (application/json etc.). Err(true) if there is only non-JSON, Err(false) if content is empty
 fn json_schema(content: &Value) -> Result<&Value, bool> {
     let m = content.as_object().filter(|m| !m.is_empty()).ok_or(false)?;
-    let pick = m
-        .get("application/json")
-        .or_else(|| m.iter().find(|(k, _)| k.contains("json")).map(|(_, v)| v))
-        .ok_or(true)?;
+    let pick = m.get("application/json").or_else(|| m.iter().find(|(k, _)| k.contains("json")).map(|(_, v)| v)).ok_or(true)?;
     pick.get("schema").ok_or(false)
 }
 
 /// Whether the body is just `{ message: string }` (same as the default body)
 fn is_default_body(s: &Value) -> bool {
     s.get("type").and_then(Value::as_str) == Some("object")
-        && s.get("properties").and_then(Value::as_object).map_or(false, |p| {
+        && s.get("properties").and_then(Value::as_object).is_some_and(|p| {
             p.len() == 1
-                && p.get("message").map_or(false, |m| {
+                && p.get("message").is_some_and(|m| {
                     m.get("type").and_then(Value::as_str) == Some("string")
                         && m.get("format").is_none()
                         && m.get("pattern").is_none()
                         && m.get("enum").is_none()
                 })
         })
-        && s.get("required").and_then(Value::as_array).map_or(false, |r| r.len() == 1 && r[0] == "message")
+        && s.get("required").and_then(Value::as_array).is_some_and(|r| r.len() == 1 && r[0] == "message")
 }
 
 fn imports_for(deps: &BTreeSet<String>, names: &BTreeMap<String, String>, prefix: &str) -> String {
@@ -392,22 +396,32 @@ fn imports_for(deps: &BTreeSet<String>, names: &BTreeMap<String, String>, prefix
 }
 
 pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
-    if doc.get("openapi").and_then(Value::as_str).map_or(true, |v| !v.starts_with('3')) {
-        return Err("OpenAPI 3 の文書ではありません（`openapi: 3.x` がありません）".into());
+    if doc.get("openapi").and_then(Value::as_str).is_none_or(|v| !v.starts_with('3')) {
+        return Err("not an OpenAPI 3 document (`openapi: 3.x` is missing)".into());
     }
-    let mut out = Imported::default();
-    out.title = doc["info"]["title"].as_str().unwrap_or("api").to_string();
-    out.base_url = doc["servers"][0]["url"].as_str().filter(|u| u.starts_with("http") && !u.contains('{')).map(str::to_string);
+    let mut out = Imported {
+        title: doc["info"]["title"].as_str().unwrap_or("api").to_string(),
+        base_url: doc["servers"][0]["url"].as_str().filter(|u| u.starts_with("http") && !u.contains('{')).map(str::to_string),
+        ..Default::default()
+    };
 
     // Classify types and name them
     let schemas = doc["components"]["schemas"].as_object().cloned().unwrap_or_default();
-    let mut cv = Conv { doc, kinds: BTreeMap::new(), names: BTreeMap::new(), deps: BTreeSet::new(), warnings: vec![], place: String::new() };
+    let mut cv =
+        Conv { doc, kinds: BTreeMap::new(), names: BTreeMap::new(), deps: BTreeSet::new(), warnings: vec![], place: String::new() };
     let mut used = BTreeSet::new();
     for (name, s) in &schemas {
         let kind = if let Some(values) = s.get("enum").and_then(Value::as_array).filter(|_| s.get("properties").is_none()) {
             let strs: Vec<String> = values.iter().filter_map(Value::as_str).map(str::to_string).collect();
-            if !strs.is_empty() && strs.len() == values.len() && strs.iter().all(|v| is_ident(v)) { Kind::Enum(strs) } else { Kind::Alias }
-        } else if s.get("properties").is_some() || s.get("allOf").and_then(Value::as_array).map_or(false, |a| a.len() > 1 || s.get("properties").is_some()) || s.get("type").and_then(Value::as_str) == Some("object") && s.get("additionalProperties").is_none() {
+            if !strs.is_empty() && strs.len() == values.len() && strs.iter().all(|v| is_ident(v)) {
+                Kind::Enum(strs)
+            } else {
+                Kind::Alias
+            }
+        } else if s.get("properties").is_some()
+            || s.get("allOf").and_then(Value::as_array).is_some_and(|a| a.len() > 1 || s.get("properties").is_some())
+            || s.get("type").and_then(Value::as_str) == Some("object") && s.get("additionalProperties").is_none()
+        {
             Kind::Object
         } else {
             Kind::Alias
@@ -429,7 +443,9 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
         let ident = cv.names[name].clone();
         let body = match cv.kinds[name].clone() {
             Kind::Alias => continue,
-            Kind::Enum(values) => format!("enum {ident} {{\n{}\n}}\n", values.iter().map(|v| format!("    {v},")).collect::<Vec<_>>().join("\n")),
+            Kind::Enum(values) => {
+                format!("enum {ident} {{\n{}\n}}\n", values.iter().map(|v| format!("    {v},")).collect::<Vec<_>>().join("\n"))
+            }
             Kind::Object => {
                 let lines = cv.fields(s, 1, 0);
                 format!("{ident} {{\n{}\n}}\n", lines.join("\n"))
@@ -457,7 +473,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
             ops.push(("query".into(), op));
         }
         if item.get("trace").is_some() {
-            cv.warnings.push(format!("{path}: trace は未対応なので読み飛ばしました"));
+            cv.warnings.push(format!("{path}: trace is not supported and was skipped"));
         }
         for (method, op) in ops {
             cv.place = format!("{} {path}", method.to_uppercase());
@@ -470,17 +486,29 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
             // File location and explicit path
             let mut explicit: Option<String> = None;
             let (dir, mut stem) = if derivable {
-                let dirs: Vec<String> = segs.iter().take(segs.len().saturating_sub(1)).map(|s| s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect()).collect();
+                let dirs: Vec<String> = segs
+                    .iter()
+                    .take(segs.len().saturating_sub(1))
+                    .map(|s| s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect())
+                    .collect();
                 let stem = match segs.last() {
                     None => method.clone(),
                     Some(s) if dynamic(s) => format!("{method}_[{}]", sanitize_ident(&s[1..s.len() - 1])),
-                    Some(s) => format!("{method}_{}", s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect::<String>()),
+                    Some(s) => format!(
+                        "{method}_{}",
+                        s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect::<String>()
+                    ),
                 };
                 (dirs.join("/"), stem)
             } else {
-                let p = segs.iter().map(|s| if dynamic(s) { format!(":{}", sanitize_ident(&s[1..s.len() - 1])) } else { s.to_string() }).collect::<Vec<_>>().join("/");
+                let p = segs
+                    .iter()
+                    .map(|s| if dynamic(s) { format!(":{}", sanitize_ident(&s[1..s.len() - 1])) } else { s.to_string() })
+                    .collect::<Vec<_>>()
+                    .join("/");
                 explicit = Some(format!("/{p}"));
-                let flat = op.get("operationId").and_then(Value::as_str).map(sanitize_ident).unwrap_or_else(|| sanitize_ident(&segs.join("_")));
+                let flat =
+                    op.get("operationId").and_then(Value::as_str).map(sanitize_ident).unwrap_or_else(|| sanitize_ident(&segs.join("_")));
                 (String::new(), format!("{method}_{flat}"))
             };
             let base = stem.clone();
@@ -503,7 +531,11 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                 .filter(|s| dynamic(s))
                 .map(|s| {
                     let raw = &s[1..s.len() - 1];
-                    let schema = params.iter().find(|p| p.location == "path" && p.name == raw).map(|p| p.schema.clone()).unwrap_or_else(|| serde_json::json!({"type": "string"}));
+                    let schema = params
+                        .iter()
+                        .find(|p| p.location == "path" && p.name == raw)
+                        .map(|p| p.schema.clone())
+                        .unwrap_or_else(|| serde_json::json!({"type": "string"}));
                     (sanitize_ident(raw), schema)
                 })
                 .collect();
@@ -521,7 +553,8 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                 body.push_str(&block(&mut cv, "search", &query));
                 body.push('\n');
             }
-            let headers: Vec<&Param> = params.iter().filter(|p| p.location == "header" && !SKIP_HEADERS.contains(&p.name.to_ascii_lowercase().as_str())).collect();
+            let headers: Vec<&Param> =
+                params.iter().filter(|p| p.location == "header" && !SKIP_HEADERS.contains(&p.name.to_ascii_lowercase().as_str())).collect();
             if !headers.is_empty() {
                 body.push_str(&block(&mut cv, "headerReq", &headers));
                 body.push('\n');
@@ -537,7 +570,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                         body.push_str(&format!("body {e}\n\n"));
                     }
                     Err(_) => {
-                        cv.warn("JSON ではないリクエストボディは json にしました");
+                        cv.warn("a request body that is not JSON was replaced by json");
                         body.push_str("body json\n\n");
                     }
                 }
@@ -545,15 +578,15 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
             // Responses
             let responses = op.get("responses").and_then(Value::as_object).cloned().unwrap_or_default();
             if responses.is_empty() {
-                cv.warn("responses がありません");
+                cv.warn("there are no responses");
             }
             for (code, r) in &responses {
                 let Ok(code_n) = code.parse::<u16>() else {
-                    cv.warn(format!("レスポンス `{code}`（default や 2XX など）は読み飛ばしました。ステータスコードを書いてください"));
+                    cv.warn(format!("the response `{code}` (default, 2XX and the like) was skipped; write a status code"));
                     continue;
                 };
                 if !(100..=599).contains(&code_n) {
-                    cv.warn(format!("ステータスコード {code} は範囲外なので読み飛ばしました"));
+                    cv.warn(format!("status code {code} is out of range and was skipped"));
                     continue;
                 }
                 let r = match r.get("$ref").and_then(Value::as_str) {
@@ -561,13 +594,19 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                     None => r,
                 };
                 if !statuses.contains_key(&code_n) {
-                    let desc = r.get("description").and_then(Value::as_str).map(str::trim).filter(|d| !d.is_empty()).map(str::to_string).unwrap_or_else(|| format!("Status {code_n}"));
+                    let desc = r
+                        .get("description")
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|d| !d.is_empty())
+                        .map(str::to_string)
+                        .unwrap_or_else(|| format!("Status {code_n}"));
                     additional.entry(code_n).or_insert(desc);
                 }
                 let schema = match r.get("content").map(json_schema).unwrap_or(Err(false)) {
                     Ok(sch) => Some(sch),
                     Err(true) => {
-                        cv.warn(format!("{code_n} の JSON ではないレスポンスは、本文なしにしました"));
+                        cv.warn(format!("the response {code_n} that is not JSON was given no body"));
                         None
                     }
                     Err(false) => None,
@@ -575,7 +614,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                 let mut line = format!("s{code_n}");
                 if no_body(code_n) {
                     if schema.is_some() {
-                        cv.warn(format!("{code_n} は本文を持てないので、本文は読み飛ばしました"));
+                        cv.warn(format!("{code_n} cannot have a body, so the body was skipped"));
                     }
                     line.push_str(" none");
                 } else {
@@ -593,8 +632,16 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                     .and_then(Value::as_object)
                     .map(|m| {
                         m.iter()
-                            .filter(|(k, _)| !SKIP_HEADERS.contains(&k.to_ascii_lowercase().as_str()) && k.to_ascii_lowercase() != "set-cookie")
-                            .map(|(k, v)| (k.clone(), v.get("required").and_then(Value::as_bool).unwrap_or(false), v.get("schema").cloned().unwrap_or(serde_json::json!({"type": "string"}))))
+                            .filter(|(k, _)| {
+                                !SKIP_HEADERS.contains(&k.to_ascii_lowercase().as_str()) && !k.eq_ignore_ascii_case("set-cookie")
+                            })
+                            .map(|(k, v)| {
+                                (
+                                    k.clone(),
+                                    v.get("required").and_then(Value::as_bool).unwrap_or(false),
+                                    v.get("schema").cloned().unwrap_or(serde_json::json!({"type": "string"})),
+                                )
+                            })
                             .collect()
                     })
                     .unwrap_or_default();
@@ -619,7 +666,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
         "comatfiles/init.comat".into(),
         match &out.base_url {
             Some(u) => format!("baseUrl {u}\n"),
-            None => "// プロジェクト固有の設定（baseUrl、wrapper、cookie）をここに書く\n".to_string(),
+            None => "// Write the project-specific settings (baseUrl, wrapper, cookie) here\n".to_string(),
         },
     ));
     out.additional_status_codes = additional.into_iter().collect();

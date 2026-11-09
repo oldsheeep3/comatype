@@ -1,0 +1,61 @@
+name: Binaries check
+
+# Builds the CLI for every release platform on pull requests that could break it, so that the Release workflow
+# does not find out first. Nothing is uploaded.
+on:
+  pull_request:
+    branches: [develop, main, hotfix]
+    paths:
+      - ".github/workflows/release.yml"
+      - ".github/workflows/binaries-check.yml"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "scripts/package-vsix.sh"
+      - "scripts/package-cli.sh"
+      - "scripts/set-version.sh"
+      - "VERSION"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, vscode: linux-x64, musl: true }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, vscode: linux-arm64, musl: true }
+          - { target: x86_64-apple-darwin, os: macos-latest, vscode: darwin-x64 }
+          - { target: aarch64-apple-darwin, os: macos-latest, vscode: darwin-arm64 }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, vscode: win32-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: musl toolchain
+        if: matrix.musl
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Stamp the version (as the Release workflow does)
+        shell: bash
+        run: ./scripts/set-version.sh "$(tr -d '[:space:]' < VERSION)"
+      - name: Build
+        run: cargo build --release -p comatype-cli --target ${{ matrix.target }}
+      - name: Run the binary
+        shell: bash
+        run: |
+          out="target/${{ matrix.target }}/release"
+          ext=""
+          [[ "${{ matrix.target }}" == *windows* ]] && ext=".exe"
+          # the x64 macOS binary runs on the arm64 runner through Rosetta; the others run natively
+          "$out/comatype$ext" help | head -1
+          "$out/comat$ext" help | head -1
+      - name: Package the archives (as the Release workflow does)
+        shell: bash
+        run: |
+          ./scripts/package-cli.sh ${{ matrix.target }} ${{ matrix.vscode }}
+          ls dist | grep -E "^comatype-${{ matrix.target }}\.(tar\.gz|zip)$"
+          ls dist | grep -E "^comatype-bin-${{ matrix.vscode }}"

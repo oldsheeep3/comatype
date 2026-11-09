@@ -103,6 +103,7 @@ Decimal = Annotated[
     PlainSerializer(lambda v: format(v, "f"), return_type=str, when_used="json"),
 ]
 
+
 def _bytes_in(v: Any, info: ValidationInfo) -> Any:
     # a base64 string on the wire; bytes (raw bytes) in Python
     if isinstance(v, (bytes, bytearray)) and info.mode != "json":

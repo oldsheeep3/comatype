@@ -19,7 +19,7 @@ from .cache import (
     encode_cache_cookie,
 )
 from .cookie import CookieJar
-from .endpoint import ComatypeWrap, Endpoint, NoArg, Status
+from .endpoint import Endpoint, NoArg, Status
 from .errors import ComatypeError, UnexpectedStatusError
 from .raw import Headers, RawRequest, RawResponse
 from .wire import dump_json, encode_strings
@@ -178,7 +178,9 @@ class Client:
         conf = self._conf()
         base = conf._base_url or os.environ.get("COMATYPE_BASE_URL") or ep.base_url
         if not base:
-            raise ComatypeError("base url がありません（init の base_url、環境変数 COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）")
+            raise ComatypeError(
+                "base url がありません（init の base_url、環境変数 COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）"
+            )
         url = base.rstrip("/") + r.path
         headers = dict(r.headers.items())
         if r.cookies and not any(k.lower() == "cookie" for k in headers):
@@ -233,10 +235,22 @@ class Client:
     async def get(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def get(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def get(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def get(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def get(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def get(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -248,13 +262,28 @@ class Client:
     async def get(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def get(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def get(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def get(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def get(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def get(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def get(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def get(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("get", ep, args)
@@ -272,10 +301,22 @@ class Client:
     async def post(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def post(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def post(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def post(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def post(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def post(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -287,13 +328,28 @@ class Client:
     async def post(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def post(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def post(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def post(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def post(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def post(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def post(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def post(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("post", ep, args)
@@ -311,10 +367,22 @@ class Client:
     async def put(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def put(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def put(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def put(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def put(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def put(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -326,13 +394,28 @@ class Client:
     async def put(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def put(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def put(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def put(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def put(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def put(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def put(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def put(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("put", ep, args)
@@ -347,13 +430,27 @@ class Client:
     async def patch(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def patch(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def patch(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def patch(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def patch(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def patch(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def patch(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def patch(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -365,13 +462,28 @@ class Client:
     async def patch(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def patch(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def patch(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def patch(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def patch(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def patch(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def patch(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def patch(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("patch", ep, args)
@@ -386,13 +498,27 @@ class Client:
     async def delete(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def delete(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def delete(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def delete(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def delete(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def delete(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def delete(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def delete(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -404,13 +530,28 @@ class Client:
     async def delete(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def delete(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def delete(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def delete(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def delete(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def delete(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def delete(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def delete(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("delete", ep, args)
@@ -425,13 +566,27 @@ class Client:
     async def options(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def options(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def options(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def options(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def options(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def options(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def options(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def options(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -443,13 +598,28 @@ class Client:
     async def options(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def options(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def options(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def options(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def options(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def options(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def options(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def options(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("options", ep, args)
@@ -464,13 +634,27 @@ class Client:
     async def query(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def query(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def query(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def query(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def query(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def query(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def query(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def query(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -482,13 +666,28 @@ class Client:
     async def query(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def query(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def query(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def query(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def query(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def query(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def query(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def query(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("query", ep, args)
@@ -506,10 +705,22 @@ class Client:
     async def head(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def head(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def head(
+        self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def head(self, ep: Endpoint[NoArg, Any, Any], s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def head(
+        self,
+        ep: Endpoint[NoArg, Any, Any],
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     @overload
     async def head(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], /) -> R1: ...
@@ -521,13 +732,28 @@ class Client:
     async def head(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], /) -> R1 | R2 | R3: ...
 
     @overload
-    async def head(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /) -> R1 | R2 | R3 | R4: ...
+    async def head(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], /
+    ) -> R1 | R2 | R3 | R4: ...
 
     @overload
-    async def head(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /) -> R1 | R2 | R3 | R4 | R5: ...
+    async def head(
+        self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], /
+    ) -> R1 | R2 | R3 | R4 | R5: ...
 
     @overload
-    async def head(self, ep: Endpoint[A, Any, Any], arg: A, s1: type[R1], s2: type[R2], s3: type[R3], s4: type[R4], s5: type[R5], s6: type[R6], /) -> R1 | R2 | R3 | R4 | R5 | R6: ...
+    async def head(
+        self,
+        ep: Endpoint[A, Any, Any],
+        arg: A,
+        s1: type[R1],
+        s2: type[R2],
+        s3: type[R3],
+        s4: type[R4],
+        s5: type[R5],
+        s6: type[R6],
+        /,
+    ) -> R1 | R2 | R3 | R4 | R5 | R6: ...
 
     async def head(self, ep: Endpoint[Any, Any, Any], *args: Any) -> Any:
         return await self._call("head", ep, args)

@@ -1,14 +1,15 @@
 // Run the generated usage node_client against a real HTTP server (executed with tsx)
-import http from 'node:http'
+
 import assert from 'node:assert/strict'
+import http from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { c, type ComatypeWrap } from '@comatype/typescript'
-import { path as putPath, s200 as putOk, s404 as putNotFound } from './node_client/comatype/user/put__id'
-import { path as optionsPath, s200 as optionsOk } from './node_client/comatype/options_user'
-import { path as profilePath, s200 as profileOk } from './node_client/comatype/user/profile/get'
-import { path as pingPath, s200 as pingOk } from './node_client/comatype/user/get_ping'
-import { path as loginPath, s200 as loginOk, s401 as loginNo } from './node_client/comatype/user/post_login'
+import { type ComatypeWrap, c } from '@comatype/typescript'
 import { s401 } from './node_client/comatype/init'
+import { s200 as optionsOk, path as optionsPath } from './node_client/comatype/options_user'
+import { s200 as pingOk, path as pingPath } from './node_client/comatype/user/get_ping'
+import { s401 as loginNo, s200 as loginOk, path as loginPath } from './node_client/comatype/user/post_login'
+import { s200 as profileOk, path as profilePath } from './node_client/comatype/user/profile/get'
+import { s404 as putNotFound, s200 as putOk, path as putPath } from './node_client/comatype/user/put__id'
 
 const ID = '3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10'
 const USER = { name: 'taro', email: 'taro@example.com', phone: '+819012345678', uid: ID }

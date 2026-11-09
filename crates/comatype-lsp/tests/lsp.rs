@@ -97,7 +97,7 @@ impl Session {
 }
 
 fn response(out: &[Value], id: i64) -> &Value {
-    out.iter().find(|m| m["id"] == json!(id)).unwrap_or_else(|| panic!("id {id} の応答がありません"))
+    out.iter().find(|m| m["id"] == json!(id)).unwrap_or_else(|| panic!("no response for id {id}"))
 }
 
 /// The last diagnostics published for that uri
@@ -109,7 +109,7 @@ fn last_diags<'a>(out: &'a [Value], uri: &str) -> Option<&'a Vec<Value>> {
 }
 
 const INIT: &str = "wrapper auth { ctx { uid: uuid } s401 E }\nE { code: string }\n";
-const TYPES: &str = "// 型\nUser {\n    name: string,\n    nick?: string,\n}\n\nenum Role { admin, member }\n";
+const TYPES: &str = "// type\nUser {\n    name: string,\n    nick?: string,\n}\n\nenum Role { admin, member }\n";
 
 fn project() -> Project {
     Project::new(&[
@@ -158,15 +158,16 @@ fn syntax_errors_appear_as_you_type_and_clear_when_fixed() {
     s.change(&uri, "import User from ../types/User.comat\n\ns200 User\n");
     let (out, _) = s.finish();
 
-    let all: Vec<&Value> = out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
+    let all: Vec<&Value> =
+        out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
     assert_eq!(all.len(), 3);
-    assert!(all[0]["params"]["diagnostics"].as_array().unwrap().iter().all(|d| d["severity"] != 1), "開いた直後はエラーなし");
+    assert!(all[0]["params"]["diagnostics"].as_array().unwrap().iter().all(|d| d["severity"] != 1), "no errors right after opening");
     let broken = all[1]["params"]["diagnostics"].as_array().unwrap();
-    assert_eq!(broken.len(), 1, "構文エラーだけ（意味の検査は止める）: {broken:?}");
+    assert_eq!(broken.len(), 1, "only the syntax error (semantic checks are held back): {broken:?}");
     assert_eq!(broken[0]["severity"], 1);
     assert_eq!(broken[0]["source"], "comatype");
     assert!(broken[0]["range"]["start"]["line"].as_u64().unwrap() >= 4);
-    assert!(last_diags(&out, &uri).unwrap().iter().all(|d| d["severity"] != 1), "直したらエラーが消える");
+    assert!(last_diags(&out, &uri).unwrap().iter().all(|d| d["severity"] != 1), "the error disappears once fixed");
 }
 
 #[test]
@@ -181,7 +182,7 @@ fn unsaved_content_is_checked_not_the_disk() {
     let err = d.iter().find(|d| d["severity"] == 1).unwrap();
     assert!(err["message"].as_str().unwrap().contains("Missing"));
     assert_eq!(err["range"]["start"], json!({"line": 2, "character": 5}));
-    assert_eq!(err["range"]["end"], json!({"line": 2, "character": 12}), "単語の範囲");
+    assert_eq!(err["range"]["end"], json!({"line": 2, "character": 12}), "the range of the word");
     // Warning for an unused import
     assert!(d.iter().any(|d| d["severity"] == 2 && d["message"].as_str().unwrap().contains("User")));
 }
@@ -200,11 +201,14 @@ fn editing_one_file_updates_diagnostics_of_the_others() {
     s.change(&types, TYPES);
     let (out, _) = s.finish();
     let errors = |uri: &str, msgs: &[&Value]| -> usize {
-        msgs.iter().filter(|m| m["params"]["uri"] == json!(uri)).map(|m| m["params"]["diagnostics"].as_array().unwrap().iter().filter(|d| d["severity"] == 1).count()).sum()
+        msgs.iter()
+            .filter(|m| m["params"]["uri"] == json!(uri))
+            .map(|m| m["params"]["diagnostics"].as_array().unwrap().iter().filter(|d| d["severity"] == 1).count())
+            .sum()
     };
     let published: Vec<&Value> = out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics").collect();
-    assert!(errors(&endpoint, &published) >= 1, "型を消したら、別のファイルにエラー");
-    assert!(last_diags(&out, &endpoint).unwrap().iter().all(|d| d["severity"] != 1), "戻したら消える");
+    assert!(errors(&endpoint, &published) >= 1, "removing the type causes an error in another file");
+    assert!(last_diags(&out, &endpoint).unwrap().iter().all(|d| d["severity"] != 1), "it disappears when restored");
 }
 
 #[test]
@@ -224,7 +228,12 @@ fn files_without_config_get_syntax_diagnostics_only() {
 
 fn loc(v: &Value) -> (String, u64, u64, u64) {
     let r = &v["range"];
-    (v["uri"].as_str().unwrap().to_string(), r["start"]["line"].as_u64().unwrap(), r["start"]["character"].as_u64().unwrap(), r["end"]["character"].as_u64().unwrap())
+    (
+        v["uri"].as_str().unwrap().to_string(),
+        r["start"]["line"].as_u64().unwrap(),
+        r["start"]["character"].as_u64().unwrap(),
+        r["end"]["character"].as_u64().unwrap(),
+    )
 }
 
 #[test]
@@ -253,7 +262,7 @@ fn go_to_definition() {
     let wrap = loc(&response(&out, on_wrap)["result"]);
     assert_eq!((wrap.0.as_str(), wrap.1, wrap.2, wrap.3), (p.uri("comatfiles/init.comat").as_str(), 0, 8, 12));
     assert!(response(&out, on_builtin)["result"].is_null());
-    assert!(response(&out, on_unimported)["result"].is_null(), "import していない型は見つからない");
+    assert!(response(&out, on_unimported)["result"].is_null(), "a type that is not imported is not found");
 }
 
 #[test]
@@ -268,7 +277,7 @@ fn definition_works_while_the_file_has_syntax_errors_and_with_utf16_positions() 
     let utf16: u64 = line.chars().take(line.chars().position(|c| c == 'U').unwrap() + 1).map(|c| c.len_utf16() as u64).sum();
     let id = s.at("textDocument/definition", &ep, 2, utf16);
     let (out, _) = s.finish();
-    assert_eq!(loc(&response(&out, id)["result"]).1, 1, "types/User.comat の User 宣言（1 行目）");
+    assert_eq!(loc(&response(&out, id)["result"]).1, 1, "the User declaration in types/User.comat (line 1)");
 }
 
 #[test]
@@ -285,7 +294,7 @@ fn hover_shows_the_declaration_and_builtin_docs() {
     let (out, _) = s.finish();
     let md = |id| response(&out, id)["result"]["contents"]["value"].as_str().unwrap_or("").to_string();
     assert!(md(user).contains("nick?: string") && md(user).contains("```comat"), "{}", md(user));
-    assert!(md(int64).contains("文字列"));
+    assert!(md(int64).contains("string"));
     assert!(md(status).contains("200 OK"), "{}", md(status));
     assert!(response(&out, nothing)["result"].is_null());
 }
@@ -301,7 +310,8 @@ fn document_symbols() {
     let a = s.request("textDocument/documentSymbol", json!({"textDocument": {"uri": uri}}));
     let b = s.request("textDocument/documentSymbol", json!({"textDocument": {"uri": ep}}));
     let (out, _) = s.finish();
-    let names = |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    let names =
+        |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
     assert_eq!(names(a), vec!["User", "Role"]);
     assert_eq!(response(&out, a)["result"][0]["kind"], 5);
     assert_eq!(response(&out, a)["result"][1]["kind"], 10);
@@ -320,11 +330,12 @@ fn completion() {
     let stmt = s.at("textDocument/completion", &ep, 5, 1);
     let cookie = s.at("textDocument/completion", &ep, 6, 7);
     let (out, _) = s.finish();
-    let labels = |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["label"].as_str().unwrap().to_string()).collect::<Vec<_>>();
-    assert_eq!(labels(wrap), vec!["auth"], "init.comat の wrapper");
+    let labels =
+        |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["label"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    assert_eq!(labels(wrap), vec!["auth"], "the wrapper in init.comat");
     let ty = labels(ty);
     for want in ["string", "uuidv4", "null", "empty", "User"] {
-        assert!(ty.contains(&want.to_string()), "{want} がありません: {ty:?}");
+        assert!(ty.contains(&want.to_string()), "{want} is missing: {ty:?}");
     }
     let stmt = labels(stmt);
     for want in ["import", "params", "body", "s200", "s404", "s418", "s511"] {
@@ -342,7 +353,8 @@ fn closing_a_document_falls_back_to_the_disk_content() {
     s.open(&uri, "s200 Missing\n"); // Error in the unsaved content
     s.notify("textDocument/didClose", json!({"textDocument": {"uri": uri}}));
     let (out, _) = s.finish();
-    let published: Vec<&Value> = out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
+    let published: Vec<&Value> =
+        out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
     assert!(published.first().unwrap()["params"]["diagnostics"].as_array().unwrap().iter().any(|d| d["severity"] == 1));
     // After closing, it is checked again with the (valid) content on disk, so the error disappears
     assert!(last_diags(&out, &uri).unwrap().iter().all(|d| d["severity"] != 1));
@@ -360,7 +372,11 @@ fn uri_roundtrip_with_spaces_and_japanese() {
     let enc = |p: &Path| -> String {
         let mut s = String::from("file://");
         for b in p.to_string_lossy().bytes() {
-            if b.is_ascii_alphanumeric() || b"-._~/".contains(&b) { s.push(b as char) } else { s.push_str(&format!("%{b:02X}")) }
+            if b.is_ascii_alphanumeric() || b"-._~/".contains(&b) {
+                s.push(b as char)
+            } else {
+                s.push_str(&format!("%{b:02X}"))
+            }
         }
         s
     };
@@ -368,7 +384,9 @@ fn uri_roundtrip_with_spaces_and_japanese() {
     let mut s = Session::new();
     s.open(&uri, "s200 Missing\n");
     let (out, _) = s.finish();
-    let d = last_diags(&out, &uri).unwrap_or_else(|| panic!("同じ uri の診断がありません: {:?}", out.iter().map(|m| m["params"]["uri"].clone()).collect::<Vec<_>>()));
+    let d = last_diags(&out, &uri).unwrap_or_else(|| {
+        panic!("no diagnostics for the same uri: {:?}", out.iter().map(|m| m["params"]["uri"].clone()).collect::<Vec<_>>())
+    });
     assert!(d.iter().any(|d| d["severity"] == 1));
     let _ = fs::remove_dir_all(root);
 }
@@ -393,15 +411,15 @@ fn status_codes_come_from_the_registry_and_the_config() {
     let (out, _) = s.finish();
     let items = response(&out, comp)["result"].as_array().unwrap().clone();
     let labels: Vec<&str> = items.iter().map(|i| i["label"].as_str().unwrap()).collect();
-    assert!(labels.contains(&"s299"), "設定で足したコード");
+    assert!(labels.contains(&"s299"), "a code added by the config");
     assert!(labels.contains(&"s404") && labels.contains(&"s103") && !labels.contains(&"s306") && !labels.contains(&"s499"));
     assert_eq!(items.iter().find(|i| i["label"] == "s404").unwrap()["detail"], "404 Not Found");
-    assert_eq!(items.iter().find(|i| i["label"] == "s204").unwrap()["detail"], "204 No Content（本文なし）");
+    assert_eq!(items.iter().find(|i| i["label"] == "s204").unwrap()["detail"], "204 No Content (no body)");
     let md = |id| response(&out, id)["result"]["contents"]["value"].as_str().unwrap_or("").to_string();
     assert!(md(h404).contains("404 Not Found") && md(h404).contains("{ message: string }"), "{}", md(h404));
     assert!(md(h299).contains("299 Custom Thing"));
-    assert!(md(h204).contains("本文を持てない"));
-    assert!(md(h499).contains("未定義"));
+    assert!(md(h204).contains("cannot have a body"));
+    assert!(md(h499).contains("undefined"));
 }
 
 #[test]
@@ -413,5 +431,5 @@ fn undefined_status_codes_are_errors_in_the_editor() {
     let (out, _) = s.finish();
     let d = last_diags(&out, &ep).unwrap();
     let err = d.iter().find(|d| d["severity"] == 1).unwrap_or_else(|| panic!("{d:?}"));
-    assert!(err["message"].as_str().unwrap().contains("499") && err["message"].as_str().unwrap().contains("未定義"));
+    assert!(err["message"].as_str().unwrap().contains("499") && err["message"].as_str().unwrap().contains("not defined"));
 }

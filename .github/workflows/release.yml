@@ -65,10 +65,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -92,7 +92,7 @@ jobs:
     needs: [verify, tag]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.22"
       - env:
@@ -113,7 +113,7 @@ jobs:
       id-token: write # PyPI trusted publishing (configure it for this repository and the `pypi` environment)
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
@@ -150,7 +150,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: current
       - name: Publish net.sheeplab.comatype:comatype and comatype-ktx to Maven Central
@@ -204,3 +204,146 @@ jobs:
           cd packages/ruby
           gem build comatype.gemspec
           GEM_HOST_API_KEY="$key" gem push comatype-*.gem
+
+  # The comatype CLI as a ready-to-run binary for every platform: attached to the GitHub release (and installed by
+  # install.sh) and bundled into the platform builds of the VS Code extension. No Rust toolchain needed to use it.
+  binaries:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, vscode: linux-x64, musl: true }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, vscode: linux-arm64, musl: true }
+          - { target: x86_64-apple-darwin, os: macos-latest, vscode: darwin-x64 }
+          - { target: aarch64-apple-darwin, os: macos-latest, vscode: darwin-arm64 }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, vscode: win32-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: musl toolchain
+        if: matrix.musl
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Stamp the version
+        shell: bash
+        run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
+      - name: Build
+        run: cargo build --release -p comatype-cli --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: ./scripts/package-cli.sh ${{ matrix.target }} ${{ matrix.vscode }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  # Attach the CLI archives (and their SHA256SUMS) to the GitHub release created by the tag job.
+  cli-release:
+    needs: [verify, tag, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      V: ${{ needs.verify.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: artifacts
+          merge-multiple: true
+      - name: Upload to the release
+        run: |
+          cd artifacts
+          sha256sum comatype-*.tar.gz comatype-*.zip > SHA256SUMS
+          cat SHA256SUMS
+          if gh release view "v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "v$V" comatype-*.tar.gz comatype-*.zip SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            echo "::notice::release v$V does not exist; the binaries are not attached"
+          fi
+
+  vscode:
+    # Builds the .vsix files (one per platform with the comatype binary bundled, and a universal one without it),
+    # attaches them to the GitHub release and publishes them to the VS Code Marketplace and Open VSX.
+    # A registry whose secret is missing (VSCE_PAT, OVSX_PAT) is skipped with a notice instead of failing the release.
+    needs: [verify, tag, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the .vsix files to the GitHub release
+    env:
+      V: ${{ needs.verify.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile --filter comatype
+      - run: ./scripts/set-version.sh "$V"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: artifacts
+          merge-multiple: true
+      - name: Build the .vsix files
+        run: |
+          # The Marketplace does not accept semver pre-release versions such as 0.1.0-rc.1
+          if [[ "$V" == *-* ]]; then
+            echo "::notice::VS Code extension: $V is a pre-release version; nothing is built or published"
+            echo "SKIP=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          for t in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            ./scripts/package-vsix.sh "$t" "artifacts/comatype-bin-$t"
+          done
+          ./scripts/package-vsix.sh win32-x64 artifacts/comatype-bin-win32-x64.exe
+          ./scripts/package-vsix.sh universal   # fallback for platforms without a bundled binary
+          ls -la editors/vscode/*.vsix
+      - name: Attach the .vsix files to the GitHub release
+        if: env.SKIP != 'true'
+        run: |
+          if gh release view "v$V" >/dev/null 2>&1; then
+            gh release upload "v$V" editors/vscode/*.vsix --clobber
+          else
+            echo "::notice::release v$V does not exist; the .vsix files are not attached"
+          fi
+      - name: Publish to the VS Code Marketplace
+        if: env.SKIP != 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::warning::secret VSCE_PAT is not set; skipping the VS Code Marketplace"
+            exit 0
+          fi
+          cd editors/vscode
+          if pnpm exec vsce show comatype.comatype --json 2>/dev/null | jq -e --arg v "$V" '[.versions[].version] | index($v)' >/dev/null; then
+            echo "comatype.comatype@$V is already published to the VS Code Marketplace"
+            exit 0
+          fi
+          pnpm exec vsce publish --packagePath comatype-*.vsix --pat "$VSCE_PAT"
+      - name: Publish to Open VSX
+        if: env.SKIP != 'true'
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::warning::secret OVSX_PAT is not set; skipping Open VSX"
+            exit 0
+          fi
+          if curl -sf "https://open-vsx.org/api/comatype/comatype/$V" >/dev/null; then
+            echo "comatype.comatype@$V is already published to Open VSX"
+            exit 0
+          fi
+          cd editors/vscode
+          for f in comatype-*.vsix; do
+            pnpm exec ovsx publish "$f" --pat "$OVSX_PAT"
+          done

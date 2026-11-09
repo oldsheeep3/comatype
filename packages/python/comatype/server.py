@@ -1,10 +1,10 @@
 """Server `s`: an ASGI app. Handlers are registered with decorators.
 
-    from comatype import s
-    @s.put(path)
-    async def user_put_id(req: Request): ...
+from comatype import s
+@s.put(path)
+async def user_put_id(req: Request): ...
 
-    uvicorn.run(s)      # s itself is the ASGI app
+uvicorn.run(s)      # s itself is the ASGI app
 """
 
 from __future__ import annotations
@@ -81,9 +81,7 @@ class Server:
 
     # ---- registration ----
 
-    def _register(
-        self, method: str, ep: Endpoint[Any, ReqT, ResT]
-    ) -> Callable[[HandlerOf[ReqT, ResT]], HandlerOf[ReqT, ResT]]:
+    def _register(self, method: str, ep: Endpoint[Any, ReqT, ResT]) -> Callable[[HandlerOf[ReqT, ResT]], HandlerOf[ReqT, ResT]]:
         if ep.method != method:
             raise ComatypeError(f"s.{method}() に {ep.method} のエンドポイント（{ep.module}）は渡せません")
 
@@ -177,7 +175,10 @@ class Server:
             kw["search"] = decode_strings(ep.search, lambda k: raw.query.get(k), prefix="search")
         if ep.request_headers is not None:
             kw["headers"] = decode_strings(
-                ep.request_headers, lambda k: [raw.headers[k]] if k in raw.headers else None, split=True, prefix="headers"
+                ep.request_headers,
+                lambda k: [raw.headers[k]] if k in raw.headers else None,
+                split=True,
+                prefix="headers",
             )
         if ep.body is not None:
             if not raw.body:
@@ -216,7 +217,11 @@ class Server:
         if hit is None:
             allow = sorted({r.ep.method.upper() for r in self._routes if self._find(r.ep.method, segs)})
             if allow:
-                return _json_response(405, {"code": "method_not_allowed", "message": "使えるメソッド: " + ", ".join(allow)}, allow=", ".join(allow))
+                return _json_response(
+                    405,
+                    {"code": "method_not_allowed", "message": "使えるメソッド: " + ", ".join(allow)},
+                    allow=", ".join(allow),
+                )
             return _json_response(404, {"code": "not_found", "message": raw.path})
         route, params = hit
         raw.params = params
@@ -234,6 +239,7 @@ class Server:
         def wrap(w: Any, name: str, inner: Next) -> Next:
             async def run(r: RawRequest[Any]) -> RawResponse:
                 r.ctx = None
+
                 async def after(r2: RawRequest[Any]) -> RawResponse:
                     r2.contexts[name] = r2.ctx  # ctx added by this wrapper
                     r2.ctx = None

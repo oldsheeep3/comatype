@@ -17,19 +17,19 @@ type Address struct {
 }
 
 type User struct {
-	Name      string          `json:"name" min:"1" max:"5"`
-	Age       *int            `json:"age,omitempty" min:"0" max:"150"`
-	Email     comatype.Email      `json:"email"`
-	UID       comatype.Uuidv4     `json:"uid"`
-	Followers comatype.Int64      `json:"followers"`
-	Balance   comatype.Decimal    `json:"balance" min:"0"`
-	Status    string          `json:"status" oneof:"active|banned"`
-	Tags      []string        `json:"tags"`
-	Home      Address         `json:"home"`
-	Created   time.Time       `json:"created"`
-	Deleted   *time.Time      `json:"deleted"`
-	Raw       json.RawMessage `json:"raw,omitempty"`
-	Blob      []byte          `json:"blob,omitempty"`
+	Name      string           `json:"name" min:"1" max:"5"`
+	Age       *int             `json:"age,omitempty" min:"0" max:"150"`
+	Email     comatype.Email   `json:"email"`
+	UID       comatype.Uuidv4  `json:"uid"`
+	Followers comatype.Int64   `json:"followers"`
+	Balance   comatype.Decimal `json:"balance" min:"0"`
+	Status    string           `json:"status" oneof:"active|banned"`
+	Tags      []string         `json:"tags"`
+	Home      Address          `json:"home"`
+	Created   time.Time        `json:"created"`
+	Deleted   *time.Time       `json:"deleted"`
+	Raw       json.RawMessage  `json:"raw,omitempty"`
+	Blob      []byte           `json:"blob,omitempty"`
 }
 
 const okUser = `{"name":"taro","email":"a@b.co","uid":"3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10","followers":"9007199254740993","balance":"12.5",
@@ -97,8 +97,8 @@ type Search struct {
 }
 
 type Headers struct {
-	Allow []string   `wire:"Allow"`
-	Count *int       `wire:"X-Count"`
+	Allow []string       `wire:"Allow"`
+	Count *int           `wire:"X-Count"`
 	ReqID *comatype.Uuid `wire:"X-Request-Id"`
 }
 
