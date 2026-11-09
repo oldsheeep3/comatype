@@ -124,6 +124,11 @@ export async function Home({ locale }: { locale: Locale }) {
                   <td className="yes">✓</td>
                   <td className="yes">✓</td>
                   <td>{m.deps[locale]}</td>
+                  <td>
+                    <a href={m.registry.url} target="_blank" rel="noreferrer noopener">
+                      {m.registry.name}
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
