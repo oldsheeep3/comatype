@@ -113,7 +113,7 @@ jobs:
       id-token: write # PyPI trusted publishing (configure it for this repository and the `pypi` environment)
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
