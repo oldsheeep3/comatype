@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:comatype}/packages/swift",
+            "name": "Debug comatype-selftest (packages/swift)",
+            "target": "comatype-selftest",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug comatype-selftest (packages/swift)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:comatype}/packages/swift",
+            "name": "Release comatype-selftest (packages/swift)",
+            "target": "comatype-selftest",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release comatype-selftest (packages/swift)"
+        }
+    ]
+}
