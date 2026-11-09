@@ -13,13 +13,13 @@ let loading: Promise<typeof Monaco> | undefined
 export function loadMonaco(): Promise<typeof Monaco> {
   loading ??= (async () => {
     const [monaco, shiki, shikiMonaco] = await Promise.all([
-      import('monaco-editor/esm/vs/editor/editor.main.js') as Promise<typeof Monaco>,
+      import('monaco-editor/editor/editor.main.js') as Promise<typeof Monaco>,
       import('shiki'),
       import('@shikijs/monaco'),
     ])
     // This editor has no language server, so only the basic workers are used
     ;(self as unknown as { MonacoEnvironment: Monaco.Environment }).MonacoEnvironment = {
-      getWorker: () => new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url)),
+      getWorker: () => new Worker(new URL('monaco-editor/editor/editor.worker.js', import.meta.url)),
     }
 
     const highlighter = await shiki.createHighlighter({
