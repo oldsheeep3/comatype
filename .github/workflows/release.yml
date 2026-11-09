@@ -1,0 +1,166 @@
+name: Release
+
+# Runs when develop (or hotfix) is merged into main. The version comes from the VERSION file:
+# bump it in the merge. Each registry step is skipped when that version is already published,
+# so the workflow can be re-run safely (workflow_dispatch).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          v="$(tr -d '[:space:]' < VERSION)"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]] || { echo "invalid VERSION: $v"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+
+  tag:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create tags and a GitHub release (skipped if the tag exists)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v$V" >/dev/null 2>&1; then
+            echo "v$V already exists; nothing to tag"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # `packages/go/vX.Y.Z` is what the Go module proxy needs for a module in a subdirectory
+          git tag "v$V"
+          git tag "packages/go/v$V"
+          git push origin "v$V" "packages/go/v$V"
+          gh release create "v$V" --title "v$V" --generate-notes
+
+  npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
+      - name: Publish @comatype/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if npm view "@comatype/typescript@$V" version >/dev/null 2>&1; then
+            echo "@comatype/typescript@$V is already published"
+            exit 0
+          fi
+          cd packages/typescript
+          pnpm run build
+          npm publish --access public --provenance
+
+  go:
+    # The Go module proxy serves tags: `packages/go/vX.Y.Z` is created by the tag job. Warm the proxy so the version is available right away.
+    needs: [verify, tag]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - env:
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          for i in 1 2 3 4 5; do
+            GOPROXY=https://proxy.golang.org GOFLAGS=-mod=mod go list -m "github.com/oldsheeep3/comatype/packages/go@v$V" && exit 0
+            sleep 20
+          done
+          echo "proxy.golang.org does not list the version yet (it will pick it up later)"
+
+  pypi:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write # PyPI trusted publishing (configure it for this repository and the `pypi` environment)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
+      - run: python -m pip install build && python -m build packages/python
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/python/dist
+          skip-existing: true
+
+  crates:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
+      - name: Publish comatype to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if curl -sf -H "User-Agent: comatype-release" "https://crates.io/api/v1/crates/comatype/$V" >/dev/null; then
+            echo "comatype $V is already published"
+            exit 0
+          fi
+          cargo publish --manifest-path packages/rust/Cargo.toml --allow-dirty
+
+  maven:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.12"
+      - name: Publish io.github.oldsheeep3:comatype and comatype-ktx to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if curl -sf "https://repo1.maven.org/maven2/io/github/oldsheeep3/comatype/$V/comatype-$V.pom" >/dev/null; then
+            echo "io.github.oldsheeep3:comatype:$V is already published"
+            exit 0
+          fi
+          gradle -p packages publishToMavenCentral -PreleaseVersion="$V" --no-configuration-cache --console=plain

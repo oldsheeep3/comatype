@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main, hotfix]
+  push:
+    branches: [develop, hotfix]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+      - run: cargo build -p comatype-cli
+      - name: Rust runtime tests
+        run: cargo test --manifest-path packages/rust/Cargo.toml
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p comatype-cli
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript runtime
+        run: pnpm --dir packages/typescript typecheck && pnpm --dir packages/typescript test && pnpm --dir packages/typescript build
+      - name: VS Code extension
+        run: pnpm --dir editors/vscode test
+      - name: Website (typecheck, build, test)
+        run: pnpm --dir docs check
+      - name: Sample project
+        run: pnpm --dir usage install --frozen-lockfile && pnpm --dir usage check
+
+  runtimes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go test ./...
+        working-directory: packages/go
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install -e packages/python pytest pytest-asyncio mypy
+          python -m pytest packages/python
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.12"
+      - name: Java and Kotlin runtimes
+        run: gradle -p packages :java:selfTest :kotlin:build --console=plain
