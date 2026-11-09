@@ -227,6 +227,8 @@ function activateWithoutServer(context) {
   status.command = 'comatype.check'
   context.subscriptions.push(diagnostics, output, status)
 
+  const settings = () => vscode.workspace.getConfiguration('comatype')
+
   /** Finds the config file for this uri (or the open editor, or the workspace) */
   function locateConfig(uri) {
     const explicit = settings().get('config')
