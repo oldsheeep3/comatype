@@ -1,0 +1,122 @@
+{
+  "name": "comatype-vscode",
+  "displayName": "Comatype",
+  "description": "Comatype の .comat ファイル用の拡張: 言語サーバ（リアルタイムの診断、定義ジャンプ、ホバー、補完、アウトライン）、シンタックスハイライト、スニペット、生成コマンド、OpenAPI の書き出しと取り込み",
+  "version": "0.0.1",
+  "publisher": "comatype",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "comat",
+        "aliases": [
+          "Comatype",
+          "comat"
+        ],
+        "extensions": [
+          ".comat"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "comat",
+        "scopeName": "source.comat",
+        "path": "./syntaxes/comat.tmLanguage.json"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "comatype.config.json",
+        "url": "./schemas/comatype.config.schema.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "comat",
+        "path": "./snippets/comat.json"
+      },
+      {
+        "language": "comat",
+        "path": "./snippets/status.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "comatype.check",
+        "title": "Comatype: Check (comatype check)"
+      },
+      {
+        "command": "comatype.generate",
+        "title": "Comatype: Generate (comatype generate)"
+      },
+      {
+        "command": "comatype.restartServer",
+        "title": "Comatype: Restart Language Server"
+      },
+      {
+        "command": "comatype.exportOpenApi",
+        "title": "Comatype: Export OpenAPI (comat → openapi.yml)"
+      },
+      {
+        "command": "comatype.importOpenApi",
+        "title": "Comatype: Import OpenAPI (openapi.yml → comat)"
+      },
+      {
+        "command": "comatype.showStatusCodes",
+        "title": "Comatype: Show Status Codes"
+      }
+    ],
+    "configuration": {
+      "title": "Comatype",
+      "properties": {
+        "comatype.path": {
+          "type": "string",
+          "default": "comatype",
+          "description": "comatype コマンドの場所（PATH に無いとき）"
+        },
+        "comatype.config": {
+          "type": "string",
+          "default": "",
+          "description": "comatype.config.json の場所（ワークスペースからの相対）。空なら、開いているファイルから上に向かって探す"
+        },
+        "comatype.checkOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "言語サーバを使わないときだけ: 開いたとき・保存したときに comatype check を実行して、診断を出す"
+        },
+        "comatype.languageServer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "言語サーバ（comatype lsp）を使う。入力中の診断、定義ジャンプ、ホバー、補完、アウトライン。オフなら、保存時に comatype check を実行する従来の方法になる"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:comat",
+    "workspaceContains:**/comatype.config.json",
+    "onCommand:comatype.exportOpenApi",
+    "onCommand:comatype.importOpenApi",
+    "onCommand:comatype.showStatusCodes"
+  ],
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

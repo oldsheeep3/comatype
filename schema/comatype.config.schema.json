@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://comatype.dev/schema/comatype.config.schema.json",
+  "title": "comatype.config.json",
+  "description": "Configuration of Comatype: which .comat directories (services) to read and which code to generate.",
+  "type": "object",
+  "required": ["services"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Location of this schema, for editor completion and validation."
+    },
+    "services": {
+      "type": "object",
+      "description": "Named units of an API. Each service has one comatDir and several targets.",
+      "additionalProperties": { "$ref": "#/definitions/service" }
+    },
+    "additionalStatusCodes": {
+      "type": "array",
+      "description": "Status codes that are not in the standard set, so that `sNNN` can use them.",
+      "items": { "$ref": "#/definitions/additionalStatus" }
+    }
+  },
+  "definitions": {
+    "service": {
+      "type": "object",
+      "required": ["comatDir"],
+      "additionalProperties": false,
+      "properties": {
+        "comatDir": {
+          "type": "string",
+          "description": "Where the .comat files of this service are, relative to this file. `comatype generate` scans it.",
+          "examples": ["./comatfiles"]
+        },
+        "targets": {
+          "type": "array",
+          "description": "What to generate.",
+          "items": { "$ref": "#/definitions/target" }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["lang", "role", "root"],
+      "additionalProperties": false,
+      "properties": {
+        "lang": {
+          "enum": ["ts", "go", "python", "rust", "java", "kotlin", "swift", "ruby", "dart"],
+          "description": "Language to generate. `dart` is accepted but generating it is not supported yet."
+        },
+        "role": {
+          "enum": ["client", "server"],
+          "description": "Generate the client or the server side."
+        },
+        "root": {
+          "type": "string",
+          "description": "Where the project of that language is, relative to this file.",
+          "examples": ["./web"]
+        },
+        "out": {
+          "type": "string",
+          "description": "Output location under root. Defaults per language: ts/go `comatype`, python/ruby `comatype_gen`, rust `src/comatype_gen`, java `src/main/java/comatype/gen`, kotlin `src/main/kotlin/comatype/gen`, swift `Sources/ComatypeGen`, dart `lib/comatype_gen`."
+        },
+        "importPath": {
+          "type": "string",
+          "description": "Go only. Import path of the output. If omitted, it is derived from the module of the go.mod found by walking up from root.",
+          "examples": ["example.com/app/comatype"]
+        },
+        "package": {
+          "type": "string",
+          "description": "Java / Kotlin only. Package name of the generated code. If omitted, it is derived from the path of `out` after src/main/java/ (src/main/kotlin/ for Kotlin), or `comatype.gen`.",
+          "examples": ["com.example.api"]
+        }
+      }
+    },
+    "additionalStatus": {
+      "type": "object",
+      "required": ["status", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599,
+          "description": "Status code. A code already defined as standard, or a duplicate, is an error."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Status message (such as `Custom Thing`). Used for OpenAPI descriptions and editor hover."
+        }
+      }
+    }
+  }
+}

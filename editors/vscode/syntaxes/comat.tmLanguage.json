@@ -1,0 +1,463 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Comatype",
+  "scopeName": "source.comat",
+  "fileTypes": [
+    "comat"
+  ],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#statement"
+    },
+    {
+      "include": "#expression"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "match": "//.*$",
+      "name": "comment.line.double-slash.comat"
+    },
+    "statement": {
+      "patterns": [
+        {
+          "include": "#import"
+        },
+        {
+          "include": "#path"
+        },
+        {
+          "include": "#base-url"
+        },
+        {
+          "include": "#wrap"
+        },
+        {
+          "include": "#cookie"
+        },
+        {
+          "include": "#cache"
+        },
+        {
+          "include": "#wrapper"
+        },
+        {
+          "include": "#enum"
+        },
+        {
+          "include": "#block-keyword"
+        },
+        {
+          "include": "#status"
+        },
+        {
+          "include": "#type-decl"
+        }
+      ]
+    },
+    "import": {
+      "comment": "import Name, Other from ../types/Name.comat (the path is a raw value to the end of the line)",
+      "match": "^\\s*(import)\\s+([A-Za-z_]\\w*(?:\\s*,\\s*[A-Za-z_]\\w*)*)\\s+(from)\\s+(\\S+)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.import.comat"
+        },
+        "2": {
+          "patterns": [
+            {
+              "match": "[A-Za-z_]\\w*",
+              "name": "entity.name.type.comat"
+            },
+            {
+              "match": ",",
+              "name": "punctuation.separator.comma.comat"
+            }
+          ]
+        },
+        "3": {
+          "name": "keyword.control.from.comat"
+        },
+        "4": {
+          "name": "string.unquoted.path.comat"
+        }
+      }
+    },
+    "path": {
+      "comment": "path /fix/path and path ./relative/path. :name is a dynamic path",
+      "match": "^\\s*(path)(?!\\s*\\??\\s*:)\\s+('[^'\\n]*'|\"[^\"\\n]*\"|\\S+)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.path.comat"
+        },
+        "2": {
+          "name": "string.unquoted.path.comat",
+          "patterns": [
+            {
+              "match": ":[A-Za-z_]\\w*",
+              "name": "variable.parameter.path.comat"
+            }
+          ]
+        }
+      }
+    },
+    "base-url": {
+      "match": "^\\s*(baseUrl)(?!\\s*\\??\\s*:)\\s+(\\S+)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.base-url.comat"
+        },
+        "2": {
+          "name": "string.unquoted.url.comat"
+        }
+      }
+    },
+    "wrap": {
+      "comment": "wrap auth / wrap auth off",
+      "match": "^\\s*(wrap)(?!\\s*\\??\\s*:)\\s+([A-Za-z_]\\w*)(?:\\s+(off)\\b)?",
+      "captures": {
+        "1": {
+          "name": "keyword.other.wrap.comat"
+        },
+        "2": {
+          "name": "entity.name.function.wrapper.comat"
+        },
+        "3": {
+          "name": "constant.language.switch.comat"
+        }
+      }
+    },
+    "cookie": {
+      "patterns": [
+        {
+          "comment": "cookie on / cookie off",
+          "match": "^\\s*(cookie)(?!\\s*\\??\\s*:)\\s+(on|off)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.cookie.comat"
+            },
+            "2": {
+              "name": "constant.language.switch.comat"
+            }
+          }
+        },
+        {
+          "comment": "cookie session { httpOnly: true, ... }（init.comat）",
+          "match": "^\\s*(cookie)(?!\\s*\\??\\s*:)\\s+([A-Za-z_][\\w-]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.cookie.comat"
+            },
+            "2": {
+              "name": "entity.name.cookie.comat"
+            }
+          }
+        }
+      ]
+    },
+    "cache": {
+      "comment": "cache off / cache 5000 / cache 5000 cookie",
+      "match": "^\\s*(cache)(?!\\s*\\??\\s*:)(?:\\s+(off)\\b|\\s+(\\d+)(?:\\s+(cookie)\\b)?)?",
+      "captures": {
+        "1": { "name": "keyword.other.cache.comat" },
+        "2": { "name": "constant.language.switch.comat" },
+        "3": { "name": "constant.numeric.comat" },
+        "4": { "name": "constant.language.switch.comat" }
+      }
+    },
+    "wrapper": {
+      "match": "^\\s*(wrapper)(?!\\s*\\??\\s*:)\\s+([A-Za-z_]\\w*)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.wrapper.comat"
+        },
+        "2": {
+          "name": "entity.name.function.wrapper.comat"
+        }
+      }
+    },
+    "enum": {
+      "comment": "enum Role { admin, member } (values are identifiers separated by ,)",
+      "begin": "^\\s*(enum)(?!\\s*\\??\\s*:)\\s+([A-Za-z_]\\w*)\\s*(\\{)?",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.enum.comat"
+        },
+        "2": {
+          "name": "entity.name.type.enum.comat"
+        },
+        "3": {
+          "name": "punctuation.section.braces.begin.comat"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.braces.end.comat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "match": "\\{",
+          "name": "punctuation.section.braces.begin.comat"
+        },
+        {
+          "match": "[A-Za-z_]\\w*",
+          "name": "variable.other.enummember.comat"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.comat"
+        }
+      ]
+    },
+    "block-keyword": {
+      "match": "^\\s*(params|search|headerReq|headerRes|header|body|ctx)\\b(?!\\s*\\??\\s*:)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.block.comat"
+        }
+      }
+    },
+    "status": {
+      "comment": "s200 / s404 ... (status codes)",
+      "match": "^\\s*(s[1-5]\\d\\d)\\b(?!\\s*\\??\\s*:)",
+      "captures": {
+        "1": {
+          "name": "support.constant.status.comat"
+        }
+      }
+    },
+    "type-decl": {
+      "comment": "UserData { ... }",
+      "match": "^\\s*([A-Za-z_]\\w*)\\s*(?=\\{)",
+      "captures": {
+        "1": {
+          "name": "entity.name.type.class.comat"
+        }
+      }
+    },
+    "expression": {
+      "patterns": [
+        {
+          "include": "#constraint"
+        },
+        {
+          "include": "#spread"
+        },
+        {
+          "include": "#field"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#builtin-type"
+        },
+        {
+          "include": "#constant"
+        },
+        {
+          "include": "#type-reference"
+        },
+        {
+          "include": "#operator"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "constraint": {
+      "comment": "string(1..50) / int(0..150) / string(pattern: \"...\")",
+      "begin": "\\b(string|int|int64|decimal)(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "support.type.builtin.comat"
+        },
+        "2": {
+          "name": "punctuation.section.parens.begin.comat"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.parens.end.comat"
+        }
+      },
+      "patterns": [
+        {
+          "match": "\\bpattern\\b(?=\\s*:)",
+          "name": "variable.other.property.comat"
+        },
+        {
+          "match": ":",
+          "name": "punctuation.separator.key-value.comat"
+        },
+        {
+          "match": "\\.\\.",
+          "name": "keyword.operator.range.comat"
+        },
+        {
+          "match": "-?\\d+",
+          "name": "constant.numeric.integer.comat"
+        },
+        {
+          "include": "#string"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "begin": "\"",
+          "end": "\"|$",
+          "name": "string.quoted.double.comat",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.comat"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.comat"
+            }
+          },
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.comat"
+            }
+          ]
+        },
+        {
+          "begin": "'",
+          "end": "'|$",
+          "name": "string.quoted.single.comat",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.comat"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.comat"
+            }
+          },
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.comat"
+            }
+          ]
+        }
+      ]
+    },
+    "spread": {
+      "comment": "...UserData",
+      "match": "(\\.\\.\\.)\\s*([A-Za-z_]\\w*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.spread.comat"
+        },
+        "2": {
+          "name": "entity.name.type.comat"
+        }
+      }
+    },
+    "field": {
+      "comment": "name?: type / \"X-Request-Id\"?: type",
+      "match": "(\"[^\"\\n]*\"|'[^'\\n]*'|[A-Za-z_]\\w*)(\\?)?(?=\\s*:)",
+      "captures": {
+        "1": {
+          "name": "variable.other.property.comat",
+          "patterns": [
+            {
+              "match": "[\"']",
+              "name": "punctuation.definition.string.comat"
+            }
+          ]
+        },
+        "2": {
+          "name": "keyword.operator.optional.comat"
+        }
+      }
+    },
+    "number": {
+      "match": "-?\\b\\d+\\b",
+      "name": "constant.numeric.integer.comat"
+    },
+    "builtin-type": {
+      "match": "\\b(string|bool|int|email|phone|uuidv4|uuidv7|uuid|datetime|date|time|int64|decimal|url|bytes|json)\\b",
+      "name": "support.type.builtin.comat"
+    },
+    "constant": {
+      "patterns": [
+        {
+          "match": "\\b(true|false)\\b",
+          "name": "constant.language.boolean.comat"
+        },
+        {
+          "match": "\\b(null|none|empty)\\b",
+          "name": "constant.language.comat"
+        },
+        {
+          "match": "\\b(lax|strict)\\b",
+          "name": "constant.language.option.comat"
+        }
+      ]
+    },
+    "type-reference": {
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\b",
+      "name": "entity.name.type.comat"
+    },
+    "operator": {
+      "patterns": [
+        {
+          "match": "\\|",
+          "name": "keyword.operator.union.comat"
+        },
+        {
+          "match": "\\[\\]",
+          "name": "storage.modifier.array.comat"
+        },
+        {
+          "match": "\\.\\.",
+          "name": "keyword.operator.range.comat"
+        },
+        {
+          "match": "\\?",
+          "name": "keyword.operator.optional.comat"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": "[{}]",
+          "name": "punctuation.section.braces.comat"
+        },
+        {
+          "match": "[()]",
+          "name": "punctuation.section.parens.comat"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.comat"
+        },
+        {
+          "match": ":",
+          "name": "punctuation.separator.key-value.comat"
+        }
+      ]
+    }
+  }
+}

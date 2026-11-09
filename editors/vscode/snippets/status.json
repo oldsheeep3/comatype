@@ -1,0 +1,546 @@
+{
+  "s100": {
+    "body": [
+      "s100 none"
+    ],
+    "description": "100 Continue",
+    "prefix": "s100"
+  },
+  "s101": {
+    "body": [
+      "s101 none"
+    ],
+    "description": "101 Switching Protocols",
+    "prefix": "s101"
+  },
+  "s102": {
+    "body": [
+      "s102 none"
+    ],
+    "description": "102 Processing",
+    "prefix": "s102"
+  },
+  "s103": {
+    "body": [
+      "s103 none"
+    ],
+    "description": "103 Early Hints",
+    "prefix": "s103"
+  },
+  "s200": {
+    "body": [
+      "s200 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "200 OK",
+    "prefix": "s200"
+  },
+  "s201": {
+    "body": [
+      "s201 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "201 Created",
+    "prefix": "s201"
+  },
+  "s202": {
+    "body": [
+      "s202 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "202 Accepted",
+    "prefix": "s202"
+  },
+  "s203": {
+    "body": [
+      "s203 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "203 Non-Authoritative Information",
+    "prefix": "s203"
+  },
+  "s204": {
+    "body": [
+      "s204 none"
+    ],
+    "description": "204 No Content",
+    "prefix": "s204"
+  },
+  "s205": {
+    "body": [
+      "s205 none"
+    ],
+    "description": "205 Reset Content",
+    "prefix": "s205"
+  },
+  "s206": {
+    "body": [
+      "s206 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "206 Partial Content",
+    "prefix": "s206"
+  },
+  "s207": {
+    "body": [
+      "s207 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "207 Multi-Status",
+    "prefix": "s207"
+  },
+  "s208": {
+    "body": [
+      "s208 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "208 Already Reported",
+    "prefix": "s208"
+  },
+  "s226": {
+    "body": [
+      "s226 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "226 IM Used",
+    "prefix": "s226"
+  },
+  "s300": {
+    "body": [
+      "s300 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "300 Multiple Choices",
+    "prefix": "s300"
+  },
+  "s301": {
+    "body": [
+      "s301 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "301 Moved Permanently",
+    "prefix": "s301"
+  },
+  "s302": {
+    "body": [
+      "s302 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "302 Found",
+    "prefix": "s302"
+  },
+  "s303": {
+    "body": [
+      "s303 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "303 See Other",
+    "prefix": "s303"
+  },
+  "s304": {
+    "body": [
+      "s304 none"
+    ],
+    "description": "304 Not Modified",
+    "prefix": "s304"
+  },
+  "s305": {
+    "body": [
+      "s305 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "305 Use Proxy",
+    "prefix": "s305"
+  },
+  "s307": {
+    "body": [
+      "s307 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "307 Temporary Redirect",
+    "prefix": "s307"
+  },
+  "s308": {
+    "body": [
+      "s308 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "308 Permanent Redirect",
+    "prefix": "s308"
+  },
+  "s400": {
+    "body": [
+      "s400 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "400 Bad Request",
+    "prefix": "s400"
+  },
+  "s401": {
+    "body": [
+      "s401 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "401 Unauthorized",
+    "prefix": "s401"
+  },
+  "s402": {
+    "body": [
+      "s402 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "402 Payment Required",
+    "prefix": "s402"
+  },
+  "s403": {
+    "body": [
+      "s403 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "403 Forbidden",
+    "prefix": "s403"
+  },
+  "s404": {
+    "body": [
+      "s404 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "404 Not Found",
+    "prefix": "s404"
+  },
+  "s405": {
+    "body": [
+      "s405 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "405 Method Not Allowed",
+    "prefix": "s405"
+  },
+  "s406": {
+    "body": [
+      "s406 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "406 Not Acceptable",
+    "prefix": "s406"
+  },
+  "s407": {
+    "body": [
+      "s407 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "407 Proxy Authentication Required",
+    "prefix": "s407"
+  },
+  "s408": {
+    "body": [
+      "s408 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "408 Request Timeout",
+    "prefix": "s408"
+  },
+  "s409": {
+    "body": [
+      "s409 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "409 Conflict",
+    "prefix": "s409"
+  },
+  "s410": {
+    "body": [
+      "s410 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "410 Gone",
+    "prefix": "s410"
+  },
+  "s411": {
+    "body": [
+      "s411 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "411 Length Required",
+    "prefix": "s411"
+  },
+  "s412": {
+    "body": [
+      "s412 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "412 Precondition Failed",
+    "prefix": "s412"
+  },
+  "s413": {
+    "body": [
+      "s413 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "413 Content Too Large",
+    "prefix": "s413"
+  },
+  "s414": {
+    "body": [
+      "s414 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "414 URI Too Long",
+    "prefix": "s414"
+  },
+  "s415": {
+    "body": [
+      "s415 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "415 Unsupported Media Type",
+    "prefix": "s415"
+  },
+  "s416": {
+    "body": [
+      "s416 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "416 Range Not Satisfiable",
+    "prefix": "s416"
+  },
+  "s417": {
+    "body": [
+      "s417 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "417 Expectation Failed",
+    "prefix": "s417"
+  },
+  "s418": {
+    "body": [
+      "s418 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "418 I'm a teapot",
+    "prefix": "s418"
+  },
+  "s421": {
+    "body": [
+      "s421 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "421 Misdirected Request",
+    "prefix": "s421"
+  },
+  "s422": {
+    "body": [
+      "s422 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "422 Unprocessable Content",
+    "prefix": "s422"
+  },
+  "s423": {
+    "body": [
+      "s423 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "423 Locked",
+    "prefix": "s423"
+  },
+  "s424": {
+    "body": [
+      "s424 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "424 Failed Dependency",
+    "prefix": "s424"
+  },
+  "s425": {
+    "body": [
+      "s425 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "425 Too Early",
+    "prefix": "s425"
+  },
+  "s426": {
+    "body": [
+      "s426 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "426 Upgrade Required",
+    "prefix": "s426"
+  },
+  "s428": {
+    "body": [
+      "s428 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "428 Precondition Required",
+    "prefix": "s428"
+  },
+  "s429": {
+    "body": [
+      "s429 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "429 Too Many Requests",
+    "prefix": "s429"
+  },
+  "s431": {
+    "body": [
+      "s431 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "431 Request Header Fields Too Large",
+    "prefix": "s431"
+  },
+  "s451": {
+    "body": [
+      "s451 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "451 Unavailable For Legal Reasons",
+    "prefix": "s451"
+  },
+  "s500": {
+    "body": [
+      "s500 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "500 Internal Server Error",
+    "prefix": "s500"
+  },
+  "s501": {
+    "body": [
+      "s501 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "501 Not Implemented",
+    "prefix": "s501"
+  },
+  "s502": {
+    "body": [
+      "s502 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "502 Bad Gateway",
+    "prefix": "s502"
+  },
+  "s503": {
+    "body": [
+      "s503 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "503 Service Unavailable",
+    "prefix": "s503"
+  },
+  "s504": {
+    "body": [
+      "s504 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "504 Gateway Timeout",
+    "prefix": "s504"
+  },
+  "s505": {
+    "body": [
+      "s505 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "505 HTTP Version Not Supported",
+    "prefix": "s505"
+  },
+  "s506": {
+    "body": [
+      "s506 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "506 Variant Also Negotiates",
+    "prefix": "s506"
+  },
+  "s507": {
+    "body": [
+      "s507 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "507 Insufficient Storage",
+    "prefix": "s507"
+  },
+  "s508": {
+    "body": [
+      "s508 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "508 Loop Detected",
+    "prefix": "s508"
+  },
+  "s510": {
+    "body": [
+      "s510 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "510 Not Extended",
+    "prefix": "s510"
+  },
+  "s511": {
+    "body": [
+      "s511 {",
+      "\tmessage: string,",
+      "}"
+    ],
+    "description": "511 Network Authentication Required",
+    "prefix": "s511"
+  }
+}
