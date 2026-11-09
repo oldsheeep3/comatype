@@ -26,13 +26,13 @@ TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby — each as a client 
 
 | Language | Runtime package | Status |
 |---|---|---|
-| TypeScript | `@comatype/typescript` (npm) | release pipeline ready, not published yet |
-| Go | `github.com/oldsheeep3/comatype/packages/go` | release pipeline ready, not published yet |
-| Python | `comatype` (PyPI) | release pipeline ready, not published yet |
-| Rust | `comatype` (crates.io) | release pipeline ready, not published yet |
-| Java / Kotlin | `net.sheeplab.comatype:comatype`, `:comatype-ktx` (Maven Central) | release pipeline ready, not published yet |
-| Ruby | `comatype` (RubyGems) | release pipeline ready, not published yet |
-| Swift | `packages/swift` | in this repository only |
+| TypeScript | [`@comatype/typescript`](https://www.npmjs.com/package/@comatype/typescript) (npm) | published (see the package README) |
+| Go | [`github.com/oldsheeep3/comatype/packages/go`](https://pkg.go.dev/github.com/oldsheeep3/comatype/packages/go) | published (see the package README) |
+| Python | [`comatype`](https://pypi.org/project/comatype/) (PyPI) | published (see the package README) |
+| Rust | [`comatype`](https://crates.io/crates/comatype) (crates.io) | published (see the package README) |
+| Java / Kotlin | [`net.sheeplab.comatype:comatype`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype), [`:comatype-ktx`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype-ktx) (Maven Central) | published (see the package README) |
+| Ruby | [`comatype`](https://rubygems.org/gems/comatype) (RubyGems) | published (see the package README) |
+| Swift | [`packages/swift`](packages/swift) | in this repository only |
 
 ## The command line
 
