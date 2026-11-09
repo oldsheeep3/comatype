@@ -20,7 +20,7 @@ pub fn read_message(input: &mut impl BufRead) -> io::Result<Option<Value>> {
         }
     }
     let Some(len) = len else {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "Content-Length がありません"));
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "missing Content-Length"));
     };
     let mut buf = vec![0u8; len];
     input.read_exact(&mut buf)?;

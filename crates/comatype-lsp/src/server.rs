@@ -68,40 +68,40 @@ fn find_init(from_file: &Path) -> Option<PathBuf> {
 
 fn keyword_doc(w: &str) -> Option<&'static str> {
     Some(match w {
-        "string" => "**string** — 文字列。`string(1..50)`（文字数）、`string(pattern: \"...\")`（正規表現）",
-        "bool" => "**bool** — 真偽値",
-        "int" => "**int** — 整数（JSON の数値）。`int(0..150)` で範囲",
-        "email" => "**email** — メールアドレス（文字列）",
-        "phone" => "**phone** — 電話番号（E.164。文字列）",
-        "uuid" => "**uuid** — UUID（バージョン不問。文字列）",
-        "uuidv4" => "**uuidv4** — UUID v4（文字列）",
-        "uuidv7" => "**uuidv7** — UUID v7（時刻順に並ぶ。文字列）",
-        "date" => "**date** — 日付 `YYYY-MM-DD`",
-        "datetime" => "**datetime** — RFC 3339（タイムゾーン付き）",
-        "time" => "**time** — 時刻 `HH:MM:SS`",
-        "int64" => "**int64** — 64 ビット整数。通信上は**文字列**（JavaScript で 2^53 を超えると精度が落ちるため）",
-        "decimal" => "**decimal** — 小数（金額など）。通信上は**文字列**",
-        "url" => "**url** — URL（文字列）",
-        "bytes" => "**bytes** — base64 の文字列",
-        "json" => "**json** — 任意の JSON",
-        "null" => "**null** — `T | null` で、null を許す",
-        "none" => "**none** — レスポンスのボディなし（`s204 none`）",
-        "empty" => "**empty** — フィールドごと省略する（`uid: empty`。`...Type` で展開したフィールドを消す）",
-        "path" => "**path** — path の明示（非推奨）。`/fix/path` は固定、`./relative` はディレクトリからの相対",
-        "params" => "**params** — path パラメータの型（`[id]` / `:id` / `__id` のディレクトリ名・ファイル名に対応）",
-        "search" => "**search** — クエリ文字列の型",
-        "body" => "**body** — リクエストのボディの型（エンドポイントに 1 つ）",
-        "header" => "**header** — リクエストとレスポンスの両方のヘッダ",
-        "headerReq" => "**headerReq** — リクエストだけのヘッダ",
-        "headerRes" => "**headerRes** — レスポンスだけのヘッダ",
-        "wrap" => "**wrap** — ラッパーを有効にする。`wrap auth off` で無効にする",
-        "cookie" => "**cookie** — `cookie on|off`（エンドポイント）、`cookie session { ... }`（init.comat）",
-        "cache" => "**cache** — `cache off`（強制的にキャッシュしない）、`cache 5000`（ttl ミリ秒だけメモリにキャッシュ）、`cache 5000 cookie`（cookie にキャッシュ。クライアントのみ）。GET / QUERY のエンドポイントだけ。defaults.comat / init.comat では無視される",
-        "baseUrl" => "**baseUrl** — 全エンドポイントの base url（init.comat）",
-        "wrapper" => "**wrapper** — ラッパーの宣言（init.comat）。ctx の型と、返せるステータス",
-        "ctx" => "**ctx** — ラッパーがハンドラに渡す値の型",
-        "import" => "**import** — 別のファイルの型を使う。`import Name from ../types/Name.comat`",
-        "enum" => "**enum** — 文字列の値の一覧",
+        "string" => "**string** - a string. `string(1..50)` (length), `string(pattern: \"...\")` (regular expression)",
+        "bool" => "**bool** - boolean",
+        "int" => "**int** - an integer (a JSON number). `int(0..150)` sets a range",
+        "email" => "**email** - an email address (a string)",
+        "phone" => "**phone** - a phone number (E.164, a string)",
+        "uuid" => "**uuid** - a UUID (any version, a string)",
+        "uuidv4" => "**uuidv4** - a UUID v4 (a string)",
+        "uuidv7" => "**uuidv7** - a UUID v7 (sorts by time, a string)",
+        "date" => "**date** - a date `YYYY-MM-DD`",
+        "datetime" => "**datetime** - RFC 3339 (with a time zone)",
+        "time" => "**time** - a time `HH:MM:SS`",
+        "int64" => "**int64** - a 64-bit integer. A **string** on the wire (JavaScript loses precision above 2^53)",
+        "decimal" => "**decimal** - a decimal number (money and the like). A **string** on the wire",
+        "url" => "**url** - a URL (a string)",
+        "bytes" => "**bytes** - a base64 string",
+        "json" => "**json** - any JSON",
+        "null" => "**null** - allows null with `T | null`",
+        "none" => "**none** - no response body (`s204 none`)",
+        "empty" => "**empty** - omits the whole field (`uid: empty`; removes a field spread with `...Type`)",
+        "path" => "**path** - an explicit path (deprecated). `/fix/path` is fixed, `./relative` is relative to the directory",
+        "params" => "**params** - the type of the path parameters (matches the `[id]` / `:id` / `__id` directory or file name)",
+        "search" => "**search** - the type of the query string",
+        "body" => "**body** - the type of the request body (one per endpoint)",
+        "header" => "**header** - headers of both the request and the response",
+        "headerReq" => "**headerReq** - headers of the request only",
+        "headerRes" => "**headerRes** - headers of the response only",
+        "wrap" => "**wrap** - enables a wrapper. `wrap auth off` disables it",
+        "cookie" => "**cookie** - `cookie on|off`(endpoint), `cookie session { ... }` (init.comat)",
+        "cache" => "**cache** - `cache off` (never cache), `cache 5000` (cache in memory for the ttl in milliseconds), `cache 5000 cookie` (cache in a cookie; client only). GET / QUERY endpoints only. Ignored in defaults.comat / init.comat",
+        "baseUrl" => "**baseUrl** - the base url of all endpoints (init.comat)",
+        "wrapper" => "**wrapper** - a wrapper declaration (init.comat): the type of ctx and the statuses it can return",
+        "ctx" => "**ctx** - the type of the value a wrapper passes to the handler",
+        "import" => "**import** - uses a type from another file. `import Name from ../types/Name.comat`",
+        "enum" => "**enum** - a list of string values",
         _ => return None,
     })
 }
@@ -192,7 +192,7 @@ impl<'a, W: Write> Server<'a, W> {
                 let result = self.request(m, &params);
                 self.respond(&id, result)?
             }
-            (_, Some(id)) => self.respond_err(&id, -32601, &format!("未対応のメソッド: {method}"))?,
+            (_, Some(id)) => self.respond_err(&id, -32601, &format!("unsupported method: {method}"))?,
             _ => {} // Unsupported notifications (initialized, $/cancelRequest, etc.) are ignored
         }
         Ok(None)
@@ -385,12 +385,12 @@ impl<'a, W: Write> Server<'a, W> {
             let src = decl_source(&self.text_of(&tp)?, &d, 40);
             let rel = tp.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default();
             let kind = match d.kind {
-                DeclKind::Type => "型",
+                DeclKind::Type => "type",
                 DeclKind::Enum => "enum",
-                DeclKind::Wrapper => "ラッパー",
+                DeclKind::Wrapper => "wrapper",
             };
             return Some(json!({
-                "contents": {"kind": "markdown", "value": format!("**{}** — {kind}（{rel}）\n\n```comat\n{src}\n```", d.name)},
+                "contents": {"kind": "markdown", "value": format!("**{}** - {kind} ({rel})\n\n```comat\n{src}\n```", d.name)},
                 "range": range(s, e),
             }));
         }
@@ -400,14 +400,14 @@ impl<'a, W: Write> Server<'a, W> {
             match self.status_table(path).get(&code) {
                 Some(msg) => {
                     let body = if status::no_body(code) {
-                        "本文を持てないステータス。`none`（省略も同じ）".to_string()
+                        "a status that cannot have a body. `none` (omitting it is the same)".to_string()
                     } else {
-                        "本文を省略すると `{ message: string }`。2xx は `data`、それ以外は `error`".to_string()
+                        "if the body is omitted it is `{ message: string }`; 2xx uses `data`, the others use `error`".to_string()
                     };
-                    Some(format!("**{w}** — {code} {msg}\n\n{body}。`{w} none, {{ ... }}` でレスポンスヘッダ"))
+                    Some(format!("**{w}** - {code} {msg}\n\n{body}. `{w} none, {{ ... }}` adds response headers"))
                 }
                 None => Some(format!(
-                    "**{w}** — 未定義のステータスコード（標準のコードか、`additionalStatusCodes` で足したコードだけ使えます）"
+                    "**{w}** - an undefined status code (only standard codes and codes added with `additionalStatusCodes` can be used)"
                 )),
             }
         } else {
@@ -467,7 +467,7 @@ impl<'a, W: Write> Server<'a, W> {
             if let Some(init) = find_init(&normalize(path)) {
                 if let Some(it) = self.text_of(&init) {
                     for d in scan_decls(&it).iter().filter(|d| d.kind == DeclKind::Wrapper) {
-                        items.push(item(&d.name, 3, "ラッパー（init.comat）"));
+                        items.push(item(&d.name, 3, "wrapper (init.comat)"));
                     }
                 }
             }
@@ -475,7 +475,7 @@ impl<'a, W: Write> Server<'a, W> {
         }
         // cookie on|off
         if t.starts_with("cookie ") && !t["cookie ".len()..].contains(' ') {
-            return json!([item("on", 12, "cookie を送受信する"), item("off", 12, "cookie を使わない")]);
+            return json!([item("on", 12, "send and receive cookies"), item("off", 12, "do not use cookies")]);
         }
 
         let statement_start = t.chars().all(is_ident_char);
@@ -489,17 +489,17 @@ impl<'a, W: Write> Server<'a, W> {
         };
         if type_position {
             for b in BUILTIN_TYPES {
-                items.push(item(b, 7, "組み込みの型"));
+                items.push(item(b, 7, "built-in type"));
             }
             for c in ["null", "none", "empty"] {
                 items.push(item(c, 21, ""));
             }
             for d in scan_decls(text).iter().filter(|d| d.kind != DeclKind::Wrapper) {
-                items.push(item(&d.name, 7, "このファイルの型"));
+                items.push(item(&d.name, 7, "type in this file"));
             }
             for imp in scan_imports(text) {
                 for n in imp.names {
-                    items.push(item(&n.name, 7, &format!("import（{}）", imp.path)));
+                    items.push(item(&n.name, 7, &format!("import ({})", imp.path)));
                 }
             }
         } else if statement_start {
@@ -520,10 +520,10 @@ impl<'a, W: Write> Server<'a, W> {
                 "wrapper",
                 "ctx",
             ] {
-                items.push(item(k, 14, keyword_doc(k).unwrap_or("").split(" — ").nth(1).unwrap_or("")));
+                items.push(item(k, 14, keyword_doc(k).unwrap_or("").split(" - ").nth(1).unwrap_or("")));
             }
             for (code, msg) in &self.status_table(path) {
-                let note = if status::no_body(*code) { "（本文なし）" } else { "" };
+                let note = if status::no_body(*code) { " (no body)" } else { "" };
                 items.push(item(&format!("s{code}"), 21, &format!("{code} {msg}{note}")));
             }
         }

@@ -33,6 +33,7 @@ TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ cl
 | Java / Kotlin | [`net.sheeplab.comatype:comatype`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype)、[`:comatype-ktx`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype-ktx)（Maven Central） | 公開済み（各パッケージの README を参照） |
 | Ruby | `comatype`（RubyGems） | 公開済み（各パッケージの README を参照） |
 | Swift | [`packages/swift`](packages/swift) | このリポジトリ内のみ |
+| VS Code 拡張 | `comatype.comatype`（VS Code Marketplace、Open VSX） | リリースの準備は完了、未公開 |
 
 ## コマンドライン
 

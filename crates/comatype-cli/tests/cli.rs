@@ -60,10 +60,10 @@ fn endpoints_group_splits_by_exact_wrap_order() {
     let (code, out, _) = run(env!("CARGO_BIN_EXE_comatype"), &["endpoints", "-g", "--no-color"], &sample());
     assert_eq!(code, 0);
     // No wrap / auth / auth > log / log > auth are separate groups (exact match including order)
-    for h in ["── wrap なし ──", "── wrap: auth ──", "── wrap: auth > log ──", "── wrap: log > auth ──"] {
-        assert!(out.contains(h), "{h} がありません:\n{out}");
+    for h in ["-- no wrap --", "-- wrap: auth --", "-- wrap: auth > log --", "-- wrap: log > auth --"] {
+        assert!(out.contains(h), "{h} is missing:\n{out}");
     }
-    let auth = out.split("── wrap: auth ──").nth(1).unwrap().split("──").next().unwrap();
+    let auth = out.split("-- wrap: auth --").nth(1).unwrap().split("--").next().unwrap();
     assert!(auth.contains("GET /a/x") && auth.contains("PUT /a/x") && !auth.contains("/b/y"), "{auth}");
 }
 
@@ -72,7 +72,7 @@ fn endpoints_color_is_opt_in_and_marks_wraps() {
     let (_, plain, _) = run(env!("CARGO_BIN_EXE_comatype"), &["endpoints", "--no-color"], &sample());
     assert!(!plain.contains('\x1b'));
     let (_, colored, _) = run(env!("CARGO_BIN_EXE_comatype"), &["endpoints", "--color"], &sample());
-    assert!(colored.contains("\x1b[") && colored.contains("■") && colored.contains(" wrap: auth"), "{colored}");
+    assert!(colored.contains("\x1b[") && colored.contains("#") && colored.contains(" wrap: auth"), "{colored}");
     // /a/x with the same wrap gets the same color; /b/y with a different wrap gets another color
     let line = |m: &str, p: &str| colored.lines().find(|l| l.starts_with(m) && l.contains(p)).unwrap().to_string();
     let color_of = |l: &str| l.split("\x1b[").nth(1).unwrap().split('m').next().unwrap().to_string();
@@ -97,11 +97,11 @@ fn check_topic_filters_diagnostics() {
     let bin = env!("CARGO_BIN_EXE_comatype");
     let (code, _, err) = run(bin, &["check", "cache"], &root);
     assert_eq!(code, 0, "{err}");
-    assert!(err.contains("init.comat") && err.contains("cache は init.comat") || err.contains("cache"), "{err}");
-    assert!(err.contains("cache: エラー 0 件"), "{err}");
+    assert!(err.contains("init.comat") && err.contains("cache has no effect in") || err.contains("cache"), "{err}");
+    assert!(err.contains("cache: 0 error(s)"), "{err}");
     // No cache diagnostics appear in the wrap topic
     let (_, _, err) = run(bin, &["check", "wrap"], &root);
-    assert!(!err.contains("cache を書いた"), "{err}");
+    assert!(!err.contains("the endpoint with cache is wrapped"), "{err}");
     // An unknown topic lists the valid topics and exits with code 2
     let (code, _, err) = run(bin, &["check", "nope"], &root);
     assert_eq!(code, 2);
@@ -113,7 +113,7 @@ fn check_topic_reports_errors_with_exit_code_1() {
     let root = project(&[("init.comat", INIT), ("post_a.comat", "cache 1000\ns200 none\n")]);
     let (code, _, err) = run(env!("CARGO_BIN_EXE_comatype"), &["check", "cache"], &root);
     assert_eq!(code, 1, "{err}");
-    assert!(err.contains("cache は get / query"), "{err}");
+    assert!(err.contains("cache can only be written in get / query"), "{err}");
 }
 
 #[test]
@@ -121,10 +121,10 @@ fn check_warns_unused_wrapper_and_cookie_without_declaration() {
     let root = project(&[("init.comat", "wrapper auth { s401 }\n"), ("get_a.comat", "s200 none\n")]);
     let (code, _, err) = run(env!("CARGO_BIN_EXE_comatype"), &["check", "wrap"], &root);
     assert_eq!(code, 0);
-    assert!(err.contains("wrapper `auth` は、どのエンドポイントでも有効になっていません"), "{err}");
+    assert!(err.contains("wrapper `auth` is not enabled in any endpoint"), "{err}");
     let root = project(&[("init.comat", ""), ("defaults.comat", "cookie on\n"), ("get_a.comat", "s200 none\n")]);
     let (_, _, err) = run(env!("CARGO_BIN_EXE_comatype"), &["check", "cookie"], &root);
-    assert!(err.contains("cookie の宣言"), "{err}");
+    assert!(err.contains("cookie declaration"), "{err}");
 }
 
 fn write_tree(files: &[(&str, &str)]) -> PathBuf {
@@ -218,9 +218,9 @@ fn format_skips_risky_moves() {
     let dir = root.join("comatfiles");
     let (code, out, err) = format_cmd(&[dir.to_str().unwrap(), "--fix", "-y"]);
     assert_eq!(code, 0, "{err}");
-    assert!(!out.contains("→"), "{out}");
+    assert!(!out.contains("->"), "{out}");
     assert!(
-        err.contains("スキップ") && err.contains("path ./") && err.contains("すでにあります") && err.contains("defaults.comat"),
+        err.contains("skipped") && err.contains("path ./") && err.contains("already exists") && err.contains("defaults.comat"),
         "{err}"
     );
     assert!(dir.join("user/get_[id].comat").exists() && dir.join("a/put_[id].comat").exists() && dir.join("b/get_[id].comat").exists());

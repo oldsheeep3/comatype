@@ -12,7 +12,7 @@ function activate(context) {
   return activateWithoutServer(context)
 }
 
-/** 言語サーバ（comatype lsp）を起動して、クライアントとして繋ぐ */
+/** Starts the language server (comatype lsp) and connects to it as a client */
 function activateWithServer(context) {
   const { LanguageClient } = require('vscode-languageclient/node')
   const output = vscode.window.createOutputChannel('Comatype')
@@ -48,12 +48,12 @@ function activateWithServer(context) {
     },
   )
   return start().catch((e) => {
-    output.appendLine(`言語サーバを起動できません: ${e?.message ?? e}（設定 comatype.path で comatype の場所を指定してください）`)
-    vscode.window.showErrorMessage('Comatype: 言語サーバ（comatype lsp）を起動できません。設定 comatype.path を確認してください。')
+    output.appendLine(`Cannot start the language server: ${e?.message ?? e} (set comatype.path to the location of comatype)`)
+    vscode.window.showErrorMessage('Comatype: cannot start the language server (comatype lsp). Check the setting comatype.path.')
   })
 }
 
-/** comatype を実行して、{ code, stdout, stderr } を返す */
+/** Runs comatype and returns { code, stdout, stderr } */
 function runComatype(args, cwd) {
   const { spawn } = require('node:child_process')
   const bin = vscode.workspace.getConfiguration('comatype').get('path') || 'comatype'
@@ -76,7 +76,7 @@ function configForActiveEditor() {
   return starts.map((d) => findConfig(d)).find(Boolean)
 }
 
-/** 言語サーバの有無によらず使えるコマンド: OpenAPI の書き出し・取り込み、ステータスコードの一覧 */
+/** Commands that work with or without the language server: OpenAPI export / import, the list of status codes */
 function registerCommonCommands(context) {
   const output = vscode.window.createOutputChannel('Comatype (commands)')
   context.subscriptions.push(output)
@@ -84,11 +84,11 @@ function registerCommonCommands(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand('comatype.exportOpenApi', async () => {
       const config = configForActiveEditor()
-      if (!config) return vscode.window.showWarningMessage(`${CONFIG_NAME} が見つかりません`)
+      if (!config) return vscode.window.showWarningMessage(`${CONFIG_NAME} not found`)
       const target = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(path.join(path.dirname(config), 'openapi.yml')),
         filters: { OpenAPI: ['yml', 'yaml', 'json'] },
-        saveLabel: 'OpenAPI を書き出す',
+        saveLabel: 'Export OpenAPI',
       })
       if (!target) return
       output.show(true)
@@ -96,8 +96,8 @@ function registerCommonCommands(context) {
       output.appendLine(`$ comatype ${args.join(' ')}`)
       const res = await runComatype(args, path.dirname(config))
       output.appendLine(res.stderr.trimEnd())
-      if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: OpenAPI を書き出せませんでした（出力を見てください）')
-      const open = await vscode.window.showInformationMessage(`Comatype: ${path.basename(target.fsPath)} を書き出しました`, '開く')
+      if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: could not export OpenAPI (see the output)')
+      const open = await vscode.window.showInformationMessage(`Comatype: exported ${path.basename(target.fsPath)}`, 'Open')
       if (open) vscode.window.showTextDocument(await vscode.workspace.openTextDocument(target))
     }),
 
@@ -105,7 +105,7 @@ function registerCommonCommands(context) {
       const picked = await vscode.window.showOpenDialog({
         canSelectMany: false,
         filters: { OpenAPI: ['yml', 'yaml', 'json'] },
-        openLabel: '取り込む OpenAPI',
+        openLabel: 'OpenAPI to import',
       })
       if (!picked?.[0]) return
       const folder = await vscode.window.showOpenDialog({
@@ -113,12 +113,15 @@ function registerCommonCommands(context) {
         canSelectFolders: true,
         canSelectMany: false,
         defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri,
-        openLabel: '.comat を作るフォルダ',
+        openLabel: 'Folder for the .comat files',
       })
       if (!folder?.[0]) return
       const chosen = await vscode.window.showQuickPick(
         TARGET_PRESETS.map((t) => ({ label: t.label, description: `${t.lang}:${t.role}:${t.root}`, t })),
-        { canPickMany: true, placeHolder: '続けてコードを生成するなら選ぶ（選ばなければ .comat と設定ファイルだけ作る）' },
+        {
+          canPickMany: true,
+          placeHolder: 'Choose to generate code as well (if nothing is chosen, only the .comat files and the config are made)',
+        },
       )
       if (!chosen) return
       const targets = chosen.map((c) => c.t)
@@ -126,19 +129,21 @@ function registerCommonCommands(context) {
       const args = importOpenApiArgs(picked[0].fsPath, folder[0].fsPath, targets, targets.length > 0, false)
       output.appendLine(`$ comatype ${args.join(' ')}`)
       let res = await runComatype(args, folder[0].fsPath)
-      if (res.code !== 0 && /既にあります/.test(res.stderr)) {
+      if (res.code !== 0 && /already has/.test(res.stderr)) {
         const ok = await vscode.window.showWarningMessage(
-          'comatfiles か comatype.config.json が既にあります。上書きしますか？',
+          'comatfiles or comatype.config.json already exists. Overwrite?',
           { modal: true },
-          '上書きする',
+          'Overwrite',
         )
         if (!ok) return
         res = await runComatype(importOpenApiArgs(picked[0].fsPath, folder[0].fsPath, targets, targets.length > 0, true), folder[0].fsPath)
       }
       output.appendLine(res.stderr.trimEnd())
-      if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: OpenAPI を取り込めませんでした（出力を見てください）')
+      if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: could not import OpenAPI (see the output)')
       vscode.window.showInformationMessage(
-        targets.length ? 'Comatype: .comat を作って、コードを生成しました' : 'Comatype: .comat と comatype.config.json を作りました',
+        targets.length
+          ? 'Comatype: made the .comat files and generated the code'
+          : 'Comatype: made the .comat files and comatype.config.json',
       )
     }),
 
@@ -148,15 +153,15 @@ function registerCommonCommands(context) {
         ['statuses', '--json', ...(config ? ['--config', config] : [])],
         config ? path.dirname(config) : undefined,
       )
-      if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: ステータスコードの一覧を取れませんでした')
+      if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: could not get the list of status codes')
       const list = JSON.parse(res.stdout)
       const item = await vscode.window.showQuickPick(
         list.map((s) => ({
           label: `s${s.status}`,
-          description: s.message + (s.body ? '' : '（本文なし）') + (s.custom ? '（追加）' : ''),
+          description: s.message + (s.body ? '' : ' (no body)') + (s.custom ? ' (added)' : ''),
           snippet: s.body ? `s${s.status} {\n\tmessage: string,\n}` : `s${s.status} none`,
         })),
-        { placeHolder: '挿入するステータスコード' },
+        { placeHolder: 'Status code to insert' },
       )
       const editor = vscode.window.activeTextEditor
       if (item && editor) editor.insertSnippet(new vscode.SnippetString(item.snippet))
@@ -164,7 +169,7 @@ function registerCommonCommands(context) {
   )
 }
 
-/** comatype generate（言語サーバの有無によらず使える） */
+/** comatype generate (works with or without the language server) */
 async function runGenerate(output) {
   const { spawn } = require('node:child_process')
   const uri = vscode.window.activeTextEditor?.document.uri
@@ -177,7 +182,7 @@ async function runGenerate(output) {
         .map((d) => findConfig(d))
         .find(Boolean)
   if (!config) {
-    vscode.window.showWarningMessage(`${CONFIG_NAME} が見つかりません`)
+    vscode.window.showWarningMessage(`${CONFIG_NAME} not found`)
     return
   }
   output.show(true)
@@ -191,11 +196,11 @@ async function runGenerate(output) {
     child.on('close', (code) => resolve({ code, stderr }))
   })
   output.appendLine(res.stderr.trimEnd())
-  if (res.code === 0) vscode.window.showInformationMessage('Comatype: 生成しました')
-  else vscode.window.showErrorMessage('Comatype: 生成に失敗しました（出力を見てください）')
+  if (res.code === 0) vscode.window.showInformationMessage('Comatype: generated')
+  else vscode.window.showErrorMessage('Comatype: generation failed (see the output)')
 }
 
-/** 言語サーバを使わない従来の方法: 保存時に comatype check を実行して、診断を出す */
+/** The way without the language server: run comatype check on save and show diagnostics */
 function activateWithoutServer(context) {
   const diagnostics = vscode.languages.createDiagnosticCollection('comatype')
   const output = vscode.window.createOutputChannel('Comatype')
@@ -205,7 +210,7 @@ function activateWithoutServer(context) {
 
   const settings = () => vscode.workspace.getConfiguration('comatype')
 
-  /** この uri（無ければ開いているエディタ、ワークスペース）の設定ファイルを探す */
+  /** Finds the config file for this uri (or the open editor, or the workspace) */
   function locateConfig(uri) {
     const explicit = settings().get('config')
     if (explicit) return path.resolve(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '.', explicit)
@@ -268,7 +273,7 @@ function activateWithoutServer(context) {
     const res = await run(['check', '--config', config], baseDir)
     if (res.failedToStart) {
       status.text = '$(warning) Comatype'
-      status.tooltip = `comatype を実行できません: ${res.stderr}（設定 comatype.path で場所を指定してください）`
+      status.tooltip = `cannot run comatype: ${res.stderr} (set comatype.path to its location)`
       output.appendLine(status.tooltip)
       return
     }
@@ -290,13 +295,13 @@ function activateWithoutServer(context) {
     const errors = found.filter((d) => d.severity === 'error').length
     const warnings = found.length - errors
     status.text = errors ? `$(error) Comatype ${errors}` : warnings ? `$(warning) Comatype ${warnings}` : '$(check) Comatype'
-    status.tooltip = `comatype check: エラー ${errors} 件、警告 ${warnings} 件（クリックで再実行）`
+    status.tooltip = `comatype check: ${errors} error(s), ${warnings} warning(s) (click to run again)`
   }
 
   async function generate(uri) {
     const config = locateConfig(uri)
     if (!config) {
-      vscode.window.showWarningMessage(`${CONFIG_NAME} が見つかりません`)
+      vscode.window.showWarningMessage(`${CONFIG_NAME} not found`)
       return
     }
     output.show(true)
@@ -304,14 +309,14 @@ function activateWithoutServer(context) {
     const res = await run(['generate', '--config', config], path.dirname(config))
     output.appendLine(res.stderr.trimEnd())
     if (res.stdout) output.appendLine(res.stdout.trimEnd())
-    if (res.code === 0) vscode.window.showInformationMessage('Comatype: 生成しました')
-    else vscode.window.showErrorMessage('Comatype: 生成に失敗しました（出力を見てください）')
+    if (res.code === 0) vscode.window.showInformationMessage('Comatype: generated')
+    else vscode.window.showErrorMessage('Comatype: generation failed (see the output)')
     await check(uri)
   }
 
   context.subscriptions.push(
     vscode.commands.registerCommand('comatype.restartServer', () => {
-      vscode.window.showInformationMessage('Comatype: 言語サーバは使っていません（設定 comatype.languageServer.enabled）')
+      vscode.window.showInformationMessage('Comatype: the language server is not in use (setting comatype.languageServer.enabled)')
     }),
     vscode.commands.registerCommand('comatype.check', () => check(vscode.window.activeTextEditor?.document.uri)),
     vscode.commands.registerCommand('comatype.generate', () => generate(vscode.window.activeTextEditor?.document.uri)),
@@ -332,7 +337,7 @@ function activateWithoutServer(context) {
               new vscode.Range(l.line, l.start, l.line, l.end),
               vscode.Uri.file(path.resolve(dir, l.target)),
             )
-            link.tooltip = `${l.target} を開く`
+            link.tooltip = `Open ${l.target}`
             return link
           })
         },

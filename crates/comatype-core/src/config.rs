@@ -58,7 +58,7 @@ pub const LANGS: &[&str] = &["ts", "go", "python", "rust", "java", "ruby", "kotl
 pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
     let file = if path.is_dir() { path.join("comatype.config.json") } else { path.to_path_buf() };
     let name = file.display().to_string();
-    let text = std::fs::read_to_string(&file).map_err(|e| vec![Diagnostic::error(&name, Span::default(), format!("読めません: {e}"))])?;
+    let text = std::fs::read_to_string(&file).map_err(|e| vec![Diagnostic::error(&name, Span::default(), format!("cannot read: {e}"))])?;
     let cfg: Config =
         serde_json::from_str(&text).map_err(|e| vec![Diagnostic::error(&name, Span { line: e.line(), col: e.column() }, e.to_string())])?;
     let mut diags = Vec::new();
@@ -66,18 +66,22 @@ pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
     for (i, a) in cfg.additional_status_codes.iter().enumerate() {
         let at = format!("additionalStatusCodes[{i}]");
         if !(100..=599).contains(&a.status) {
-            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} は 100〜599 にしてください", a.status)));
+            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} must be between 100 and 599", a.status)));
         } else if crate::status::builtin_message(a.status).is_some() {
             diags.push(Diagnostic::error(
                 &name,
                 Span::default(),
-                format!("{at}: status {} は標準で定義済みです（{}）", a.status, crate::status::builtin_message(a.status).unwrap()),
+                format!(
+                    "{at}: status {} is already defined as a standard code ({})",
+                    a.status,
+                    crate::status::builtin_message(a.status).unwrap()
+                ),
             ));
         } else if !seen.insert(a.status) {
-            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} が重複しています", a.status)));
+            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} is duplicated", a.status)));
         }
         if a.message.trim().is_empty() {
-            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: message が空です")));
+            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: message is empty")));
         }
     }
     for (sname, s) in &cfg.services {
@@ -86,14 +90,14 @@ pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
                 diags.push(Diagnostic::error(
                     &name,
                     Span::default(),
-                    format!("services.{sname}.targets[{i}]: 未対応の lang `{}`（{}）", t.lang, LANGS.join(", ")),
+                    format!("services.{sname}.targets[{i}]: unsupported lang `{}` ({})", t.lang, LANGS.join(", ")),
                 ));
             }
             if t.role != "client" && t.role != "server" {
                 diags.push(Diagnostic::error(
                     &name,
                     Span::default(),
-                    format!("services.{sname}.targets[{i}]: role は client か server（`{}`）", t.role),
+                    format!("services.{sname}.targets[{i}]: role must be client or server (`{}`)", t.role),
                 ));
             }
         }

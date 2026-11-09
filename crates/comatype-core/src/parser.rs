@@ -106,8 +106,8 @@ impl Parser {
         if self.eat(c) {
             Ok(())
         } else {
-            let found = self.peek().map(|c| format!("`{c}`")).unwrap_or_else(|| "ファイルの終わり".into());
-            self.err(format!("`{c}` が必要です（{found} がありました）"))
+            let found = self.peek().map(|c| format!("`{c}`")).unwrap_or_else(|| "end of file".into());
+            self.err(format!("expected `{c}` (found {found})"))
         }
     }
 
@@ -124,8 +124,8 @@ impl Parser {
         let span = self.span();
         match self.peek() {
             Some(c) if Self::is_ident_start(c) => {}
-            Some(c) => return self.err(format!("名前が必要です（`{c}` がありました）")),
-            None => return self.err("名前が必要です（ファイルの終わり）"),
+            Some(c) => return self.err(format!("expected a name (found `{c}`)")),
+            None => return self.err("expected a name (found end of file)"),
         }
         let mut s = String::new();
         while let Some(c) = self.peek() {
@@ -145,13 +145,13 @@ impl Parser {
         let mut s = String::new();
         loop {
             match self.bump() {
-                None | Some('\n') => return self.err_at(span, "文字列が閉じられていません"),
+                None | Some('\n') => return self.err_at(span, "unterminated string"),
                 Some(c) if c == quote => return Ok(s),
                 Some('\\') => match self.bump() {
                     Some('n') => s.push('\n'),
                     Some('t') => s.push('\t'),
                     Some(c) => s.push(c),
-                    None => return self.err_at(span, "文字列が閉じられていません"),
+                    None => return self.err_at(span, "unterminated string"),
                 },
                 Some(c) => s.push(c),
             }
@@ -208,7 +208,7 @@ impl Parser {
             "path" => {
                 let value = self.raw_line()?;
                 if value.is_empty() {
-                    return self.err_at(span, "path の値がありません");
+                    return self.err_at(span, "missing value for path");
                 }
                 StmtKind::Path { value }
             }
@@ -229,7 +229,7 @@ impl Parser {
             "baseUrl" => {
                 let value = self.raw_line()?;
                 if value.is_empty() {
-                    return self.err_at(span, "baseUrl の値がありません");
+                    return self.err_at(span, "missing value for baseUrl");
                 }
                 StmtKind::BaseUrl { value }
             }
@@ -246,7 +246,7 @@ impl Parser {
                 if self.peek() == Some('{') {
                     StmtKind::TypeDecl { name: word, members: self.members()? }
                 } else {
-                    return self.err_at(span, format!("`{word}` は文として解釈できません（型の宣言は `名前 {{ ... }}`）"));
+                    return self.err_at(span, format!("cannot parse `{word}` as a statement (a type is declared as `Name {{ ... }}`)"));
                 }
             }
         };
@@ -279,7 +279,7 @@ impl Parser {
     fn ident_inline(&mut self) -> PResult<(String, Span)> {
         self.ws_inline();
         if self.peek() == Some('\n') {
-            return self.err("同じ行に名前がありません");
+            return self.err("missing name on the same line");
         }
         self.ident()
     }
@@ -296,11 +296,11 @@ impl Parser {
         }
         let (from, span) = self.ident()?;
         if from != "from" {
-            return self.err_at(span, "`import 名前 from パス` の形で書いてください");
+            return self.err_at(span, "write it as `import Name from path`");
         }
         let path = self.raw_line()?;
         if path.is_empty() {
-            return self.err_at(span, "import のパスがありません");
+            return self.err_at(span, "missing path in import");
         }
         Ok(StmtKind::Import { names, from: path })
     }
@@ -321,10 +321,10 @@ impl Parser {
                 break;
             }
         }
-        let usage = "`cache off` / `cache <ttl ミリ秒>` / `cache <ttl ミリ秒> cookie` のどれかで書いてください";
+        let usage = "write one of `cache off`, `cache <ttl ms>` or `cache <ttl ms> cookie`";
         let Ok(ttl_ms) = digits.parse::<u64>() else { return self.err_at(span, usage) };
         if ttl_ms == 0 {
-            return self.err_at(span, "cache の ttl は 1 以上のミリ秒にしてください（キャッシュしないなら `cache off`）");
+            return self.err_at(span, "the cache ttl must be at least 1 millisecond (use `cache off` to disable caching)");
         }
         let cookie = self.keyword_inline("cookie");
         self.ws_inline();
@@ -343,7 +343,7 @@ impl Parser {
         }
         self.ws();
         if self.peek() != Some('{') {
-            return self.err_at(span, "`cookie on` / `cookie off` / `cookie 名前 { ... }` のどれかで書いてください");
+            return self.err_at(span, "write one of `cookie on`, `cookie off` or `cookie name { ... }`");
         }
         self.bump();
         let mut settings = Vec::new();
@@ -368,7 +368,7 @@ impl Parser {
                         }
                     }
                     if v.is_empty() {
-                        return self.err("値が必要です");
+                        return self.err("expected a value");
                     }
                     v
                 }
@@ -393,14 +393,14 @@ impl Parser {
             let (word, span) = self.ident()?;
             if word == "ctx" {
                 if ctx.is_some() {
-                    return self.err_at(span, "ctx が 2 回書かれています");
+                    return self.err_at(span, "ctx is written twice");
                 }
                 ctx = Some(self.members()?);
             } else if let Some(code) = status_code(&word) {
                 let ty = self.status_body()?;
                 statuses.push(WrapperStatus { code, ty, span });
             } else {
-                return self.err_at(span, format!("wrapper の中では `ctx` と `sNNN` だけ書けます（`{word}`）"));
+                return self.err_at(span, format!("only `ctx` and `sNNN` are allowed inside a wrapper (`{word}`)"));
             }
         }
         Ok(StmtKind::Wrapper { name, ctx, statuses })
@@ -440,7 +440,7 @@ impl Parser {
                     let (name, _) = self.ident()?;
                     v.push(Member::Spread { name, span });
                 } else {
-                    return self.err("`...型名` の形で書いてください");
+                    return self.err("write it as `...TypeName`");
                 }
             } else {
                 let name = match self.peek() {
@@ -505,14 +505,14 @@ impl Parser {
                     }
                     _ => {
                         if self.peek() == Some('(') {
-                            return self.err_at(span, format!("制約 `(...)` を付けられるのは組み込みの型だけです（`{name}`）"));
+                            return self.err_at(span, format!("a constraint `(...)` can only be applied to a built-in type (`{name}`)"));
                         }
                         Ok(TypeExpr::Ref { name, span })
                     }
                 }
             }
-            Some(c) => self.err(format!("型が必要です（`{c}` がありました）")),
-            None => self.err("型が必要です（ファイルの終わり）"),
+            Some(c) => self.err(format!("expected a type (found `{c}`)")),
+            None => self.err("expected a type (found end of file)"),
         }
     }
 
@@ -523,30 +523,30 @@ impl Parser {
         let c = if self.peek().is_some_and(Self::is_ident_start) {
             let (key, span) = self.ident()?;
             if key != "pattern" {
-                return self.err_at(span, format!("未知の制約 `{key}`（使えるのは `pattern`、または `最小..最大`）"));
+                return self.err_at(span, format!("unknown constraint `{key}` (use `pattern` or `min..max`)"));
             }
             self.expect(':')?;
             self.ws();
             if !matches!(self.peek(), Some('"') | Some('\'')) {
-                return self.err("pattern の値は文字列で書いてください");
+                return self.err("the value of pattern must be a string");
             }
             Constraint::Pattern { value: self.string_lit()? }
         } else {
             let min = self.opt_int()?;
             self.ws();
             if !(self.peek() == Some('.') && self.peek_at(1) == Some('.')) {
-                return self.err("範囲は `最小..最大` の形で書いてください");
+                return self.err("write a range as `min..max`");
             }
             self.bump();
             self.bump();
             self.ws();
             let max = self.opt_int()?;
             if min.is_none() && max.is_none() {
-                return self.err_at(open, "範囲の最小か最大のどちらかは必要です");
+                return self.err_at(open, "a range needs a min or a max");
             }
             if let (Some(a), Some(b)) = (min, max) {
                 if a > b {
-                    return self.err_at(open, format!("範囲の最小 {a} が最大 {b} より大きいです"));
+                    return self.err_at(open, format!("the range min {a} is greater than the max {b}"));
                 }
             }
             Constraint::Range { min, max }
@@ -574,7 +574,7 @@ impl Parser {
         }
         match s.parse() {
             Ok(n) => Ok(Some(n)),
-            Err(_) => self.err(format!("整数として読めません: {s}")),
+            Err(_) => self.err(format!("cannot read as an integer: {s}")),
         }
     }
 }

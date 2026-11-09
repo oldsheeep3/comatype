@@ -9,4 +9,5 @@ sed_i() { if [[ "$OSTYPE" == darwin* ]]; then sed -i '' "$@"; else sed -i "$@"; 
 sed_i -E "s/^version = \".*\"/version = \"$v\"/" "$root/Cargo.toml" "$root/packages/rust/Cargo.toml" "$root/packages/python/pyproject.toml"
 sed_i -E "s/(s\.version = )\".*\"/\1\"$v\"/" "$root/packages/ruby/comatype.gemspec"
 (cd "$root/packages/typescript" && npm pkg set version="$v" >/dev/null)
+(cd "$root/editors/vscode" && npm pkg set version="$v" >/dev/null)
 echo "$v"

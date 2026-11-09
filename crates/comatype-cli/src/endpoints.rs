@@ -71,7 +71,7 @@ fn details(e: &Endpoint) -> Vec<String> {
             None => format!("{} none", r.status),
         })
         .collect();
-    out.push(format!("→       {}", res.join(" | ")));
+    out.push(format!("->      {}", res.join(" | ")));
     let mut flags = Vec::new();
     if !e.wraps.is_empty() {
         flags.push(format!("wrap {}", e.wraps.join(" > ")));
@@ -93,7 +93,7 @@ fn details(e: &Endpoint) -> Vec<String> {
 
 fn group_label(wraps: &[String]) -> String {
     if wraps.is_empty() {
-        "wrap なし".to_string()
+        "no wrap".to_string()
     } else {
         format!("wrap: {}", wraps.join(" > "))
     }
@@ -176,7 +176,7 @@ pub fn render(ir_name: &str, endpoints: &[Endpoint], opts: &Options, multi: bool
     if opts.group {
         for k in &keys {
             let color = color_of.get(k).copied().flatten();
-            out.push_str(&format!("{}\n", paint(&format!("── {} ──", group_label(k)), color, opts.color)));
+            out.push_str(&format!("{}\n", paint(&format!("-- {} --", group_label(k)), color, opts.color)));
             for e in eps.iter().filter(|e| &e.wraps == k) {
                 emit(e, &mut out);
             }
@@ -189,7 +189,7 @@ pub fn render(ir_name: &str, endpoints: &[Endpoint], opts: &Options, multi: bool
         if opts.color && keys.iter().any(|k| !k.is_empty()) {
             out.push('\n');
             for k in &keys {
-                out.push_str(&format!("{} {}\n", paint("■", color_of.get(k).copied().flatten(), true), group_label(k)));
+                out.push_str(&format!("{} {}\n", paint("#", color_of.get(k).copied().flatten(), true), group_label(k)));
             }
         }
     }

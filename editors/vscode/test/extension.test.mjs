@@ -130,8 +130,8 @@ function load(state) {
   return { activate: async (...a) => ext.activate(...a), restore: () => (Module._load = orig) }
 }
 
-test('activate: コマンドとリンクを登録し、check が診断を出す', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('activate: registers the commands and links, and check publishes diagnostics', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const dir = mkdtempSync(join(tmpdir(), 'comat-ext-'))
   mkdirSync(join(dir, 'comatfiles'))
   writeFileSync(join(dir, 'comatype.config.json'), '{"services":{"api":{"comatDir":"./comatfiles"}}}')
@@ -160,7 +160,7 @@ test('activate: コマンドとリンクを登録し、check が診断を出す'
   await state.commands['comatype.check']()
   for (let i = 0; i < 100 && !state.diags; i++) await new Promise((r) => setTimeout(r, 50))
   const list = state.diags.get(file)
-  assert.ok(list, `診断が出ていません: ${[...state.diags.keys()]}`)
+  assert.ok(list, `no diagnostics were published: ${[...state.diags.keys()]}`)
   const err = list.find((d) => d.severity === 0)
   assert.match(err.message, /Missing/)
   assert.equal(err.range.sl, 1)
@@ -173,7 +173,7 @@ test('activate: コマンドとリンクを登録し、check が診断を出す'
   assert.equal(links[0].target.fsPath, join(dir, 'types/a.comat'))
 })
 
-test('設定ファイルが見つからなければ、何もしない', async () => {
+test('does nothing when no config file is found', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'comat-none-'))
   const state = { commands: {}, folders: [{ uri: { fsPath: dir } }], editor: undefined }
   const ext = load(state)
@@ -182,7 +182,7 @@ test('設定ファイルが見つからなければ、何もしない', async ()
   assert.equal(state.diags, undefined)
 })
 
-test('言語サーバを使う: comatype lsp を起動し、再起動できる', async () => {
+test('language server: starts comatype lsp and can restart it', async () => {
   const state = { commands: {}, folders: [], editor: undefined, settings: { 'languageServer.enabled': true, path: '/opt/bin/comatype' } }
   const ext = load(state)
   const context = { subscriptions: [] }
@@ -207,7 +207,7 @@ test('言語サーバを使う: comatype lsp を起動し、再起動できる',
   assert.deepEqual(state.clients[1].log, ['start'])
 })
 
-test('言語サーバを起動できなくても、拡張は壊れない（エラーを出す）', async () => {
+test('the extension survives a language server that cannot start (it shows an error)', async () => {
   const state = { commands: {}, folders: [], editor: undefined, startFails: true, settings: { 'languageServer.enabled': true } }
   const messages = []
   const ext = load(state)
@@ -229,8 +229,8 @@ function openApiProject() {
   return dir
 }
 
-test('Export OpenAPI: 保存先を選ぶと、openapi.yml が書かれる', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('Export OpenAPI: choosing a destination writes openapi.yml', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const dir = openApiProject()
   const out = join(dir, 'out/openapi.yml')
   mkdirSync(join(dir, 'out'))
@@ -245,8 +245,8 @@ test('Export OpenAPI: 保存先を選ぶと、openapi.yml が書かれる', asyn
   assert.match(yml, /description: Not Found/)
 })
 
-test('Export OpenAPI: 保存先を選ばなければ何もしない', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('Export OpenAPI: does nothing when no destination is chosen', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const dir = openApiProject()
   const state = { commands: {}, folders: [{ uri: { fsPath: dir } }], editor: undefined, saveTo: undefined }
   const ext = load(state)
@@ -255,8 +255,8 @@ test('Export OpenAPI: 保存先を選ばなければ何もしない', async (t) 
   assert.equal(readdirSync(dir).includes('openapi.yml'), false)
 })
 
-test('Import OpenAPI: .comat と設定を作り、選んだ言語のコードまで生成する', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('Import OpenAPI: makes the .comat files and config, and generates code for the chosen languages', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const src = openApiProject()
   const spec = join(src, 'openapi.yml')
   const exp = spawnSync(bin, ['to-openapi', '--config', src, '-o', spec])
@@ -274,12 +274,12 @@ test('Import OpenAPI: .comat と設定を作り、選んだ言語のコードま
   await state.commands['comatype.importOpenApi']()
   assert.ok(existsSync(join(dest, 'comatfiles/get_a.comat')), state.messages)
   assert.ok(existsSync(join(dest, 'comatype.config.json')))
-  assert.ok(existsSync(join(dest, 'client/comatype/get_a.ts')), '--generate でコードまで作る')
-  assert.match(readFileSync(join(dest, 'comatfiles/get_a.comat'), 'utf8'), /s404\n/, '既定の本文は省略した形に戻る')
+  assert.ok(existsSync(join(dest, 'client/comatype/get_a.ts')), '--generate also makes the code')
+  assert.match(readFileSync(join(dest, 'comatfiles/get_a.comat'), 'utf8'), /s404\n/, 'the default body is written back in the omitted form')
 })
 
-test('Show Status Codes: 一覧から選ぶと、スニペットを挿入する', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('Show Status Codes: choosing from the list inserts a snippet', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const inserted = []
   const state = {
     commands: {},
