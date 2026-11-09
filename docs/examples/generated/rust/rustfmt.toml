@@ -1,0 +1,2 @@
+# Keeps the generated example output independent of the repository rustfmt.toml (the docs test compares it)
+edition = "2021"
