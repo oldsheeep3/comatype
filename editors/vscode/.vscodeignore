@@ -8,6 +8,8 @@
 !schemas/**
 !language-configuration.json
 !images/icon.png
+!images/comat-light.svg
+!images/comat-dark.svg
 !package.json
 !README.md
 !LICENSE
