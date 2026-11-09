@@ -1,0 +1,519 @@
+//! Generates TypeScript code from the IR.
+//!
+//! Output (under `<out>`):
+//!   types.ts        named types (types and schemas)
+//!   init.ts         from init.comat (wrapper ctx types, wrapper statuses, Wrappers type)
+//!   <module>.ts     one per endpoint (e.g. user/put__id.ts)
+
+use comatype_core::ast::Constraint;
+use comatype_core::ir::*;
+use std::collections::{BTreeMap, BTreeSet};
+
+pub struct GenFile {
+    /// Path relative to `<out>`
+    pub path: String,
+    pub content: String,
+}
+
+const HEADER: &str = "// 自動生成: comatype generate が作ったファイルです。手で編集しないでください\n";
+
+pub fn generate(svc: &Service) -> Result<Vec<GenFile>, String> {
+    let names = type_names(svc)?;
+    let mut files = vec![GenFile { path: "types.ts".into(), content: types_file(svc, &names) }];
+    files.push(GenFile { path: "init.ts".into(), content: init_file(svc, &names)? });
+    for ep in &svc.endpoints {
+        files.push(GenFile { path: format!("{}.ts", ep.module), content: endpoint_file(ep, svc, &names)? });
+    }
+    Ok(files)
+}
+
+// ---- Names ----
+
+fn type_names(svc: &Service) -> Result<BTreeMap<String, String>, String> {
+    let mut out: BTreeMap<String, String> = BTreeMap::new();
+    let mut by_name: BTreeMap<&str, &str> = BTreeMap::new();
+    for (id, nt) in &svc.types {
+        if let Some(prev) = by_name.insert(&nt.name, id) {
+            return Err(format!("型名 `{}` が {prev} と {id} で重複しています（TS では 1 つの types.ts にまとめるため、名前を変えてください）", nt.name));
+        }
+        out.insert(id.clone(), nt.name.clone());
+    }
+    Ok(out)
+}
+
+fn pascal(s: &str) -> String {
+    s.split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(|w| {
+            let mut cs = w.chars();
+            let f = cs.next().unwrap();
+            f.to_ascii_uppercase().to_string() + cs.as_str()
+        })
+        .collect()
+}
+
+fn is_ident(s: &str) -> bool {
+    let mut cs = s.chars();
+    matches!(cs.next(), Some(c) if c.is_ascii_alphabetic() || c == '_' || c == '$')
+        && cs.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
+}
+
+fn key(s: &str) -> String {
+    if is_ident(s) { s.to_string() } else { quote(s) }
+}
+
+fn quote(s: &str) -> String {
+    let mut o = String::from("\"");
+    for c in s.chars() {
+        match c {
+            '"' => o.push_str("\\\""),
+            '\\' => o.push_str("\\\\"),
+            '\n' => o.push_str("\\n"),
+            '\r' => o.push_str("\\r"),
+            '\t' => o.push_str("\\t"),
+            c => o.push(c),
+        }
+    }
+    o.push('"');
+    o
+}
+
+fn has_word(hay: &str, w: &str) -> bool {
+    let b = hay.as_bytes();
+    let mut from = 0;
+    while let Some(i) = hay[from..].find(w) {
+        let s = from + i;
+        let e = s + w.len();
+        let before = s == 0 || !(b[s - 1].is_ascii_alphanumeric() || b[s - 1] == b'_' || b[s - 1] == b'$');
+        let after = e >= b.len() || !(b[e].is_ascii_alphanumeric() || b[e] == b'_' || b[e] == b'$');
+        if before && after {
+            return true;
+        }
+        from = e;
+    }
+    false
+}
+
+fn ind(n: usize) -> String {
+    "  ".repeat(n)
+}
+
+// ---- Types and schemas ----
+
+struct P<'a> {
+    names: &'a BTreeMap<String, String>,
+    /// Aliases for type names that collide with local names (`X` → `X_`)
+    reserved: &'a BTreeSet<String>,
+}
+
+impl<'a> P<'a> {
+    fn type_name(&self, id: &str) -> String {
+        let n = &self.names[id];
+        if self.reserved.contains(n) { format!("{n}_") } else { n.clone() }
+    }
+
+    fn ty(&self, t: &Type, lvl: usize) -> String {
+        match t {
+            Type::Scalar { name, .. } => match name.as_str() {
+                "string" => "string",
+                "bool" => "boolean",
+                "int" => "number",
+                "email" => "Email",
+                "phone" => "Phone",
+                "uuid" => "Uuid",
+                "uuidv4" => "Uuidv4",
+                "uuidv7" => "Uuidv7",
+                "date" => "DateStr",
+                "datetime" => "DateTimeStr",
+                "time" => "TimeStr",
+                "int64" => "bigint",
+                "decimal" => "Decimal",
+                "url" => "URL",
+                "bytes" => "Uint8Array",
+                _ => "unknown", // json
+            }
+            .to_string(),
+            Type::Ref { id, .. } => self.type_name(id),
+            Type::Object { fields } => self.object_ty(fields, lvl),
+            Type::Array { item } => {
+                let s = self.ty(item, lvl);
+                if matches!(**item, Type::Union { .. }) { format!("({s})[]") } else { format!("{s}[]") }
+            }
+            Type::Union { variants } => variants.iter().map(|v| self.ty(v, lvl)).collect::<Vec<_>>().join(" | "),
+            Type::Literal { value } => quote(value),
+            Type::Null => "null".into(),
+        }
+    }
+
+    fn object_ty(&self, fields: &[Field], lvl: usize) -> String {
+        if fields.is_empty() {
+            return "{}".into();
+        }
+        let mut s = String::from("{\n");
+        for f in fields {
+            s += &format!("{}{}{}: {};\n", ind(lvl + 1), key(&f.name), if f.optional { "?" } else { "" }, self.ty(&f.ty, lvl + 1));
+        }
+        s + &ind(lvl) + "}"
+    }
+
+    fn schema(&self, t: &Type, lvl: usize) -> String {
+        match t {
+            Type::Scalar { name, constraint } => {
+                let arg = match constraint {
+                    None => String::new(),
+                    Some(Constraint::Range { min, max }) => {
+                        let mut parts = Vec::new();
+                        if let Some(m) = min {
+                            parts.push(format!("min: {m}"));
+                        }
+                        if let Some(m) = max {
+                            parts.push(format!("max: {m}"));
+                        }
+                        format!("{{ {} }}", parts.join(", "))
+                    }
+                    Some(Constraint::Pattern { value }) => format!("{{ pattern: {} }}", quote(value)),
+                };
+                format!("t.{name}({arg})")
+            }
+            Type::Ref { id, .. } => format!("t.lazy(() => {})", self.type_name(id)),
+            Type::Object { fields } => self.object_schema(fields, lvl),
+            Type::Array { item } => format!("t.array({})", self.schema(item, lvl)),
+            Type::Union { variants } => {
+                format!("t.union({})", variants.iter().map(|v| self.schema(v, lvl)).collect::<Vec<_>>().join(", "))
+            }
+            Type::Literal { value } => format!("t.literal({})", quote(value)),
+            Type::Null => "t.null()".into(),
+        }
+    }
+
+    fn object_schema(&self, fields: &[Field], lvl: usize) -> String {
+        if fields.is_empty() {
+            return "t.object({})".into();
+        }
+        let mut s = String::from("t.object({\n");
+        for f in fields {
+            let inner = self.schema(&f.ty, lvl + 1);
+            let v = if f.optional { format!("t.opt({inner})") } else { inner };
+            s += &format!("{}{}: {},\n", ind(lvl + 1), key(&f.name), v);
+        }
+        s + &ind(lvl) + "})"
+    }
+}
+
+// ---- Building imports ----
+
+const CORE_VALUES: &[&str] = &["t", "defineStatus", "defineEndpoint"];
+const CORE_TYPES: &[&str] = &[
+    "Schema", "StatusFn", "Endpoint", "ComatypeWrap", "CookieInit", "Email", "Phone", "Uuid", "Uuidv4", "Uuidv7", "DateStr", "DateTimeStr", "TimeStr", "Decimal",
+];
+
+fn core_import(body: &str) -> String {
+    let mut items: Vec<String> = CORE_VALUES.iter().filter(|w| has_word(body, w)).map(|w| w.to_string()).collect();
+    items.extend(CORE_TYPES.iter().filter(|w| has_word(body, w)).map(|w| format!("type {w}")));
+    if items.is_empty() { String::new() } else { format!("import {{ {} }} from '@comatype/typescript'\n", items.join(", ")) }
+}
+
+fn types_import(body: &str, names: &BTreeMap<String, String>, reserved: &BTreeSet<String>, from: &str) -> String {
+    let mut items = Vec::new();
+    for n in names.values() {
+        if reserved.contains(n) {
+            if has_word(body, &format!("{n}_")) {
+                items.push(format!("{n} as {n}_"));
+            }
+        } else if has_word(body, n) {
+            items.push(n.clone());
+        }
+    }
+    if items.is_empty() { String::new() } else { format!("import {{ {} }} from '{from}'\n", items.join(", ")) }
+}
+
+// ---- types.ts ----
+
+fn types_file(svc: &Service, names: &BTreeMap<String, String>) -> String {
+    let reserved = BTreeSet::new();
+    let p = P { names, reserved: &reserved };
+    let mut body = String::new();
+    for (id, nt) in &svc.types {
+        let n = &names[id];
+        match &nt.def {
+            TypeDef::Object { fields } => {
+                body += &format!("export type {n} = {}\nexport const {n}: Schema<{n}> = {}\n\n", p.object_ty(fields, 0), p.object_schema(fields, 0));
+            }
+            TypeDef::Enum { values } => {
+                let u = values.iter().map(|v| quote(v)).collect::<Vec<_>>().join(" | ");
+                let arr = values.iter().map(|v| quote(v)).collect::<Vec<_>>().join(", ");
+                body += &format!("export type {n} = {u}\nexport const {n}: Schema<{n}> = t.enum([{arr}])\n\n");
+            }
+        }
+    }
+    let imp = core_import(&body);
+    if body.is_empty() {
+        return format!("{HEADER}\nexport {{}}\n");
+    }
+    format!("{HEADER}{imp}\n{}", body.trim_end().to_string() + "\n")
+}
+
+// ---- Statuses ----
+
+struct StatusOut {
+    code: String,
+}
+
+/// Writes the full definition of `s200` (type S200, function s200, namespace s200)
+/// `cookie`: the handler can issue Set-Cookie with `cookie: { session: ... }` (init.comat has a cookie declaration and cookie is on)
+fn emit_status(p: &P, r: &Response, cookie: bool, out: &mut String) -> StatusOut {
+    let code = r.status;
+    let kind = if (200..300).contains(&code) { "data" } else { "error" };
+    let fname = format!("s{code}");
+    let tname = format!("S{code}");
+
+    let has_headers = !r.headers.is_empty();
+    let headers_optional = r.headers.iter().all(|h| h.optional);
+    let hq = if headers_optional { "?" } else { "" };
+
+    if has_headers {
+        out.push_str(&format!("const headers{code}: Schema<{fname}.Headers> = {}\n", p.object_schema(&r.headers, 0)));
+    }
+    let res_schema = match &r.body {
+        Some(b) => p.schema(b, 0),
+        None => "null".into(),
+    };
+    let body_ty = r.body.as_ref().map(|b| p.ty(b, 1));
+
+    let mut out_fields = vec![format!("status: {code}")];
+    let mut init_fields = Vec::new();
+    if let Some(b) = &body_ty {
+        out_fields.push(format!("{kind}: {b}"));
+        init_fields.push(format!("{kind}: {b}"));
+    }
+    if has_headers {
+        out_fields.push(format!("headers{hq}: {fname}.Headers"));
+        init_fields.push(format!("headers{hq}: {fname}.Headers"));
+    }
+    if cookie {
+        init_fields.push("cookie?: CookieInit".to_string());
+    }
+    let init_ty = if init_fields.is_empty() { "void".to_string() } else { format!("{{ {} }}", init_fields.join("; ")) };
+    out.push_str(&format!("export type {tname} = {{ {} }}\n", out_fields.join("; ")));
+    out.push_str(&format!(
+        "export const {fname}: StatusFn<{tname}, {init_ty}> = defineStatus({code}, {res_schema}, {})\n",
+        if has_headers { format!("headers{code}") } else { "null".into() }
+    ));
+    let mut ns = Vec::new();
+    if let Some(b) = &body_ty {
+        ns.push(format!("  type Res = {b}"));
+    }
+    if has_headers {
+        ns.push(format!("  type Headers = {}", p.object_ty(&r.headers, 1)));
+    }
+    if !ns.is_empty() {
+        out.push_str(&format!("export declare namespace {fname} {{\n{}\n}}\n", ns.join("\n")));
+    }
+    out.push('\n');
+    StatusOut { code: tname }
+}
+
+// ---- Endpoints ----
+
+const LOCAL_NAMES: &[&str] = &["Params", "Search", "Body", "Request", "Response", "RequestHeaders", "Ctx", "endpoint", "path", "_ep"];
+
+fn local_reserved(ep_codes: &[u16]) -> BTreeSet<String> {
+    let mut r: BTreeSet<String> = LOCAL_NAMES.iter().map(|s| s.to_string()).collect();
+    for c in ep_codes {
+        r.insert(format!("S{c}"));
+        r.insert(format!("s{c}"));
+    }
+    r
+}
+
+fn endpoint_file(ep: &Endpoint, svc: &Service, names: &BTreeMap<String, String>) -> Result<String, String> {
+    let base_url = svc.base_url.as_deref();
+    let codes: Vec<u16> = ep.responses.iter().map(|r| r.status).collect();
+    let reserved = local_reserved(&codes);
+    let p = P { names, reserved: &reserved };
+    let mut body = String::new();
+    let mut reserved_ctx: BTreeSet<String> = BTreeSet::new();
+
+    let mut req_fields = Vec::new();
+    let part = |name: &str, fields: &[Field], body: &mut String| {
+        body.push_str(&format!("export type {name} = {}\nexport const {name}: Schema<{name}> = {}\n\n", p.object_ty(fields, 0), p.object_schema(fields, 0)));
+    };
+    if !ep.params.is_empty() {
+        part("Params", &ep.params, &mut body);
+        req_fields.push("params: Params".to_string());
+    }
+    if !ep.search.is_empty() {
+        part("Search", &ep.search, &mut body);
+        let opt = if ep.search.iter().all(|f| f.optional) { "?" } else { "" };
+        req_fields.push(format!("search{opt}: Search"));
+    }
+    if let Some(b) = &ep.body {
+        body.push_str(&format!("export type Body = {}\nexport const Body: Schema<Body> = {}\n\n", p.ty(b, 0), p.schema(b, 0)));
+        req_fields.push("body: Body".to_string());
+    }
+    if !ep.request_headers.is_empty() {
+        part("RequestHeaders", &ep.request_headers, &mut body);
+        let opt = if ep.request_headers.iter().all(|f| f.optional) { "?" } else { "" };
+        req_fields.push(format!("headers{opt}: RequestHeaders"));
+    }
+    let req_ty = if req_fields.is_empty() { "void".to_string() } else { format!("{{ {} }}", req_fields.join("; ")) };
+    body.push_str(&format!("export type Request = {req_ty}\n\n"));
+
+    let mut tnames = Vec::new();
+    for r in &ep.responses {
+        tnames.push(emit_status(&p, r, ep.cookie && svc.cookie.is_some(), &mut body).code);
+    }
+    if tnames.is_empty() {
+        body.push_str("export type Response = never\n\n");
+    } else {
+        body.push_str(&format!("export type Response = {}\n\n", tnames.join(" | ")));
+    }
+
+    // Type the handler can read as req.ctx: the product of the ctx of the enabled wrappers
+    let ctx_names: Vec<String> = ep
+        .wraps
+        .iter()
+        .filter(|w| svc.wrappers.iter().any(|x| &x.name == *w))
+        .map(|w| format!("{}Ctx", pascal(w)))
+        .collect();
+    for n in &ctx_names {
+        reserved_ctx.insert(n.clone());
+    }
+    body.push_str(&format!(
+        "export type Ctx = {}\n\n",
+        if ctx_names.is_empty() { "{}".to_string() } else { ctx_names.join(" & ") }
+    ));
+
+    let opt_schema = |present: bool, name: &str| if present { name.to_string() } else { "null".to_string() };
+    body.push_str(&format!(
+        "export const endpoint: Endpoint<Request, Response, Ctx, {}> = defineEndpoint({{\n  method: {},\n  path: {},\n  module: {},\n{}  wraps: [{}],\n  cookie: {},\n{}{}  params: {},\n  search: {},\n  body: {},\n  requestHeaders: {},\n  responses: [{}],\n}})\n/** Same value as `endpoint` (callers import it as `path`) */\nexport const path = endpoint\n",
+        quote(&ep.method),
+        quote(&ep.method),
+        quote(&ep.path),
+        quote(&ep.module),
+        base_url.map(|u| format!("  baseUrl: {},\n", quote(u))).unwrap_or_default(),
+        ep.wraps.iter().map(|w| quote(w)).collect::<Vec<_>>().join(", "),
+        ep.cookie,
+        match (&svc.cookie, ep.cookie) {
+            (Some(c), true) => format!("  cookieDef: {},\n", cookie_def_ts(c)),
+            _ => String::new(),
+        },
+        cache_ts(ep),
+        opt_schema(!ep.params.is_empty(), "Params"),
+        opt_schema(!ep.search.is_empty(), "Search"),
+        opt_schema(ep.body.is_some(), "Body"),
+        opt_schema(!ep.request_headers.is_empty(), "RequestHeaders"),
+        codes.iter().map(|c| format!("s{c}")).collect::<Vec<_>>().join(", "),
+    ));
+
+    // Default export: everything of the endpoint in one object, so callers can write
+    // `import get_todo from '...'` and then `get_todo.path`, `get_todo.s200`, `get_todo.Response`.
+    let mut values = vec!["path".to_string(), "endpoint".to_string()];
+    values.extend(codes.iter().map(|c| format!("s{c}")));
+    let mut type_names = vec!["Request", "Response", "Ctx"];
+    if !ep.params.is_empty() {
+        type_names.push("Params");
+    }
+    if !ep.search.is_empty() {
+        type_names.push("Search");
+    }
+    if ep.body.is_some() {
+        type_names.push("Body");
+    }
+    if !ep.request_headers.is_empty() {
+        type_names.push("RequestHeaders");
+    }
+    body.push_str(&format!("\nconst _ep = {{ {} }}\n", values.join(", ")));
+    // The types are re-exported through a namespace that merges with the const (type-only, no runtime code).
+    for t in &type_names {
+        body.push_str(&format!("type _{t} = {t}\n"));
+    }
+    body.push_str("declare namespace _ep {\n");
+    for t in &type_names {
+        body.push_str(&format!("  export type {t} = _{t}\n"));
+    }
+    body.push_str("}\nexport default _ep\n");
+
+    let depth = ep.module.matches('/').count();
+    let from = if depth == 0 { "./types".to_string() } else { format!("{}types", "../".repeat(depth)) };
+    let init_from = if depth == 0 { "./init".to_string() } else { format!("{}init", "../".repeat(depth)) };
+    let init_import = if ctx_names.is_empty() {
+        String::new()
+    } else {
+        format!("import type {{ {} }} from '{init_from}'\n", ctx_names.join(", "))
+    };
+    let imports = format!("{}{}{}", core_import(&body), types_import(&body, names, &reserved, &from), init_import);
+    Ok(format!("{HEADER}{imports}\n{body}"))
+}
+
+/// The `cache` setting (GET / QUERY only) and the names of request headers included in the client cache key
+fn cache_ts(ep: &Endpoint) -> String {
+    use comatype_core::ast::CacheMode;
+    let spec = match &ep.cache {
+        None => return String::new(),
+        Some(CacheMode::Off) => "{ mode: 'off' }".to_string(),
+        Some(CacheMode::Memory { ttl_ms }) => format!("{{ mode: 'memory', ttlMs: {ttl_ms} }}"),
+        Some(CacheMode::Cookie { ttl_ms }) => format!("{{ mode: 'cookie', ttlMs: {ttl_ms} }}"),
+    };
+    let names: Vec<String> = ep.request_headers.iter().map(|h| quote(&h.name)).collect();
+    format!("  cache: {spec},\n  cacheHeaders: [{}],\n", names.join(", "))
+}
+
+fn cookie_def_ts(c: &CookieDef) -> String {
+    let mut parts = vec![format!("name: {}", quote(&c.name))];
+    for k in ["httpOnly", "secure"] {
+        if let Some(v) = c.settings.get(k) {
+            parts.push(format!("{k}: {v}"));
+        }
+    }
+    for k in ["sameSite", "path", "domain"] {
+        if let Some(v) = c.settings.get(k) {
+            parts.push(format!("{k}: {}", quote(v)));
+        }
+    }
+    if let Some(v) = c.settings.get("maxAge") {
+        parts.push(format!("maxAge: {v}"));
+    }
+    format!("{{ {} }}", parts.join(", "))
+}
+
+// ---- init.ts ----
+
+fn init_file(svc: &Service, names: &BTreeMap<String, String>) -> Result<String, String> {
+    let mut seen: BTreeMap<u16, &str> = BTreeMap::new();
+    let mut codes = Vec::new();
+    for w in &svc.wrappers {
+        for r in &w.responses {
+            if let Some(prev) = seen.insert(r.status, &w.name) {
+                return Err(format!("wrapper `{}` と `{prev}` が同じ s{} を宣言しています（init.ts に s{} を 1 つしか作れません）", w.name, r.status, r.status));
+            }
+            codes.push(r.status);
+        }
+    }
+    let reserved = local_reserved(&codes);
+    let mut reserved = reserved;
+    for w in &svc.wrappers {
+        reserved.insert(format!("{}Ctx", pascal(&w.name)));
+    }
+    reserved.insert("Wrappers".into());
+    let p = P { names, reserved: &reserved };
+    let mut body = String::new();
+    let mut wrappers = Vec::new();
+    for w in &svc.wrappers {
+        let ctx = format!("{}Ctx", pascal(&w.name));
+        body.push_str(&format!("export type {ctx} = {}\n\n", p.object_ty(&w.ctx, 0)));
+        wrappers.push(format!("  {}: ComatypeWrap<{ctx}>;\n", key(&w.name)));
+        for r in &w.responses {
+            emit_status(&p, r, svc.cookie.is_some(), &mut body);
+        }
+    }
+    body.push_str(&format!("/** init に渡すラッパーの実装（init.comat の `wrapper` ごと） */\nexport type Wrappers = {}\n", if wrappers.is_empty() { "{}".to_string() } else { format!("{{\n{}}}", wrappers.concat()) }));
+    // Make the wrappers type of c.init / s.init the Wrappers declared here
+    let cookies_line = match &svc.cookie {
+        Some(c) => format!("    cookies: {}\n", quote(&c.name)),
+        None => String::new(),
+    };
+    body.push_str(&format!("\ndeclare module '@comatype/typescript' {{\n  interface ComatypeRegistry {{\n    wrappers: Wrappers\n{cookies_line}  }}\n}}\n"));
+    let imports = format!("{}{}", core_import(&body), types_import(&body, names, &reserved, "./types"));
+    Ok(format!("{HEADER}{imports}\n{body}"))
+}

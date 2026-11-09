@@ -1,0 +1,8 @@
+[package]
+name = "comatype-gen-ts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+comatype-core = { path = "../comatype-core" }
