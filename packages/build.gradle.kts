@@ -3,7 +3,6 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.37.0" apply false
     kotlin("jvm") version "2.4.21" apply false
     id("com.diffplug.spotless") version "7.2.1" apply false
-    id("com.diffplug.spotless") version "7.2.1" apply false
 }
 
 allprojects {
