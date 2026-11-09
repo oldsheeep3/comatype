@@ -35,15 +35,47 @@ export interface HomeContent {
 export const languages = ['TypeScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby'] as const
 
 /** Runtime facts per language: [language, client / server, runtime dependency in English, in Japanese]. */
-export const matrix: { lang: string; deps: Record<Locale, string> }[] = [
-  { lang: 'TypeScript', deps: { en: 'Fetch API (Node, Bun, Deno, Workers)', 'ja-jp': 'Fetch API（Node・Bun・Deno・Workers）' } },
-  { lang: 'Go', deps: { en: 'Standard library only', 'ja-jp': '標準ライブラリのみ' } },
-  { lang: 'Python', deps: { en: 'pydantic v2 + httpx (ASGI server)', 'ja-jp': 'pydantic v2 + httpx（ASGI のサーバ）' } },
-  { lang: 'Rust', deps: { en: 'serde + ureq + regex', 'ja-jp': 'serde + ureq + regex' } },
-  { lang: 'Java', deps: { en: 'No dependencies (JDK 21+)', 'ja-jp': '依存なし（JDK 21 以上）' } },
-  { lang: 'Kotlin', deps: { en: 'Coroutines (suspend), no extra libraries', 'ja-jp': 'コルーチン（suspend）。追加ライブラリなし' } },
-  { lang: 'Swift', deps: { en: 'Foundation only (async/await)', 'ja-jp': 'Foundation のみ（async/await）' } },
-  { lang: 'Ruby', deps: { en: 'Standard library only (Rack compatible)', 'ja-jp': '標準ライブラリのみ（Rack 互換）' } },
+export const matrix: { lang: string; deps: Record<Locale, string>; registry: { name: string; url: string } }[] = [
+  {
+    lang: 'TypeScript',
+    deps: { en: 'Fetch API (Node, Bun, Deno, Workers)', 'ja-jp': 'Fetch API（Node・Bun・Deno・Workers）' },
+    registry: { name: 'npm', url: 'https://www.npmjs.com/package/@comatype/typescript' },
+  },
+  {
+    lang: 'Go',
+    deps: { en: 'Standard library only', 'ja-jp': '標準ライブラリのみ' },
+    registry: { name: 'pkg.go.dev', url: 'https://pkg.go.dev/github.com/oldsheeep3/comatype/packages/go' },
+  },
+  {
+    lang: 'Python',
+    deps: { en: 'pydantic v2 + httpx (ASGI server)', 'ja-jp': 'pydantic v2 + httpx（ASGI のサーバ）' },
+    registry: { name: 'PyPI', url: 'https://pypi.org/project/comatype/' },
+  },
+  {
+    lang: 'Rust',
+    deps: { en: 'serde + ureq + regex', 'ja-jp': 'serde + ureq + regex' },
+    registry: { name: 'crates.io', url: 'https://crates.io/crates/comatype' },
+  },
+  {
+    lang: 'Java',
+    deps: { en: 'No dependencies (JDK 21+)', 'ja-jp': '依存なし（JDK 21 以上）' },
+    registry: { name: 'Maven Central', url: 'https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype' },
+  },
+  {
+    lang: 'Kotlin',
+    deps: { en: 'Coroutines (suspend), no extra libraries', 'ja-jp': 'コルーチン（suspend）。追加ライブラリなし' },
+    registry: { name: 'Maven Central', url: 'https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype-ktx' },
+  },
+  {
+    lang: 'Swift',
+    deps: { en: 'Foundation only (async/await)', 'ja-jp': 'Foundation のみ（async/await）' },
+    registry: { name: 'GitHub', url: 'https://github.com/oldsheeep3/comatype/tree/main/packages/swift' },
+  },
+  {
+    lang: 'Ruby',
+    deps: { en: 'Standard library only (Rack compatible)', 'ja-jp': '標準ライブラリのみ（Rack 互換）' },
+    registry: { name: 'RubyGems', url: 'https://rubygems.org/gems/comatype' },
+  },
 ]
 
 export const home: Record<Locale, HomeContent> = {
@@ -122,7 +154,7 @@ export const home: Record<Locale, HomeContent> = {
     matrixTitle: 'Eight languages, client and server',
     matrixLead:
       'Every language has a generator, a runtime and an end-to-end test that connects the generated client to the generated server.',
-    matrixHead: ['Language', 'Client', 'Server', 'Runtime'],
+    matrixHead: ['Language', 'Client', 'Server', 'Runtime', 'Package'],
     matrixNote: 'Dart is planned.',
     toolsTitle: 'A CLI that catches mistakes',
     toolsLead:
@@ -216,7 +248,7 @@ export const home: Record<Locale, HomeContent> = {
     ],
     matrixTitle: '8 つの言語、クライアントもサーバも',
     matrixLead: 'どの言語にも、生成器とランタイムと、生成したクライアントを生成したサーバに繋ぐ E2E テストがあります。',
-    matrixHead: ['言語', 'クライアント', 'サーバ', 'ランタイム'],
+    matrixHead: ['言語', 'クライアント', 'サーバ', 'ランタイム', 'パッケージ'],
     matrixNote: 'Dart は予定です。',
     toolsTitle: 'ミスを見つける CLI',
     toolsLead: '設定を分野ごとに検査し、効いているラッパーで色分けしてエンドポイントを一覧し、ファイル名を推奨の形に直せます。',
