@@ -41,7 +41,6 @@ test('quickstart: comatype check と generate が通り、生成物と一緒に�
           lib: ['ES2022', 'DOM', 'DOM.Iterable'],
           types: ['node'],
           typeRoots: [join(root, 'node_modules/@types')],
-          baseUrl: '.',
           paths: {
             '@/*': ['./*'],
             '@comatype/typescript': [join(root, 'packages/typescript/src/index.ts')],
