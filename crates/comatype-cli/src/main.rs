@@ -63,7 +63,26 @@ struct Args {
 fn parse_args() -> Result<Args, String> {
     let mut it = std::env::args().skip(1);
     let cmd = it.next().ok_or("コマンドがありません")?;
-    let mut a = Args { cmd, positional: vec![], config: PathBuf::from("comatype.config.json"), service: None, out: None, lang: None, role: None, dry_run: false, snippets: false, json: false, targets: vec![], force: false, generate: false, all: false, group: false, fix: false, yes: false, color: None };
+    let mut a = Args {
+        cmd,
+        positional: vec![],
+        config: PathBuf::from("comatype.config.json"),
+        service: None,
+        out: None,
+        lang: None,
+        role: None,
+        dry_run: false,
+        snippets: false,
+        json: false,
+        targets: vec![],
+        force: false,
+        generate: false,
+        all: false,
+        group: false,
+        fix: false,
+        yes: false,
+        color: None,
+    };
     while let Some(x) = it.next() {
         match x.as_str() {
             "--config" => a.config = it.next().ok_or("--config に値がありません")?.into(),
@@ -104,14 +123,17 @@ pub fn main() -> ExitCode {
         "format" => {
             // dirpath is a directory containing `.comat` files (comatDir), or a directory containing comatype.config.json (all comatDirs of its services). If omitted, the config's comatDir
             let mut dirs: Vec<PathBuf> = Vec::new();
-            let targets: Vec<PathBuf> = if args.positional.is_empty() { vec![args.config.clone()] } else { args.positional.iter().map(PathBuf::from).collect() };
+            let targets: Vec<PathBuf> =
+                if args.positional.is_empty() { vec![args.config.clone()] } else { args.positional.iter().map(PathBuf::from).collect() };
             for t in targets {
                 let cfg = if t.is_dir() { t.join("comatype.config.json") } else { t.clone() };
                 if cfg.is_file() {
                     match config::load(&cfg) {
-                        Ok((c, base)) => dirs.extend(c.services.values().map(|s| base.join(&s.comat_dir).components().collect::<PathBuf>())),
+                        Ok((c, base)) => {
+                            dirs.extend(c.services.values().map(|s| base.join(&s.comat_dir).components().collect::<PathBuf>()))
+                        }
                         Err(d) => {
-                            d.iter().for_each(|d| report::print(d));
+                            d.iter().for_each(report::print);
                             return ExitCode::from(1);
                         }
                     }
@@ -125,7 +147,7 @@ pub fn main() -> ExitCode {
             let res = project::check_config(&args.config, args.service.as_deref());
             let errors = res.diagnostics.iter().filter(|d| d.severity == Severity::Error).count();
             for d in res.diagnostics.iter().filter(|d| d.severity == Severity::Error) {
-                report::print(&d);
+                report::print(d);
             }
             let Some(ir) = res.ir else {
                 eprintln!("エラー {errors} 件があるので、エンドポイントを列挙できません（`comatype check` で確かめてください）");
@@ -140,7 +162,7 @@ pub fn main() -> ExitCode {
         "check" | "ir" => {
             let res = project::check_config(&args.config, args.service.as_deref());
             for d in &res.diagnostics {
-                report::print(&d);
+                report::print(d);
             }
             let errors = res.diagnostics.iter().filter(|d| d.severity == Severity::Error).count();
             let warnings = res.diagnostics.len() - errors;
@@ -253,7 +275,7 @@ fn check_topic(args: &Args) -> ExitCode {
     let res = project::check_config(&args.config, args.service.as_deref());
     let picked: Vec<_> = res.diagnostics.iter().filter(|d| topic == "all" || topic_of(&d.message) == topic).collect();
     for d in &picked {
-        report::print(&d);
+        report::print(d);
     }
     let errors = picked.iter().filter(|d| d.severity == Severity::Error).count();
     // If there is an error outside the chosen topic and the IR cannot be built, the check has not been done
@@ -266,13 +288,17 @@ fn check_topic(args: &Args) -> ExitCode {
     } else {
         report::info(&format!("{topic}: エラー 0 件、警告 {} 件", picked.len()));
     }
-    if errors > 0 || (res.ir.is_none() && other_errors > 0) { ExitCode::from(1) } else { ExitCode::SUCCESS }
+    if errors > 0 || (res.ir.is_none() && other_errors > 0) {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn generate(args: &Args) -> ExitCode {
     let res = project::check_config(&args.config, args.service.as_deref());
     for d in &res.diagnostics {
-        report::print(&d);
+        report::print(d);
     }
     let Some(ir) = res.ir else {
         report::error("エラーがあるので生成しません");
@@ -281,14 +307,14 @@ fn generate(args: &Args) -> ExitCode {
     let (cfg, base) = match config::load(&args.config) {
         Ok(v) => v,
         Err(d) => {
-            d.iter().for_each(|d| report::print(&d));
+            d.iter().for_each(report::print);
             return ExitCode::from(1);
         }
     };
     let mut written = 0;
     for (name, svc) in &ir.services {
         for target in &cfg.services[name].targets {
-            if args.lang.as_deref().map_or(false, |l| l != target.lang) || args.role.as_deref().map_or(false, |r| r != target.role) {
+            if args.lang.as_deref().is_some_and(|l| l != target.lang) || args.role.as_deref().is_some_and(|r| r != target.role) {
                 continue;
             }
             let out = base.join(config::resolve_out(&cfg, name, target));
@@ -297,7 +323,8 @@ fn generate(args: &Args) -> ExitCode {
                 "go" => {
                     let role = if target.role == "client" { comatype_gen_go::Role::Client } else { comatype_gen_go::Role::Server };
                     match go_import_path(target, &out) {
-                        Ok(ip) => comatype_gen_go::generate(svc, role, &ip).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>()),
+                        Ok(ip) => comatype_gen_go::generate(svc, role, &ip)
+                            .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>()),
                         Err(e) => Err(e),
                     }
                 }
@@ -307,11 +334,13 @@ fn generate(args: &Args) -> ExitCode {
                 }
                 "java" => {
                     let role = if target.role == "client" { comatype_gen_java::Role::Client } else { comatype_gen_java::Role::Server };
-                    comatype_gen_java::generate(svc, role, &jvm_package(target, &out)).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
+                    comatype_gen_java::generate(svc, role, &jvm_package(target, &out))
+                        .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
                 }
                 "kotlin" => {
                     let role = if target.role == "client" { comatype_gen_kotlin::Role::Client } else { comatype_gen_kotlin::Role::Server };
-                    comatype_gen_kotlin::generate(svc, role, &jvm_package(target, &out)).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
+                    comatype_gen_kotlin::generate(svc, role, &jvm_package(target, &out))
+                        .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
                 }
                 "swift" => {
                     let role = if target.role == "client" { comatype_gen_swift::Role::Client } else { comatype_gen_swift::Role::Server };
@@ -358,7 +387,7 @@ fn generate(args: &Args) -> ExitCode {
             if target.lang == "rust" && !args.dry_run {
                 // Format with rustfmt if available (otherwise leave as is)
                 if let Ok(rd) = std::fs::read_dir(&out) {
-                    for e in rd.flatten().filter(|e| e.path().extension().map_or(false, |x| x == "rs")) {
+                    for e in rd.flatten().filter(|e| e.path().extension().is_some_and(|x| x == "rs")) {
                         let _ = std::process::Command::new("rustfmt").args(["--edition", "2021"]).arg(e.path()).status();
                     }
                 }
@@ -438,7 +467,7 @@ fn statuses(args: &Args) -> ExitCode {
                     }
                 }
             }
-            Err(d) => d.iter().for_each(|d| report::print(&d)),
+            Err(d) => d.iter().for_each(report::print),
         }
     }
     if args.snippets {
@@ -468,7 +497,11 @@ fn statuses(args: &Args) -> ExitCode {
         println!("{}", serde_json::to_string_pretty(&list).unwrap());
     } else {
         for (c, m) in &table {
-            println!("s{c}  {m}{}{}", if status::no_body(*c) { "  （本文なし）" } else { "" }, if custom.contains(c) { "  （追加）" } else { "" });
+            println!(
+                "s{c}  {m}{}{}",
+                if status::no_body(*c) { "  （本文なし）" } else { "" },
+                if custom.contains(c) { "  （追加）" } else { "" }
+            );
         }
     }
     ExitCode::SUCCESS
@@ -478,7 +511,7 @@ fn statuses(args: &Args) -> ExitCode {
 fn to_openapi(args: &Args) -> ExitCode {
     let res = project::check_config(&args.config, args.service.as_deref());
     for d in &res.diagnostics {
-        report::print(&d);
+        report::print(d);
     }
     let Some(ir) = res.ir else {
         eprintln!("エラーがあるので出力しません");
@@ -487,17 +520,21 @@ fn to_openapi(args: &Args) -> ExitCode {
     let (cfg, _) = match config::load(&args.config) {
         Ok(v) => v,
         Err(d) => {
-            d.iter().for_each(|d| report::print(&d));
+            d.iter().for_each(report::print);
             return ExitCode::from(1);
         }
     };
     if ir.services.len() != 1 {
-        eprintln!("service が {} 個あります（--service で 1 つ選んでください: {}）", ir.services.len(), ir.services.keys().cloned().collect::<Vec<_>>().join(", "));
+        eprintln!(
+            "service が {} 個あります（--service で 1 つ選んでください: {}）",
+            ir.services.len(),
+            ir.services.keys().cloned().collect::<Vec<_>>().join(", ")
+        );
         return ExitCode::from(2);
     }
     let (name, svc) = ir.services.iter().next().unwrap();
     let doc = comatype_openapi::export(name, svc, &cfg.status_table());
-    let text = if args.out.as_ref().map_or(false, |p| p.extension().map_or(false, |e| e == "json")) {
+    let text = if args.out.as_ref().is_some_and(|p| p.extension().is_some_and(|e| e == "json")) {
         serde_json::to_string_pretty(&doc).unwrap() + "\n"
     } else {
         comatype_openapi::to_yaml(&doc)
@@ -583,12 +620,17 @@ fn from_openapi(args: &Args) -> ExitCode {
     for w in &imported.warnings {
         eprintln!("warning: {w}");
     }
-    eprintln!("{} 個のファイルと {} を書きました（追加のステータスコード {} 件）", imported.files.len(), config_path.display(), imported.additional_status_codes.len());
+    eprintln!(
+        "{} 個のファイルと {} を書きました（追加のステータスコード {} 件）",
+        imported.files.len(),
+        config_path.display(),
+        imported.additional_status_codes.len()
+    );
 
     // Whether what was written passes the check
     let res = project::check_config(&config_path, None);
     for d in &res.diagnostics {
-        report::print(&d);
+        report::print(d);
     }
     if res.ir.is_none() {
         eprintln!("生成した .comat に、エラーがあります（上の診断を見てください）");
@@ -599,7 +641,26 @@ fn from_openapi(args: &Args) -> ExitCode {
             eprintln!("--generate には、--target lang:role:root が要ります（例: --target ts:client:./client）");
             return ExitCode::from(2);
         }
-        let gen_args = Args { cmd: "generate".into(), positional: vec![], config: config_path, service: None, out: None, lang: None, role: None, dry_run: false, snippets: false, json: false, targets: vec![], force: false, generate: false, all: false, group: false, fix: false, yes: false, color: None };
+        let gen_args = Args {
+            cmd: "generate".into(),
+            positional: vec![],
+            config: config_path,
+            service: None,
+            out: None,
+            lang: None,
+            role: None,
+            dry_run: false,
+            snippets: false,
+            json: false,
+            targets: vec![],
+            force: false,
+            generate: false,
+            all: false,
+            group: false,
+            fix: false,
+            yes: false,
+            color: None,
+        };
         return generate(&gen_args);
     }
     ExitCode::SUCCESS

@@ -1,0 +1,37 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A minimal `.comat` file and the command you ran (`comatype check`, `comatype generate`, ...).
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Comatype version
+      description: Output of `comatype --version`, or the runtime package version.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options: [CLI, Parser / checker, Generator, TypeScript runtime, Go runtime, Python runtime, Rust runtime, Java / Kotlin runtime, Swift runtime, Ruby runtime, OpenAPI, VS Code extension, Website]
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS, and the language / toolchain version.

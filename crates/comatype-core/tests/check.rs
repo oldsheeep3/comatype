@@ -81,7 +81,12 @@ fn wrap_order_outer_to_inner() {
 
 #[test]
 fn wrapper_status_added_only_when_enabled() {
-    let r = run(&[("init.comat", INIT), ("defaults.comat", "wrap auth"), ("a/get.comat", "s200 none"), ("b/get.comat", "wrap auth off\ns200 none")]);
+    let r = run(&[
+        ("init.comat", INIT),
+        ("defaults.comat", "wrap auth"),
+        ("a/get.comat", "s200 none"),
+        ("b/get.comat", "wrap auth off\ns200 none"),
+    ]);
     let eps = &r.ir.unwrap().services["api"].endpoints;
     let codes = |m: &str| eps.iter().find(|e| e.module == m).unwrap().responses.iter().map(|x| x.status).collect::<Vec<_>>();
     assert_eq!(codes("a/get"), vec![200, 401]);
@@ -111,7 +116,8 @@ fn header_precedence() {
     ]);
     assert!(errors(&r).is_empty(), "{:?}", r.diagnostics);
     let ep = &r.ir.unwrap().services["api"].endpoints[0].clone();
-    let ty = |code: u16| serde_json::to_value(&ep.responses.iter().find(|x| x.status == code).unwrap().headers[0].ty).unwrap()["name"].clone();
+    let ty =
+        |code: u16| serde_json::to_value(&ep.responses.iter().find(|x| x.status == code).unwrap().headers[0].ty).unwrap()["name"].clone();
     assert_eq!(ty(200), "uuid"); // per status > headerRes
     assert_eq!(ty(204), "int"); // headerRes > header
     assert_eq!(ep.request_headers.len(), 2);
@@ -135,7 +141,14 @@ fn errors_are_reported() {
         (&[("init.comat", INIT), ("get_a.comat", "path nope\ns200 none")], "`/` か `./`"),
         (&[("init.comat", INIT), ("get_a.comat", "s200 string(pattern: \"[\"")], "必要です"),
         (&[("init.comat", INIT), ("a/init.comat", INIT)], "直下"),
-        (&[("init.comat", INIT), ("../types/T.comat", "T { ...T2 }\nT2 { ...T }"), ("get_a.comat", "import T from ../types/T.comat\ns200 T")], "循環"),
+        (
+            &[
+                ("init.comat", INIT),
+                ("../types/T.comat", "T { ...T2 }\nT2 { ...T }"),
+                ("get_a.comat", "import T from ../types/T.comat\ns200 T"),
+            ],
+            "循環",
+        ),
     ];
     for (files, needle) in cases {
         let r = run(files);
@@ -331,12 +344,9 @@ fn bracket_directories_and_files_make_dynamic_segments() {
 #[test]
 fn old_dynamic_names_are_removed() {
     // File names `get__id` and `get_:id`, and directory names `:id` and `__id`, are removed (error)
-    for (file, needle) in [
-        ("a/get__id.comat", "廃止"),
-        ("a/get_:id.comat", "廃止"),
-        ("a/:id/get.comat", "廃止"),
-        ("a/__id/get.comat", "廃止"),
-    ] {
+    for (file, needle) in
+        [("a/get__id.comat", "廃止"), ("a/get_:id.comat", "廃止"), ("a/:id/get.comat", "廃止"), ("a/__id/get.comat", "廃止")]
+    {
         let r = run(&[("init.comat", INIT), (file, "params { id: string }\ns200 none\n")]);
         assert!(has_error(&r, needle), "{file}: {:?}", errors(&r));
     }

@@ -75,10 +75,63 @@ fn reindent(code: &str) -> String {
 // ---- Names ----
 
 const KEYWORDS: &[&str] = &[
-    "associatedtype", "class", "deinit", "enum", "extension", "fileprivate", "func", "import", "init", "inout", "internal", "let", "open", "operator",
-    "private", "precedencegroup", "protocol", "public", "rethrows", "static", "struct", "subscript", "typealias", "var", "break", "case", "catch",
-    "continue", "default", "defer", "do", "else", "fallthrough", "for", "guard", "if", "in", "repeat", "return", "throw", "switch", "where", "while",
-    "Any", "as", "await", "false", "is", "nil", "self", "Self", "super", "throws", "true", "try", "Type", "Protocol",
+    "associatedtype",
+    "class",
+    "deinit",
+    "enum",
+    "extension",
+    "fileprivate",
+    "func",
+    "import",
+    "init",
+    "inout",
+    "internal",
+    "let",
+    "open",
+    "operator",
+    "private",
+    "precedencegroup",
+    "protocol",
+    "public",
+    "rethrows",
+    "static",
+    "struct",
+    "subscript",
+    "typealias",
+    "var",
+    "break",
+    "case",
+    "catch",
+    "continue",
+    "default",
+    "defer",
+    "do",
+    "else",
+    "fallthrough",
+    "for",
+    "guard",
+    "if",
+    "in",
+    "repeat",
+    "return",
+    "throw",
+    "switch",
+    "where",
+    "while",
+    "Any",
+    "as",
+    "await",
+    "false",
+    "is",
+    "nil",
+    "self",
+    "Self",
+    "super",
+    "throws",
+    "true",
+    "try",
+    "Type",
+    "Protocol",
 ];
 
 pub fn words(s: &str) -> Vec<String> {
@@ -93,7 +146,7 @@ pub fn words(s: &str) -> Vec<String> {
             continue;
         }
         let prev_lower = i > 0 && chars[i - 1].is_ascii_lowercase();
-        let next_lower = chars.get(i + 1).map_or(false, |n| n.is_ascii_lowercase());
+        let next_lower = chars.get(i + 1).is_some_and(|n| n.is_ascii_lowercase());
         let prev_upper = i > 0 && chars[i - 1].is_ascii_uppercase();
         if c.is_ascii_uppercase() && !cur.is_empty() && (prev_lower || (prev_upper && next_lower)) {
             out.push(std::mem::take(&mut cur));
@@ -113,13 +166,21 @@ fn cap(w: &str) -> String {
 
 pub fn pascal(s: &str) -> String {
     let out: String = words(s).iter().map(|w| cap(&w.to_ascii_lowercase())).collect::<Vec<_>>().concat();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("V{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("V{out}")
+    } else {
+        out
+    }
 }
 
 /// `user/put__id` → `UserPutId`
 pub fn module_class(module: &str) -> String {
     let out: String = module.split(|c: char| !c.is_ascii_alphanumeric()).filter(|w| !w.is_empty()).map(cap).collect();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("M{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("M{out}")
+    } else {
+        out
+    }
 }
 
 /// Property / case name (camelCase; reserved words get backticks)
@@ -129,10 +190,14 @@ pub fn camel(s: &str) -> String {
         let w = w.to_ascii_lowercase();
         out.push_str(&if i == 0 { w } else { cap(&w) });
     }
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) {
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
         out = format!("f{}", cap(&out));
     }
-    if KEYWORDS.contains(&out.as_str()) { format!("`{out}`") } else { out }
+    if KEYWORDS.contains(&out.as_str()) {
+        format!("`{out}`")
+    } else {
+        out
+    }
 }
 
 fn sstr(s: &str) -> String {
@@ -359,7 +424,10 @@ impl<'a> Gen<'a> {
                         }
                     }
                     Some(Constraint::Pattern { value }) => {
-                        if matches!(name.as_str(), "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" | "decimal") {
+                        if matches!(
+                            name.as_str(),
+                            "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" | "decimal"
+                        ) {
                             s.push_str(&format!("try Check.pattern({path}, Wire.str({var}), {})\n", sstr(value)));
                         }
                     }
@@ -430,7 +498,11 @@ impl<'a> Gen<'a> {
                 if f.optional {
                     puts.push_str(&format!("if let v = {fname} {{ m.append(({}, {e})) }}\n", sstr(&f.name)));
                 } else if nullable {
-                    puts.push_str(&format!("if let v = {fname} {{ m.append(({}, {e})) }} else {{ m.append(({}, .null)) }}\n", sstr(&f.name), sstr(&f.name)));
+                    puts.push_str(&format!(
+                        "if let v = {fname} {{ m.append(({}, {e})) }} else {{ m.append(({}, .null)) }}\n",
+                        sstr(&f.name),
+                        sstr(&f.name)
+                    ));
                 } else {
                     puts.push_str(&format!("do {{\nlet v = {fname}\nm.append(({}, {e}))\n}}\n", sstr(&f.name)));
                 }
@@ -577,7 +649,10 @@ fn body_codec(g: &mut Gen, label: &str, t: &Type, ty: &str) -> String {
 }
 
 fn wire_pairs(fields: &[Field], var: &str) -> String {
-    format!("[{}]", fields.iter().map(|f| format!("({}, Wire.strs({var}.{}))", sstr(&f.name), camel(&f.name))).collect::<Vec<_>>().join(", "))
+    format!(
+        "[{}]",
+        fields.iter().map(|f| format!("({}, Wire.strs({var}.{}))", sstr(&f.name), camel(&f.name))).collect::<Vec<_>>().join(", ")
+    )
 }
 
 fn wire_build(name: &str, fields: &[Field], g: &Gen, values: &str, split: bool) -> String {
@@ -588,7 +663,9 @@ fn wire_build(name: &str, fields: &[Field], g: &Gen, values: &str, split: bool) 
             let opt = f.optional || nullable;
             let vals = values.replace("{}", &sstr(&f.name));
             let call = match inner {
-                Type::Array { item } => format!("try Wire.readList{}({vals}, {}, {split}, {})", if opt { "Opt" } else { "" }, sstr(&f.name), g.wdec(item)),
+                Type::Array { item } => {
+                    format!("try Wire.readList{}({vals}, {}, {split}, {})", if opt { "Opt" } else { "" }, sstr(&f.name), g.wdec(item))
+                }
                 _ if opt => format!("try Wire.readOpt({vals}, {}, {split}, {})", sstr(&f.name), g.wdec(inner)),
                 _ => format!("try Wire.read({vals}, {}, {split}, {})", sstr(&f.name), g.wdec(inner)),
             };
@@ -647,10 +724,16 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
     }
     let ctx_wrappers: Vec<&Wrapper> = ep.wraps.iter().filter_map(|w| svc.wrappers.iter().find(|x| &x.name == w)).collect();
     if role == Role::Server {
-        let props: String = ctx_wrappers.iter().map(|w| format!("public var {}: ComatypeInit.{}Ctx\n", camel(&w.name), pascal(&w.name))).collect();
+        let props: String =
+            ctx_wrappers.iter().map(|w| format!("public var {}: ComatypeInit.{}Ctx\n", camel(&w.name), pascal(&w.name))).collect();
         let params: Vec<String> = ctx_wrappers.iter().map(|w| format!("{}: ComatypeInit.{}Ctx", camel(&w.name), pascal(&w.name))).collect();
         let inits: String = ctx_wrappers.iter().map(|w| format!("self.{0} = {0}\n", camel(&w.name))).collect();
-        body.push_str(&format!("/// 有効なラッパーが足した値\npublic struct Ctx {{\n{}\n    public init({}) {{\n{}    }}\n}}\n\n", indent(props.trim_end()), params.join(", "), indent(&indent(&inits))));
+        body.push_str(&format!(
+            "/// 有効なラッパーが足した値\npublic struct Ctx {{\n{}\n    public init({}) {{\n{}    }}\n}}\n\n",
+            indent(props.trim_end()),
+            params.join(", "),
+            indent(&indent(&inits))
+        ));
     }
     // Whole request
     let mut req_comps: Vec<(&str, String, String)> = Vec::new(); // (name, type, default)
@@ -661,7 +744,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         req_comps.push(("search", "Search".into(), if all_optional(&ep.search) { " = Search()".into() } else { String::new() }));
     }
     if has_req_headers {
-        req_comps.push(("headers", "RequestHeaders".into(), if all_optional(&ep.request_headers) { " = RequestHeaders()".into() } else { String::new() }));
+        req_comps.push((
+            "headers",
+            "RequestHeaders".into(),
+            if all_optional(&ep.request_headers) { " = RequestHeaders()".into() } else { String::new() },
+        ));
     }
     if ep.body.is_some() {
         req_comps.push(("body", body_ty.clone(), String::new()));
@@ -722,7 +809,14 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         (Some(c), true) => cookie_def_swift(c),
         _ => "nil".to_string(),
     };
-    let common = format!("method: {}, path: {}, module: {}, baseURL: {base}, wraps: {wraps}, cookie: {}, cookieDef: {cd}{}", sstr(&ep.method), sstr(&ep.path), sstr(&ep.module), ep.cookie, cache_swift(ep));
+    let common = format!(
+        "method: {}, path: {}, module: {}, baseURL: {base}, wraps: {wraps}, cookie: {}, cookieDef: {cd}{}",
+        sstr(&ep.method),
+        sstr(&ep.path),
+        sstr(&ep.module),
+        ep.cookie,
+        cache_swift(ep)
+    );
     match role {
         Role::Client => body.push_str(&format!(
             "/// path とメソッド\npublic static let endpoint = Endpoint<{arg}, Never, Response>(\n    {common},\n    buildRequest: {{ try {class}.buildRequest($0) }}, parseResponse: {{ try {class}.parseResponse($0) }})\n\n"
@@ -735,16 +829,29 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
 
     match role {
         Role::Client => {
-            let mut f = format!("private static func buildRequest(_ arg: {arg}) throws -> RawRequest {{\n    var raw = RawRequest(method: {}, path: {})\n", sstr(&ep.method), sstr(&ep.path));
+            let mut f = format!(
+                "private static func buildRequest(_ arg: {arg}) throws -> RawRequest {{\n    var raw = RawRequest(method: {}, path: {})\n",
+                sstr(&ep.method),
+                sstr(&ep.path)
+            );
             if arg == "Request" {
                 if has("params") {
-                    f.push_str(&format!("    try arg.params.validate(path: \"\")\n    try Wire.fillPath(&raw, {})\n", wire_pairs(&ep.params, "arg.params")));
+                    f.push_str(&format!(
+                        "    try arg.params.validate(path: \"\")\n    try Wire.fillPath(&raw, {})\n",
+                        wire_pairs(&ep.params, "arg.params")
+                    ));
                 }
                 if has("search") {
-                    f.push_str(&format!("    try arg.search.validate(path: \"\")\n    Wire.addQuery(&raw, {})\n", wire_pairs(&ep.search, "arg.search")));
+                    f.push_str(&format!(
+                        "    try arg.search.validate(path: \"\")\n    Wire.addQuery(&raw, {})\n",
+                        wire_pairs(&ep.search, "arg.search")
+                    ));
                 }
                 if has("headers") {
-                    f.push_str(&format!("    try arg.headers.validate(path: \"\")\n    Wire.setHeaders(&raw.headers, {})\n", wire_pairs(&ep.request_headers, "arg.headers")));
+                    f.push_str(&format!(
+                        "    try arg.headers.validate(path: \"\")\n    Wire.setHeaders(&raw.headers, {})\n",
+                        wire_pairs(&ep.request_headers, "arg.headers")
+                    ));
                 }
                 if has("body") {
                     f.push_str("    raw.body = try encodeBody(arg.body)\n    raw.headers.set(\"Content-Type\", \"application/json\")\n");
@@ -755,7 +862,8 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             f.push_str("    return raw\n}\n\n");
             body.push_str(&f);
 
-            let mut p = String::from("private static func parseResponse(_ raw: RawResponse) throws -> Response {\n    switch raw.status {\n");
+            let mut p =
+                String::from("private static func parseResponse(_ raw: RawResponse) throws -> Response {\n    switch raw.status {\n");
             for r in &ep.responses {
                 let c = r.status;
                 let mut inner = String::new();
@@ -772,7 +880,10 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
                     args.push("headers: headers");
                 }
                 let ctor = if args.is_empty() { format!(".s{c}") } else { format!(".s{c}({})", args.join(", ")) };
-                p.push_str(&format!("    case {c}:\n{}        return {ctor}\n", inner.lines().map(|l| format!("        {l}\n")).collect::<String>()));
+                p.push_str(&format!(
+                    "    case {c}:\n{}        return {ctor}\n",
+                    inner.lines().map(|l| format!("        {l}\n")).collect::<String>()
+                ));
             }
             p.push_str("    default:\n        throw ComatypeError.unexpectedStatus(status: raw.status, body: raw.body)\n    }\n}\n");
             body.push_str(&p);
@@ -781,11 +892,17 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let mut f = String::from("private static func parseRequest(_ raw: RawRequest) throws -> Request {\n");
             let mut inits = Vec::new();
             if has("params") {
-                f.push_str(&format!("    let params = {}\n    try params.validate(path: \"\")\n", wire_build("Params", &ep.params, &g, "Wire.paramValues(raw, {})", false)));
+                f.push_str(&format!(
+                    "    let params = {}\n    try params.validate(path: \"\")\n",
+                    wire_build("Params", &ep.params, &g, "Wire.paramValues(raw, {})", false)
+                ));
                 inits.push("params: params");
             }
             if has("search") {
-                f.push_str(&format!("    let search = {}\n    try search.validate(path: \"\")\n", wire_build("Search", &ep.search, &g, "Wire.queryValues(raw, {})", false)));
+                f.push_str(&format!(
+                    "    let search = {}\n    try search.validate(path: \"\")\n",
+                    wire_build("Search", &ep.search, &g, "Wire.queryValues(raw, {})", false)
+                ));
                 inits.push("search: search");
             }
             if has("headers") {
@@ -823,7 +940,10 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
                 }
                 if !r.headers.is_empty() {
                     pat.push("let headers");
-                    st.push_str(&format!("try headers.validate(path: \"\")\nWire.setHeaders(&out.headers, {})\n", wire_pairs(&r.headers, "headers")));
+                    st.push_str(&format!(
+                        "try headers.validate(path: \"\")\nWire.setHeaders(&out.headers, {})\n",
+                        wire_pairs(&r.headers, "headers")
+                    ));
                 }
                 let pattern = if pat.is_empty() { format!(".s{c}") } else { format!(".s{c}({})", pat.join(", ")) };
                 b.push_str(&format!("    case {pattern}:\n{}", st.lines().map(|l| format!("        {l}\n")).collect::<String>()));
@@ -837,7 +957,13 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         }
     }
 
-    Ok(format!("{HEADER}\n/// {} — {} {}\npublic enum {class} {{\n{}}}\n", ep.file, ep.method.to_uppercase(), ep.path, indent(body.trim_end())))
+    Ok(format!(
+        "{HEADER}\n/// {} — {} {}\npublic enum {class} {{\n{}}}\n",
+        ep.file,
+        ep.method.to_uppercase(),
+        ep.path,
+        indent(body.trim_end())
+    ))
 }
 
 // ---- Init.swift ----

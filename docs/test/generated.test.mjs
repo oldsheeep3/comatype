@@ -1,10 +1,11 @@
 // The code shown in "Generated examples per language" (examples/generated) matches the current generator output
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
+import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
@@ -31,7 +32,11 @@ test('examples/generated は comatype generate の出力と同じ', (t) => {
     if (rel === 'comatype.config.json') continue
     const fresh = join(tmp, 'generated', rel)
     assert.ok(existsSync(fresh), `${rel} が生成されません`)
-    assert.equal(readFileSync(f, 'utf8'), readFileSync(fresh, 'utf8'), `${rel} が古いです（cd docs/examples/generated && ../../../target/debug/comatype generate --config .）`)
+    assert.equal(
+      readFileSync(f, 'utf8'),
+      readFileSync(fresh, 'utf8'),
+      `${rel} が古いです（cd docs/examples/generated && ../../../target/debug/comatype generate --config .）`,
+    )
   }
   assert.ok(statSync(join(base, 'swift')).isDirectory())
 })

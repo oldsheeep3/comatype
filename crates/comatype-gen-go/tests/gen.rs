@@ -53,7 +53,15 @@ fn types_tags_and_options() {
         "type THome struct",
         "RoleAdmin Role = \"admin\"",
     ] {
-        assert!(t.replace("  ", " ").replace('\t', " ").split_whitespace().collect::<Vec<_>>().join(" ").contains(&needle.split_whitespace().collect::<Vec<_>>().join(" ")), "{needle}\n{t}");
+        assert!(
+            t.replace("  ", " ")
+                .replace('\t', " ")
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .contains(&needle.split_whitespace().collect::<Vec<_>>().join(" ")),
+            "{needle}\n{t}"
+        );
     }
 }
 

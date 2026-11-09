@@ -4,7 +4,17 @@ import { CopyButton } from './CopyButton'
 
 type PreProps = ComponentPropsWithoutRef<'pre'> & { 'data-title'?: string; 'data-lang'?: string }
 
-const LANG_LABEL: Record<string, string> = { comat: 'comat', ts: 'TypeScript', tsx: 'TSX', go: 'Go', python: 'Python', json: 'JSON', bash: 'shell', yaml: 'YAML', text: '' }
+const LANG_LABEL: Record<string, string> = {
+  comat: 'comat',
+  ts: 'TypeScript',
+  tsx: 'TSX',
+  go: 'Go',
+  python: 'Python',
+  json: 'JSON',
+  bash: 'shell',
+  yaml: 'YAML',
+  text: '',
+}
 
 export function CodeBlock({ children, className, style, 'data-title': title, 'data-lang': lang, ...rest }: PreProps) {
   const label = title ?? (lang ? (LANG_LABEL[lang] ?? lang) : '')
@@ -13,7 +23,7 @@ export function CodeBlock({ children, className, style, 'data-title': title, 'da
       {title && <div className="code-title">{title}</div>}
       {label && !title && <span className="code-lang">{label}</span>}
       <CopyButton />
-      <pre className={className} style={style} tabIndex={0} {...rest}>
+      <pre className={className} style={style} {...rest}>
         {children}
       </pre>
     </div>

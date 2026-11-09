@@ -1,5 +1,5 @@
 // The parts that do not depend on VS Code (split out so they can be tested)
-'use strict'
+
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -35,7 +35,13 @@ function parseDiagnostics(output, baseDir) {
     const line = raw.trimEnd()
     let m = TAG_WITH_POS.exec(line)
     if (m) {
-      out.push({ file: path.resolve(baseDir, m[2]), line: Number(m[3]) - 1, col: Math.max(0, Number(m[4]) - 1), severity: severityOf(m[1]), message: m[5] })
+      out.push({
+        file: path.resolve(baseDir, m[2]),
+        line: Number(m[3]) - 1,
+        col: Math.max(0, Number(m[4]) - 1),
+        severity: severityOf(m[1]),
+        message: m[5],
+      })
       continue
     }
     m = TAG_NO_POS.exec(line)
@@ -45,7 +51,13 @@ function parseDiagnostics(output, baseDir) {
     }
     m = WITH_POS.exec(line)
     if (m) {
-      out.push({ file: path.resolve(baseDir, m[1]), line: Number(m[2]) - 1, col: Math.max(0, Number(m[3]) - 1), severity: m[4], message: m[5] })
+      out.push({
+        file: path.resolve(baseDir, m[1]),
+        line: Number(m[2]) - 1,
+        col: Math.max(0, Number(m[3]) - 1),
+        severity: m[4],
+        message: m[5],
+      })
       continue
     }
     m = NO_POS.exec(line)

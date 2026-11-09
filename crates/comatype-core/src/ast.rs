@@ -4,8 +4,8 @@ use crate::diag::Span;
 use serde::Serialize;
 
 pub const SCALARS: &[&str] = &[
-    "string", "bool", "int", "email", "phone", "uuid", "uuidv4", "uuidv7", "date", "datetime",
-    "time", "int64", "decimal", "url", "bytes", "json",
+    "string", "bool", "int", "email", "phone", "uuid", "uuidv4", "uuidv7", "date", "datetime", "time", "int64", "decimal", "url", "bytes",
+    "json",
 ];
 
 #[derive(Debug, Clone, Serialize)]
@@ -23,16 +23,31 @@ pub enum TypeExpr {
         #[serde(skip_serializing_if = "Option::is_none")]
         constraint: Option<Constraint>,
     },
-    Ref { name: String, span: Span },
-    Object { members: Vec<Member> },
-    Array { item: Box<TypeExpr> },
-    Union { variants: Vec<TypeExpr> },
-    Literal { value: String },
+    Ref {
+        name: String,
+        span: Span,
+    },
+    Object {
+        members: Vec<Member>,
+    },
+    Array {
+        item: Box<TypeExpr>,
+    },
+    Union {
+        variants: Vec<TypeExpr>,
+    },
+    Literal {
+        value: String,
+    },
     Null,
     /// `none`: no response body
-    None { span: Span },
+    None {
+        span: Span,
+    },
     /// `empty`: omit the field entirely
-    Empty { span: Span },
+    Empty {
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -55,9 +70,15 @@ pub enum CacheMode {
     /// Never cache
     Off,
     /// In memory for ttl (milliseconds)
-    Memory { #[serde(rename = "ttlMs")] ttl_ms: u64 },
+    Memory {
+        #[serde(rename = "ttlMs")]
+        ttl_ms: u64,
+    },
     /// In a cookie for ttl (milliseconds) (client only)
-    Cookie { #[serde(rename = "ttlMs")] ttl_ms: u64 },
+    Cookie {
+        #[serde(rename = "ttlMs")]
+        ttl_ms: u64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -71,24 +92,67 @@ pub struct WrapperStatus {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum StmtKind {
-    Import { names: Vec<String>, from: String },
-    Enum { name: String, variants: Vec<String> },
-    TypeDecl { name: String, members: Vec<Member> },
-    Path { value: String },
-    Params { members: Vec<Member> },
-    Search { members: Vec<Member> },
-    Header { members: Vec<Member> },
-    HeaderReq { members: Vec<Member> },
-    HeaderRes { members: Vec<Member> },
-    Body { ty: TypeExpr },
+    Import {
+        names: Vec<String>,
+        from: String,
+    },
+    Enum {
+        name: String,
+        variants: Vec<String>,
+    },
+    TypeDecl {
+        name: String,
+        members: Vec<Member>,
+    },
+    Path {
+        value: String,
+    },
+    Params {
+        members: Vec<Member>,
+    },
+    Search {
+        members: Vec<Member>,
+    },
+    Header {
+        members: Vec<Member>,
+    },
+    HeaderReq {
+        members: Vec<Member>,
+    },
+    HeaderRes {
+        members: Vec<Member>,
+    },
+    Body {
+        ty: TypeExpr,
+    },
     /// `s404 ApiError` / `s404` (omitted body type means the default) / `s200 none, { Allow: string[] }`
-    Status { code: u16, ty: Option<TypeExpr>, headers: Option<Vec<Member>> },
-    Wrap { name: String, off: bool },
-    Cookie { enabled: bool },
-    Cache { mode: CacheMode },
-    BaseUrl { value: String },
-    CookieDef { name: String, settings: Vec<Setting> },
-    Wrapper { name: String, ctx: Option<Vec<Member>>, statuses: Vec<WrapperStatus> },
+    Status {
+        code: u16,
+        ty: Option<TypeExpr>,
+        headers: Option<Vec<Member>>,
+    },
+    Wrap {
+        name: String,
+        off: bool,
+    },
+    Cookie {
+        enabled: bool,
+    },
+    Cache {
+        mode: CacheMode,
+    },
+    BaseUrl {
+        value: String,
+    },
+    CookieDef {
+        name: String,
+        settings: Vec<Setting>,
+    },
+    Wrapper {
+        name: String,
+        ctx: Option<Vec<Member>>,
+        statuses: Vec<WrapperStatus>,
+    },
 }
 
 impl StmtKind {

@@ -43,7 +43,8 @@ pub fn fmt_type(t: &Type) -> String {
 }
 
 fn fmt_fields(fields: &[Field]) -> String {
-    let inner: Vec<String> = fields.iter().map(|f| format!("{}{}: {}", f.name, if f.optional { "?" } else { "" }, fmt_type(&f.ty))).collect();
+    let inner: Vec<String> =
+        fields.iter().map(|f| format!("{}{}: {}", f.name, if f.optional { "?" } else { "" }, fmt_type(&f.ty))).collect();
     format!("{{ {} }}", inner.join(", "))
 }
 
@@ -110,7 +111,12 @@ pub fn render(ir_name: &str, endpoints: &[Endpoint], opts: &Options, multi: bool
     let color_of: BTreeMap<Vec<String>, Option<&str>> = keys
         .iter()
         .enumerate()
-        .map(|(i, k)| (k.clone(), if k.is_empty() { None } else { Some(PALETTE[(i.saturating_sub(usize::from(keys[0].is_empty()))) % PALETTE.len()]) }))
+        .map(|(i, k)| {
+            (
+                k.clone(),
+                if k.is_empty() { None } else { Some(PALETTE[(i.saturating_sub(usize::from(keys[0].is_empty()))) % PALETTE.len()]) },
+            )
+        })
         .collect();
 
     // Color of an intermediate path segment: among the endpoints below that segment, the most common wrap set (the earlier one in order on a tie). The last segment uses the endpoint's own wrap

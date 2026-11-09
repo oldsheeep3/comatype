@@ -1,7 +1,8 @@
 // The JSON Schema bundled in the extension is the same as the repository's schema, and is registered for comatype.config.json
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')

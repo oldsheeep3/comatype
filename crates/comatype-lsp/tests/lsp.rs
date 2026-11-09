@@ -158,7 +158,8 @@ fn syntax_errors_appear_as_you_type_and_clear_when_fixed() {
     s.change(&uri, "import User from ../types/User.comat\n\ns200 User\n");
     let (out, _) = s.finish();
 
-    let all: Vec<&Value> = out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
+    let all: Vec<&Value> =
+        out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
     assert_eq!(all.len(), 3);
     assert!(all[0]["params"]["diagnostics"].as_array().unwrap().iter().all(|d| d["severity"] != 1), "開いた直後はエラーなし");
     let broken = all[1]["params"]["diagnostics"].as_array().unwrap();
@@ -200,7 +201,10 @@ fn editing_one_file_updates_diagnostics_of_the_others() {
     s.change(&types, TYPES);
     let (out, _) = s.finish();
     let errors = |uri: &str, msgs: &[&Value]| -> usize {
-        msgs.iter().filter(|m| m["params"]["uri"] == json!(uri)).map(|m| m["params"]["diagnostics"].as_array().unwrap().iter().filter(|d| d["severity"] == 1).count()).sum()
+        msgs.iter()
+            .filter(|m| m["params"]["uri"] == json!(uri))
+            .map(|m| m["params"]["diagnostics"].as_array().unwrap().iter().filter(|d| d["severity"] == 1).count())
+            .sum()
     };
     let published: Vec<&Value> = out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics").collect();
     assert!(errors(&endpoint, &published) >= 1, "型を消したら、別のファイルにエラー");
@@ -224,7 +228,12 @@ fn files_without_config_get_syntax_diagnostics_only() {
 
 fn loc(v: &Value) -> (String, u64, u64, u64) {
     let r = &v["range"];
-    (v["uri"].as_str().unwrap().to_string(), r["start"]["line"].as_u64().unwrap(), r["start"]["character"].as_u64().unwrap(), r["end"]["character"].as_u64().unwrap())
+    (
+        v["uri"].as_str().unwrap().to_string(),
+        r["start"]["line"].as_u64().unwrap(),
+        r["start"]["character"].as_u64().unwrap(),
+        r["end"]["character"].as_u64().unwrap(),
+    )
 }
 
 #[test]
@@ -301,7 +310,8 @@ fn document_symbols() {
     let a = s.request("textDocument/documentSymbol", json!({"textDocument": {"uri": uri}}));
     let b = s.request("textDocument/documentSymbol", json!({"textDocument": {"uri": ep}}));
     let (out, _) = s.finish();
-    let names = |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    let names =
+        |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
     assert_eq!(names(a), vec!["User", "Role"]);
     assert_eq!(response(&out, a)["result"][0]["kind"], 5);
     assert_eq!(response(&out, a)["result"][1]["kind"], 10);
@@ -320,7 +330,8 @@ fn completion() {
     let stmt = s.at("textDocument/completion", &ep, 5, 1);
     let cookie = s.at("textDocument/completion", &ep, 6, 7);
     let (out, _) = s.finish();
-    let labels = |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["label"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    let labels =
+        |id| response(&out, id)["result"].as_array().unwrap().iter().map(|s| s["label"].as_str().unwrap().to_string()).collect::<Vec<_>>();
     assert_eq!(labels(wrap), vec!["auth"], "init.comat の wrapper");
     let ty = labels(ty);
     for want in ["string", "uuidv4", "null", "empty", "User"] {
@@ -342,7 +353,8 @@ fn closing_a_document_falls_back_to_the_disk_content() {
     s.open(&uri, "s200 Missing\n"); // Error in the unsaved content
     s.notify("textDocument/didClose", json!({"textDocument": {"uri": uri}}));
     let (out, _) = s.finish();
-    let published: Vec<&Value> = out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
+    let published: Vec<&Value> =
+        out.iter().filter(|m| m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == json!(uri)).collect();
     assert!(published.first().unwrap()["params"]["diagnostics"].as_array().unwrap().iter().any(|d| d["severity"] == 1));
     // After closing, it is checked again with the (valid) content on disk, so the error disappears
     assert!(last_diags(&out, &uri).unwrap().iter().all(|d| d["severity"] != 1));
@@ -360,7 +372,11 @@ fn uri_roundtrip_with_spaces_and_japanese() {
     let enc = |p: &Path| -> String {
         let mut s = String::from("file://");
         for b in p.to_string_lossy().bytes() {
-            if b.is_ascii_alphanumeric() || b"-._~/".contains(&b) { s.push(b as char) } else { s.push_str(&format!("%{b:02X}")) }
+            if b.is_ascii_alphanumeric() || b"-._~/".contains(&b) {
+                s.push(b as char)
+            } else {
+                s.push_str(&format!("%{b:02X}"))
+            }
         }
         s
     };
@@ -368,7 +384,8 @@ fn uri_roundtrip_with_spaces_and_japanese() {
     let mut s = Session::new();
     s.open(&uri, "s200 Missing\n");
     let (out, _) = s.finish();
-    let d = last_diags(&out, &uri).unwrap_or_else(|| panic!("同じ uri の診断がありません: {:?}", out.iter().map(|m| m["params"]["uri"].clone()).collect::<Vec<_>>()));
+    let d = last_diags(&out, &uri)
+        .unwrap_or_else(|| panic!("同じ uri の診断がありません: {:?}", out.iter().map(|m| m["params"]["uri"].clone()).collect::<Vec<_>>()));
     assert!(d.iter().any(|d| d["severity"] == 1));
     let _ = fs::remove_dir_all(root);
 }

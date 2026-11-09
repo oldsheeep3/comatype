@@ -2,7 +2,9 @@
 //!
 //! The argument type `Arg` follows the request shape: `Request` if there are params / search, `Body` if only a body, `NoArg` otherwise.
 
-use crate::cache::{cache_cookie_name, cacheable, client_cache_key, decode_cache_cookie, encode_cache_cookie, MemoryCache, CACHE_COOKIE_PREFIX};
+use crate::cache::{
+    cache_cookie_name, cacheable, client_cache_key, decode_cache_cookie, encode_cache_cookie, MemoryCache, CACHE_COOKIE_PREFIX,
+};
 use crate::cookie::CookieJar;
 use crate::error::{Error, Result};
 use crate::raw::{Endpoint, RawRequest, RawResponse};
@@ -17,6 +19,7 @@ pub type Next<'a> = &'a dyn Fn(RawRequest) -> Result<RawResponse>;
 
 /// A wrapper implementation. It can rewrite both the request and the response. One per `wrapper <name>` in `init.comat`.
 #[derive(Clone)]
+#[allow(clippy::type_complexity)]
 pub struct ComatypeWrap(pub Arc<dyn Fn(RawRequest, Next) -> Result<RawResponse> + Send + Sync>);
 
 impl ComatypeWrap {
@@ -142,7 +145,10 @@ fn transport<Arg, Req, Res>(ep: &Endpoint<Arg, Req, Res>, conf: &Config, r: RawR
         .or_else(|| std::env::var("COMATYPE_BASE_URL").ok().filter(|v| !v.is_empty()))
         .or_else(|| ep.base_url.map(str::to_string))
         .ok_or_else(|| {
-            Error::Config("base url がありません（Config.base_url、環境変数 COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）".into())
+            Error::Config(
+                "base url がありません（Config.base_url、環境変数 COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）"
+                    .into(),
+            )
         })?;
     let mut url = format!("{}{}", base.trim_end_matches('/'), r.path);
     if !r.query.is_empty() {

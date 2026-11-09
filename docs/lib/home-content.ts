@@ -50,7 +50,8 @@ export const home: Record<Locale, HomeContent> = {
   en: {
     eyebrow: 'Schema-first API toolkit',
     title: 'Write your API types once.',
-    tagline: 'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby.',
+    tagline:
+      'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby.',
     start: 'Get started',
     playground: 'Try the Playground',
     reference: 'Reference',
@@ -63,31 +64,79 @@ export const home: Record<Locale, HomeContent> = {
     tabServer: 'Server (TypeScript)',
     featuresTitle: 'Everything between your client and your server',
     features: [
-      { icon: '◇', title: 'A single source of truth', body: 'Endpoints, types, status codes, headers and cookies live in .comat files. Clients and servers are generated from the same definition, so they cannot drift apart.' },
-      { icon: '✓', title: 'Validated both ways', body: 'Requests are validated before they are sent and responses after they arrive, with the same schema. Per-status response types reach the caller.' },
-      { icon: '⚙', title: 'Thin runtimes', body: 'The client (c) and server (s) are small libraries. Wrappers, cookies and header conversion are handled for you; most runtimes use only the standard library.' },
-      { icon: '⌥', title: 'Wrappers & ctx', body: 'Declare wrappers such as auth once. Handlers receive a typed ctx, and the compiler tells you when a wrapper is missing.' },
-      { icon: '⚡', title: 'Built-in caching', body: 'Add `cache 5000` to a GET or QUERY endpoint to cache responses in memory on both client and server, or in a cookie on the client.' },
-      { icon: '↯', title: 'Language server', body: 'Syntax errors, unresolved types and invalid status codes are reported before you save, with go-to-definition, hover and completion.' },
-      { icon: '⇄', title: 'OpenAPI both ways', body: 'Export OpenAPI 3 from .comat, or import an OpenAPI file and generate code in one command.' },
-      { icon: '#', title: 'A fixed status-code registry', body: 'Only registered standard codes (plus the ones you add in config) are allowed, and bodies default to { message }.' },
+      {
+        icon: '◇',
+        title: 'A single source of truth',
+        body: 'Endpoints, types, status codes, headers and cookies live in .comat files. Clients and servers are generated from the same definition, so they cannot drift apart.',
+      },
+      {
+        icon: '✓',
+        title: 'Validated both ways',
+        body: 'Requests are validated before they are sent and responses after they arrive, with the same schema. Per-status response types reach the caller.',
+      },
+      {
+        icon: '⚙',
+        title: 'Thin runtimes',
+        body: 'The client (c) and server (s) are small libraries. Wrappers, cookies and header conversion are handled for you; most runtimes use only the standard library.',
+      },
+      {
+        icon: '⌥',
+        title: 'Wrappers & ctx',
+        body: 'Declare wrappers such as auth once. Handlers receive a typed ctx, and the compiler tells you when a wrapper is missing.',
+      },
+      {
+        icon: '⚡',
+        title: 'Built-in caching',
+        body: 'Add `cache 5000` to a GET or QUERY endpoint to cache responses in memory on both client and server, or in a cookie on the client.',
+      },
+      {
+        icon: '↯',
+        title: 'Language server',
+        body: 'Syntax errors, unresolved types and invalid status codes are reported before you save, with go-to-definition, hover and completion.',
+      },
+      {
+        icon: '⇄',
+        title: 'OpenAPI both ways',
+        body: 'Export OpenAPI 3 from .comat, or import an OpenAPI file and generate code in one command.',
+      },
+      {
+        icon: '#',
+        title: 'A fixed status-code registry',
+        body: 'Only registered standard codes (plus the ones you add in config) are allowed, and bodies default to { message }.',
+      },
     ],
     stepsTitle: 'How it works',
     steps: [
-      { title: 'Write', body: 'Describe an endpoint. Its path comes from where the file lives.', code: 'todo/[id]/get.comat\n\nparams { id: uuidv4 }\n\ns200 Todo\ns404' },
+      {
+        title: 'Write',
+        body: 'Describe an endpoint. Its path comes from where the file lives.',
+        code: 'todo/[id]/get.comat\n\nparams { id: uuidv4 }\n\ns200 Todo\ns404',
+      },
       { title: 'Generate', body: 'Run the CLI for the languages and roles you configured.', code: '$ comat generate\n生成: 36 files' },
-      { title: 'Use', body: 'Call the typed client, or implement the typed handler.', code: "const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title" },
+      {
+        title: 'Use',
+        body: 'Call the typed client, or implement the typed handler.',
+        code: 'const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title',
+      },
     ],
     matrixTitle: 'Eight languages, client and server',
-    matrixLead: 'Every language has a generator, a runtime and an end-to-end test that connects the generated client to the generated server.',
+    matrixLead:
+      'Every language has a generator, a runtime and an end-to-end test that connects the generated client to the generated server.',
     matrixHead: ['Language', 'Client', 'Server', 'Runtime'],
     matrixNote: 'Dart is planned.',
     toolsTitle: 'A CLI that catches mistakes',
-    toolsLead: 'Check your setup by topic, list every endpoint colored by the wrappers that apply, and migrate file names to the recommended layout.',
+    toolsLead:
+      'Check your setup by topic, list every endpoint colored by the wrappers that apply, and migrate file names to the recommended layout.',
     tools: [
       { cmd: 'comat check cache', body: 'Show only the diagnostics of one topic: cache, path, wrap, cookie, status, import or type.' },
-      { cmd: 'comat endpoints -g', body: 'List endpoints grouped by the exact wrapper chain (order included), with paths colored per wrapper.' },
-      { cmd: 'comat format comatfiles --fix', body: 'Rewrite deprecated file names to the recommended [id]/get.comat layout and fix imports.' },
+      {
+        cmd: 'comat endpoints -g',
+        body: 'List endpoints grouped by the exact wrapper chain (order included), with paths colored per wrapper.',
+      },
+      {
+        cmd: 'comat format comatfiles --fix',
+        body: 'Rewrite deprecated file names to the recommended [id]/get.comat layout and fix imports.',
+      },
     ],
     terminalTitle: 'comat endpoints -g',
     ctaTitle: 'Stop writing the same types twice.',
@@ -96,7 +145,8 @@ export const home: Record<Locale, HomeContent> = {
   'ja-jp': {
     eyebrow: 'スキーマファーストの API ツールキット',
     title: 'API の型を、1 回だけ書く。',
-    tagline: 'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby の、型付きで検証つきのクライアントとサーバを生成します。',
+    tagline:
+      'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby の、型付きで検証つきのクライアントとサーバを生成します。',
     start: 'はじめる',
     playground: 'Playground を試す',
     reference: 'リファレンス',
@@ -109,20 +159,60 @@ export const home: Record<Locale, HomeContent> = {
     tabServer: 'サーバ（TypeScript）',
     featuresTitle: 'クライアントとサーバの間にあるもの、全部',
     features: [
-      { icon: '◇', title: '1 か所に書く', body: 'エンドポイント・型・ステータス・ヘッダ・cookie を .comat に書くだけ。クライアントとサーバが同じ定義から生成されるので、ずれません。' },
-      { icon: '✓', title: '双方向で検証', body: '送る前と受け取った後に、同じスキーマで検証します。ステータスごとのレスポンスの型も、呼び出し側に伝わります。' },
-      { icon: '⚙', title: '薄いランタイム', body: 'c（クライアント）と s（サーバ）は小さなライブラリ。ラッパー、cookie、ヘッダの変換まで面倒を見ます。ほとんどの言語で標準ライブラリだけです。' },
-      { icon: '⌥', title: 'ラッパーと ctx', body: 'auth などのラッパーを 1 回宣言すれば、ハンドラは型付きの ctx を受け取れます。ラッパーの不足は、コンパイル時に分かります。' },
-      { icon: '⚡', title: 'キャッシュ組み込み', body: 'GET / QUERY に `cache 5000` と書くだけで、クライアントもサーバもメモリにキャッシュします。クライアントは cookie にも。' },
-      { icon: '↯', title: '言語サーバ', body: '構文エラー・型の解決・ステータスコードの誤りを保存前に知らせます。定義ジャンプ、ホバー、補完も。' },
-      { icon: '⇄', title: 'OpenAPI と相互変換', body: '.comat から OpenAPI 3 を書き出し、OpenAPI から .comat を作ってコードまで生成できます。' },
-      { icon: '#', title: '決まったステータスコードだけ', body: '登録された標準のコードと、設定で足したコードだけを使えます。本文の既定は { message } です。' },
+      {
+        icon: '◇',
+        title: '1 か所に書く',
+        body: 'エンドポイント・型・ステータス・ヘッダ・cookie を .comat に書くだけ。クライアントとサーバが同じ定義から生成されるので、ずれません。',
+      },
+      {
+        icon: '✓',
+        title: '双方向で検証',
+        body: '送る前と受け取った後に、同じスキーマで検証します。ステータスごとのレスポンスの型も、呼び出し側に伝わります。',
+      },
+      {
+        icon: '⚙',
+        title: '薄いランタイム',
+        body: 'c（クライアント）と s（サーバ）は小さなライブラリ。ラッパー、cookie、ヘッダの変換まで面倒を見ます。ほとんどの言語で標準ライブラリだけです。',
+      },
+      {
+        icon: '⌥',
+        title: 'ラッパーと ctx',
+        body: 'auth などのラッパーを 1 回宣言すれば、ハンドラは型付きの ctx を受け取れます。ラッパーの不足は、コンパイル時に分かります。',
+      },
+      {
+        icon: '⚡',
+        title: 'キャッシュ組み込み',
+        body: 'GET / QUERY に `cache 5000` と書くだけで、クライアントもサーバもメモリにキャッシュします。クライアントは cookie にも。',
+      },
+      {
+        icon: '↯',
+        title: '言語サーバ',
+        body: '構文エラー・型の解決・ステータスコードの誤りを保存前に知らせます。定義ジャンプ、ホバー、補完も。',
+      },
+      {
+        icon: '⇄',
+        title: 'OpenAPI と相互変換',
+        body: '.comat から OpenAPI 3 を書き出し、OpenAPI から .comat を作ってコードまで生成できます。',
+      },
+      {
+        icon: '#',
+        title: '決まったステータスコードだけ',
+        body: '登録された標準のコードと、設定で足したコードだけを使えます。本文の既定は { message } です。',
+      },
     ],
     stepsTitle: '使い方',
     steps: [
-      { title: '書く', body: 'エンドポイントを書きます。path は、ファイルの置き場所から決まります。', code: 'todo/[id]/get.comat\n\nparams { id: uuidv4 }\n\ns200 Todo\ns404' },
+      {
+        title: '書く',
+        body: 'エンドポイントを書きます。path は、ファイルの置き場所から決まります。',
+        code: 'todo/[id]/get.comat\n\nparams { id: uuidv4 }\n\ns200 Todo\ns404',
+      },
       { title: '生成する', body: '設定した言語と役割のコードを、CLI で生成します。', code: '$ comat generate\n生成: 36 ファイル' },
-      { title: '使う', body: '型付きのクライアントを呼ぶか、型付きのハンドラを実装します。', code: "const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title" },
+      {
+        title: '使う',
+        body: '型付きのクライアントを呼ぶか、型付きのハンドラを実装します。',
+        code: 'const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title',
+      },
     ],
     matrixTitle: '8 つの言語、クライアントもサーバも',
     matrixLead: 'どの言語にも、生成器とランタイムと、生成したクライアントを生成したサーバに繋ぐ E2E テストがあります。',

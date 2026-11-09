@@ -1,8 +1,8 @@
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
+import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { scopeOf, tokenize } from './helpers.mjs'
 
 const usage = fileURLToPath(new URL('../../../usage', import.meta.url))

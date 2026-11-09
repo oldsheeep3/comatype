@@ -97,11 +97,15 @@ export const t = {
   bool: (): Schema<boolean> =>
     make((v, path) => (typeof v === 'boolean' ? v : fail(path, '真偽値ではありません')), undefined, { kind: 'bool' }),
   int(c?: Range): Schema<number> {
-    return make((v, path) => {
-      if (typeof v !== 'number' || !Number.isInteger(v)) return fail(path, '整数ではありません')
-      checkRange(path, '値', v, c)
-      return v
-    }, undefined, { kind: 'int' })
+    return make(
+      (v, path) => {
+        if (typeof v !== 'number' || !Number.isInteger(v)) return fail(path, '整数ではありません')
+        checkRange(path, '値', v, c)
+        return v
+      },
+      undefined,
+      { kind: 'int' },
+    )
   },
   email: (): Schema<Email> => str('email', (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)),
   phone: (): Schema<Phone> => str('phone', (s) => /^\+[1-9]\d{1,14}$/.test(s)),
@@ -147,15 +151,12 @@ export const t = {
       (u) => u.toString(),
     ),
   bytes: (): Schema<Uint8Array> =>
-    make(
-      (v, path) => {
-        if (typeof v !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(v) || v.length % 4 !== 0) {
-          return fail(path, 'bytes は base64 の文字列で送ってください')
-        }
-        return fromBase64(v)
-      },
-      toBase64,
-    ),
+    make((v, path) => {
+      if (typeof v !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(v) || v.length % 4 !== 0) {
+        return fail(path, 'bytes は base64 の文字列で送ってください')
+      }
+      return fromBase64(v)
+    }, toBase64),
   json: (): Schema<unknown> => make((v) => v),
   null: (): Schema<null> => make((v, path) => (v === null ? null : fail(path, 'null ではありません'))),
 

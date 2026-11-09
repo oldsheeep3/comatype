@@ -113,7 +113,7 @@ string_scalar!(
         static R: OnceLock<regex::Regex> = OnceLock::new();
         re(&R, r"^(\d{4}-\d{2}-\d{2})[Tt]([01]\d|2[0-3]):[0-5]\d:([0-5]\d|60)(\.\d+)?([Zz]|[+-]([01]\d|2[0-3]):[0-5]\d)$")
             .captures(s)
-            .map_or(false, |c| date_ok(&c[1]))
+            .is_some_and(|c| date_ok(&c[1]))
     },
     "datetime は RFC 3339 の形式にしてください"
 );
@@ -125,7 +125,10 @@ string_scalar!(
 );
 string_scalar!(
     Url,
-    |s| { static R: OnceLock<regex::Regex> = OnceLock::new(); re(&R, r"^[A-Za-z][A-Za-z0-9+.-]*://[^\s/?#]+[^\s]*$").is_match(s) },
+    |s| {
+        static R: OnceLock<regex::Regex> = OnceLock::new();
+        re(&R, r"^[A-Za-z][A-Za-z0-9+.-]*://[^\s/?#]+[^\s]*$").is_match(s)
+    },
     "url は http(s)://host/... の形式にしてください"
 );
 
@@ -166,7 +169,7 @@ pub struct Bytes(pub Vec<u8>);
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 pub fn base64_encode(data: &[u8]) -> String {
-    let mut out = String::with_capacity((data.len() + 2) / 3 * 4);
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
     for chunk in data.chunks(3) {
         let n = (chunk[0] as u32) << 16 | (*chunk.get(1).unwrap_or(&0) as u32) << 8 | *chunk.get(2).unwrap_or(&0) as u32;
         out.push(B64[(n >> 18) as usize & 63] as char);

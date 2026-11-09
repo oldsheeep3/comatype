@@ -1,7 +1,7 @@
 // cookie: emitting Set-Cookie (server) and keeping received cookies (client)
 
-import type { ComatypeRegistry } from './index.ts'
 import { ComatypeError } from './errors.ts'
+import type { ComatypeRegistry } from './index.ts'
 
 /** `cookie <name> { ... }` from init.comat. Placed in the generated endpoint */
 export interface CookieDef {
@@ -28,9 +28,7 @@ export interface CookieOptions {
 export type CookieValue = string | ({ value: string } & CookieOptions) | null
 
 /** `s200({ data, cookie: { session: token } })`。The key is a cookie name declared in init.comat */
-export type CookieInit = ComatypeRegistry extends { cookies: infer N extends string }
-  ? { [K in N]?: CookieValue }
-  : {}
+export type CookieInit = ComatypeRegistry extends { cookies: infer N extends string } ? { [K in N]?: CookieValue } : {}
 
 const EPOCH = 'Thu, 01 Jan 1970 00:00:00 GMT'
 const BAD_ATTR = /[;\r\n]/
@@ -69,7 +67,10 @@ export function setCookieLines(def: CookieDef | undefined, cookie: Record<string
   const lines: string[] = []
   for (const [name, v] of Object.entries(cookie)) {
     if (v === undefined) continue
-    if (!def) throw new ComatypeError(`cookie ${name} を発行できません（このエンドポイントは cookie off、または init.comat に cookie の宣言がありません）`)
+    if (!def)
+      throw new ComatypeError(
+        `cookie ${name} を発行できません（このエンドポイントは cookie off、または init.comat に cookie の宣言がありません）`,
+      )
     if (name !== def.name) throw new ComatypeError(`cookie ${name} は init.comat に宣言されていません（${def.name}）`)
     lines.push(serializeSetCookie(def, v))
   }

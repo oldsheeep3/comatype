@@ -177,11 +177,8 @@ impl Parser {
         }
         let s = s.trim().to_string();
         let b: Vec<char> = s.chars().collect();
-        let s = if b.len() >= 2 && (b[0] == '"' || b[0] == '\'') && b[b.len() - 1] == b[0] {
-            b[1..b.len() - 1].iter().collect()
-        } else {
-            s
-        };
+        let s =
+            if b.len() >= 2 && (b[0] == '"' || b[0] == '\'') && b[b.len() - 1] == b[0] { b[1..b.len() - 1].iter().collect() } else { s };
         Ok(s)
     }
 
@@ -523,7 +520,7 @@ impl Parser {
         let open = self.span();
         self.bump(); // (
         self.ws();
-        let c = if self.peek().map_or(false, Self::is_ident_start) {
+        let c = if self.peek().is_some_and(Self::is_ident_start) {
             let (key, span) = self.ident()?;
             if key != "pattern" {
                 return self.err_at(span, format!("未知の制約 `{key}`（使えるのは `pattern`、または `最小..最大`）"));

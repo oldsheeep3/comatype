@@ -1,6 +1,6 @@
 // The <html> shell shared by both locales (each locale has its own root layout so that <html lang> is right in the static HTML).
 import type { ReactNode } from 'react'
-import { htmlLang, redirectScript, type Locale, ui } from '../lib/i18n'
+import { htmlLang, type Locale, redirectScript, ui } from '../lib/i18n'
 import { Header } from './Header'
 import { ShellProvider } from './Shell'
 import { themeScript } from './ThemeToggle'

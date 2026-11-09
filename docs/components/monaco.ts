@@ -1,8 +1,8 @@
 // Load the `.comat` grammar (the same TextMate grammar as the VS Code extension) into Monaco Editor.
 // Read the TextMate grammar with shiki and turn it into a Monaco tokenizer with @shikijs/monaco. Works in the browser only.
 import type * as Monaco from 'monaco-editor'
-import grammar from '../../editors/vscode/syntaxes/comat.tmLanguage.json'
 import languageConfig from '../../editors/vscode/language-configuration.json'
+import grammar from '../../editors/vscode/syntaxes/comat.tmLanguage.json'
 
 export const LIGHT_THEME = 'github-light'
 export const DARK_THEME = 'github-dark'

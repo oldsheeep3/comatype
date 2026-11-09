@@ -54,9 +54,7 @@ class Status:
             kwargs[cls._kind] = parse_json(cls._body, raw.body, cls._kind)
         if cls._headers is not None:
             hs: Headers = raw.headers
-            kwargs["headers"] = decode_strings(
-                cls._headers, lambda k: [hs[k]] if k in hs else None, split=True, prefix="headers"
-            )
+            kwargs["headers"] = decode_strings(cls._headers, lambda k: [hs[k]] if k in hs else None, split=True, prefix="headers")
         return cls(**kwargs)
 
 

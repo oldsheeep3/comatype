@@ -149,8 +149,8 @@ fn fmt_project() -> PathBuf {
     write_tree(&[
         ("types/U.comat", "U { name: string }\n"),
         ("comatfiles/init.comat", ""),
-        ("comatfiles/user/put_[id].comat", U),     // deprecated → recommended
-        ("comatfiles/user/get__id.comat", U),      // removed → recommended
+        ("comatfiles/user/put_[id].comat", U), // deprecated → recommended
+        ("comatfiles/user/get__id.comat", U),  // removed → recommended
         ("comatfiles/old/:uid/delete.comat", "params { uid: uuid }\ns204 none\n"), // removed directory name
         ("comatfiles/user/post_login.comat", "s204 none\n"), // nothing to fix
     ])
@@ -219,7 +219,10 @@ fn format_skips_risky_moves() {
     let (code, out, err) = format_cmd(&[dir.to_str().unwrap(), "--fix", "-y"]);
     assert_eq!(code, 0, "{err}");
     assert!(!out.contains("→"), "{out}");
-    assert!(err.contains("スキップ") && err.contains("path ./") && err.contains("すでにあります") && err.contains("defaults.comat"), "{err}");
+    assert!(
+        err.contains("スキップ") && err.contains("path ./") && err.contains("すでにあります") && err.contains("defaults.comat"),
+        "{err}"
+    );
     assert!(dir.join("user/get_[id].comat").exists() && dir.join("a/put_[id].comat").exists() && dir.join("b/get_[id].comat").exists());
 }
 

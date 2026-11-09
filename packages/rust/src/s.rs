@@ -38,6 +38,7 @@ impl<Ctx> Deref for WrapRequest<Ctx> {
 pub type Next<'a, Ctx> = &'a dyn Fn(WrapRequest<Ctx>) -> RawResponse;
 
 /// A wrapper implementation. It can rewrite both the request and the response.
+#[allow(clippy::type_complexity)]
 pub struct ComatypeWrap<Ctx>(pub Arc<dyn Fn(WrapRequest<Ctx>, Next<Ctx>) -> RawResponse + Send + Sync>);
 
 impl<Ctx> ComatypeWrap<Ctx> {
@@ -193,7 +194,8 @@ impl Server {
                     Ok(r) => r,
                     Err(Error::Validation(v)) => {
                         let mut out = RawResponse::new(400);
-                        out.body = serde_json::to_vec(&ErrorBody { code: "validation_error".into(), message: v.to_string(), path: v.path }).unwrap();
+                        out.body = serde_json::to_vec(&ErrorBody { code: "validation_error".into(), message: v.to_string(), path: v.path })
+                            .unwrap();
                         out.headers.set("Content-Type", "application/json");
                         return out;
                     }
@@ -228,7 +230,7 @@ impl Server {
                 }
                 None => want == got,
             });
-            if ok && best.as_ref().map_or(true, |(b, _)| r.statics > b.statics) {
+            if ok && best.as_ref().is_none_or(|(b, _)| r.statics > b.statics) {
                 best = Some((r, params));
             }
         }
@@ -345,7 +347,7 @@ impl Server {
             }
         }
         let mut body = Vec::new();
-        if headers.get("Transfer-Encoding").map_or(false, |v| v.eq_ignore_ascii_case("chunked")) {
+        if headers.get("Transfer-Encoding").is_some_and(|v| v.eq_ignore_ascii_case("chunked")) {
             loop {
                 let mut sz = String::new();
                 rd.read_line(&mut sz)?;

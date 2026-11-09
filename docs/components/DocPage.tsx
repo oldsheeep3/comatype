@@ -1,6 +1,6 @@
 // A Markdown page (server component), shared by the English and Japanese routes.
 import { notFound } from 'next/navigation'
-import { type Locale } from '../lib/i18n'
+import type { Locale } from '../lib/i18n'
 import { docExists, loadDoc } from '../lib/markdown'
 import { sidebarFor } from '../lib/site'
 import { PrevNext } from './PrevNext'

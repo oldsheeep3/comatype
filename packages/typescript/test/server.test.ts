@@ -1,15 +1,18 @@
-import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { createServer, defineEndpoint, defineStatus, t, ComatypeError, type ComatypeWrap } from '../src/index.ts'
+import { beforeEach, test } from 'node:test'
+import { ComatypeError, type ComatypeWrap, createClient, createServer, defineEndpoint, defineStatus, t } from '../src/index.ts'
 import { serve } from '../src/node.ts'
-import { createClient } from '../src/index.ts'
 
 const ID = '3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10'
 type User = { name: string; followers: bigint }
 const User = t.object<User>({ name: t.string(), followers: t.int64() })
 const ApiError = t.object<{ code: string }>({ code: t.string() })
 
-const s200 = defineStatus<any, { data?: any; error?: any; headers?: any }>(200, User, t.object({ 'X-Count': t.opt(t.int()), Allow: t.opt(t.array(t.string())) }))
+const s200 = defineStatus<any, { data?: any; error?: any; headers?: any }>(
+  200,
+  User,
+  t.object({ 'X-Count': t.opt(t.int()), Allow: t.opt(t.array(t.string())) }),
+)
 const s204 = defineStatus<any, { data?: any; error?: any; headers?: any }>(204, null)
 const s404 = defineStatus<any, { data?: any; error?: any; headers?: any }>(404, ApiError)
 const s401 = defineStatus<any, { data?: any; error?: any; headers?: any }>(401, ApiError)
@@ -91,7 +94,9 @@ test('検証エラーは 400', async () => {
     assert.equal(res.status, 400)
     assert.equal((await res.json()).code, 'validation_error')
   }
-  const res = await s.handle(new Request(`http://test/user/${ID}`, { method: 'PUT', body: '{oops', headers: { 'content-type': 'application/json' } }))
+  const res = await s.handle(
+    new Request(`http://test/user/${ID}`, { method: 'PUT', body: '{oops', headers: { 'content-type': 'application/json' } }),
+  )
   assert.equal(res.status, 400)
   assert.equal((await res.json()).code, 'invalid_json')
   assert.equal(called, false)

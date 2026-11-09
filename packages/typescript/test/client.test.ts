@@ -1,16 +1,16 @@
-import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
+import { after, before, beforeEach, test } from 'node:test'
 import {
+  ComatypeError,
+  type ComatypeWrap,
   c,
-  t,
   defineEndpoint,
   defineStatus,
-  ComatypeError,
+  t,
   UnexpectedStatusError,
   ValidationError,
-  type ComatypeWrap,
 } from '../src/index.ts'
 
 // ---- test server: records received requests and returns canned responses ----

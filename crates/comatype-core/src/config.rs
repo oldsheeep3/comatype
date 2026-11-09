@@ -58,10 +58,9 @@ pub const LANGS: &[&str] = &["ts", "go", "python", "rust", "java", "ruby", "kotl
 pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
     let file = if path.is_dir() { path.join("comatype.config.json") } else { path.to_path_buf() };
     let name = file.display().to_string();
-    let text = std::fs::read_to_string(&file)
-        .map_err(|e| vec![Diagnostic::error(&name, Span::default(), format!("読めません: {e}"))])?;
-    let cfg: Config = serde_json::from_str(&text)
-        .map_err(|e| vec![Diagnostic::error(&name, Span { line: e.line(), col: e.column() }, e.to_string())])?;
+    let text = std::fs::read_to_string(&file).map_err(|e| vec![Diagnostic::error(&name, Span::default(), format!("読めません: {e}"))])?;
+    let cfg: Config =
+        serde_json::from_str(&text).map_err(|e| vec![Diagnostic::error(&name, Span { line: e.line(), col: e.column() }, e.to_string())])?;
     let mut diags = Vec::new();
     let mut seen = std::collections::BTreeSet::new();
     for (i, a) in cfg.additional_status_codes.iter().enumerate() {
@@ -69,7 +68,11 @@ pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
         if !(100..=599).contains(&a.status) {
             diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} は 100〜599 にしてください", a.status)));
         } else if crate::status::builtin_message(a.status).is_some() {
-            diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} は標準で定義済みです（{}）", a.status, crate::status::builtin_message(a.status).unwrap())));
+            diags.push(Diagnostic::error(
+                &name,
+                Span::default(),
+                format!("{at}: status {} は標準で定義済みです（{}）", a.status, crate::status::builtin_message(a.status).unwrap()),
+            ));
         } else if !seen.insert(a.status) {
             diags.push(Diagnostic::error(&name, Span::default(), format!("{at}: status {} が重複しています", a.status)));
         }
