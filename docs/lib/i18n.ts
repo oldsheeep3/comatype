@@ -45,6 +45,13 @@ export interface Ui {
   dark: string
   language: string
   footer: string
+  close: string
+  footerTagline: string
+  footerDocs: string
+  footerLanguages: string
+  footerProject: string
+  backToTop: string
+  dartPlanned: string
   notFound: string
   notFoundBody: string
   backHome: string
@@ -80,7 +87,14 @@ export const ui: Record<Locale, Ui> = {
     light: 'Switch to light mode',
     dark: 'Switch to dark mode',
     language: 'Language',
-    footer: 'MIT License · Comatype',
+    footer: 'MIT License · © Comatype contributors',
+    close: 'Close',
+    footerTagline: 'Write an API once. Get types, validation, clients and servers.',
+    footerDocs: 'Docs',
+    footerLanguages: 'Languages',
+    footerProject: 'Project',
+    backToTop: 'Back to top ↑',
+    dartPlanned: 'Dart is planned.',
     notFound: 'Page not found',
     notFoundBody: 'The page you are looking for does not exist.',
     backHome: 'Back to the home page',
@@ -114,7 +128,14 @@ export const ui: Record<Locale, Ui> = {
     light: 'ライトモードにする',
     dark: 'ダークモードにする',
     language: '言語',
-    footer: 'MIT License · Comatype',
+    footer: 'MIT License · © Comatype contributors',
+    close: '閉じる',
+    footerTagline: 'API を 1 回だけ書いて、型・検証・クライアント・サーバを手に入れる。',
+    footerDocs: 'ドキュメント',
+    footerLanguages: '対応言語',
+    footerProject: 'プロジェクト',
+    backToTop: 'ページの先頭へ ↑',
+    dartPlanned: 'Dart は予定しています。',
     notFound: 'ページが見つかりません',
     notFoundBody: '探しているページは、ありません。',
     backHome: 'トップへ戻る',

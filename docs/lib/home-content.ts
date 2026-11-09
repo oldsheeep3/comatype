@@ -1,10 +1,12 @@
 // Content of the landing page (LP), in every locale.
 
+import type { HeroDemoText } from '../components/HeroDemo'
 import type { Locale } from './i18n'
 
 export interface HomeContent {
   eyebrow: string
   title: string
+  titleAccent: string
   tagline: string
   start: string
   playground: string
@@ -13,6 +15,7 @@ export interface HomeContent {
   languagesLabel: string
   exampleTitle: string
   exampleLead: string
+  demo: HeroDemoText
   tabComat: string
   tabClient: string
   tabServer: string
@@ -92,15 +95,28 @@ export const home: Record<Locale, HomeContent> = {
   en: {
     eyebrow: 'Schema-first API toolkit',
     title: 'Write your API types once.',
+    titleAccent: 'once.',
     tagline:
       'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, JavaScript, Go, Python, Rust, Java, Kotlin, Swift, Ruby and C#.',
     start: 'Get started',
     playground: 'Try the Playground',
     reference: 'Reference',
-    installLabel: 'Build the CLI',
+    installLabel: 'Install the CLI',
     languagesLabel: 'One definition, ten languages',
     exampleTitle: 'One definition. Client and server.',
     exampleLead: 'The same .comat file produces the request and response types on both sides of the wire.',
+    demo: {
+      file: 'user/put_[id].comat',
+      fileNote: 'the one file you write',
+      generate: 'comat generate',
+      langLabel: 'Language to generate',
+      pause: 'Pause',
+      play: 'Play',
+      tablistLabel: 'Generated client and server',
+      tabClient: 'Client',
+      tabServer: 'Server (TypeScript)',
+      note: 'The same .comat file produces the request and response types on both sides of the wire.',
+    },
     tabComat: 'user/put_[id].comat',
     tabClient: 'Client (TypeScript)',
     tabServer: 'Server (TypeScript)',
@@ -187,15 +203,28 @@ export const home: Record<Locale, HomeContent> = {
   'ja-jp': {
     eyebrow: 'スキーマファーストの API ツールキット',
     title: 'API の型を、1 回だけ書く。',
+    titleAccent: '1 回だけ書く。',
     tagline:
       'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・JavaScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby・C# の、型付きで検証つきのクライアントとサーバを生成します。',
     start: 'はじめる',
     playground: 'Playground を試す',
     reference: 'リファレンス',
-    installLabel: 'CLI をビルドする',
-    languagesLabel: '1 つの定義から、8 つの言語へ',
+    installLabel: 'CLI をインストールする',
+    languagesLabel: '1 つの定義から、10 の言語へ',
     exampleTitle: '1 つの定義から、クライアントもサーバも',
     exampleLead: '同じ .comat から、通信の両側のリクエスト・レスポンスの型ができます。',
+    demo: {
+      file: 'user/put_[id].comat',
+      fileNote: '書くのはこの 1 ファイルだけ',
+      generate: 'comat generate',
+      langLabel: '生成する言語',
+      pause: '一時停止',
+      play: '再生',
+      tablistLabel: '生成されたクライアントとサーバ',
+      tabClient: 'クライアント',
+      tabServer: 'サーバ（TypeScript）',
+      note: '同じ .comat から、通信の両側のリクエスト型とレスポンス型が生成されます。',
+    },
     tabComat: 'user/put_[id].comat',
     tabClient: 'クライアント（TypeScript）',
     tabServer: 'サーバ（TypeScript）',
@@ -256,7 +285,7 @@ export const home: Record<Locale, HomeContent> = {
         code: 'const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title',
       },
     ],
-    matrixTitle: '8 つの言語、クライアントもサーバも',
+    matrixTitle: '10 の言語、クライアントもサーバも',
     matrixLead: 'どの言語にも、生成器とランタイムと、生成したクライアントを生成したサーバに繋ぐ E2E テストがあります。',
     matrixHead: ['言語', 'クライアント', 'サーバ', 'ランタイム', 'パッケージ'],
     matrixNote: 'Dart は予定です。',

@@ -1,8 +1,9 @@
 // Landing page (LP), shared by both locales.
 import Link from 'next/link'
+import { langLogo } from '../lib/hero-snippets'
 import { home, languages, matrix } from '../lib/home-content'
 import { type Locale, withLocale } from '../lib/i18n'
-import { renderMarkdown } from '../lib/markdown'
+import { HeroDemo } from './HeroDemo'
 
 const TERMINAL = `── wrap: none ──
 GET /health
@@ -18,68 +19,65 @@ PUT /app/settings
 ── wrap: log > auth > tenant ──
 GET /app/tenant/projects`
 
-export async function Home({ locale }: { locale: Locale }) {
+const base = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh'
+
+export function Home({ locale }: { locale: Locale }) {
   const c = home[locale]
-  const example = await renderMarkdown(
-    `
-::: code-group
-
-<<< @/../usage/comatfiles/user/put_[id].comat [${c.tabComat}]
-
-<<< @/../usage/node_client/api.ts#put-user [${c.tabClient}]
-
-<<< @/../usage/node_server/user_put_id.ts [${c.tabServer}]
-
-:::
-`,
-    locale,
-  )
   const to = (p: string) => withLocale(locale, p)
   return (
     <main className="home lp">
-      <section className="hero">
-        <p className="eyebrow">{c.eyebrow}</p>
-        <h1>
-          <span className="gradient">{c.title}</span>
-        </h1>
-        <p className="hero-tagline">{c.tagline}</p>
-        <div className="hero-actions">
-          <Link href={to('/guide/getting-started/')} className="button brand">
-            {c.start}
-          </Link>
-          <Link href={to('/playground/')} className="button">
-            {c.playground}
-          </Link>
-          <Link href={to('/reference/cli/')} className="button">
-            {c.reference}
-          </Link>
+      <section className="lp-hero">
+        <div className="lp-hero-text">
+          <p className="eyebrow">{c.eyebrow}</p>
+          <h1>
+            {c.title.slice(0, c.title.length - c.titleAccent.length)}
+            <span>{c.titleAccent}</span>
+          </h1>
+          <p className="hero-tagline">{c.tagline}</p>
+          <div className="lp-actions">
+            <div className="lp-actions-row">
+              <Link href={to('/guide/getting-started/')} className="btn primary">
+                {c.start}
+              </Link>
+              <Link href={to('/playground/')} className="btn">
+                {c.playground}
+              </Link>
+            </div>
+            <Link href={to('/reference/cli/')} className="lp-ref">
+              {c.reference} →
+            </Link>
+          </div>
+          <div className="install">
+            <span>{c.installLabel}</span>
+            <code>$ {INSTALL}</code>
+          </div>
         </div>
-        <div className="install">
-          <span>{c.installLabel}</span>
-          <code>cargo install --path crates/comatype-cli</code>
-        </div>
-        <p className="lang-label">{c.languagesLabel}</p>
-        <ul className="lang-chips" aria-label={c.languagesLabel}>
-          {languages.map((l) => (
-            <li key={l}>{l}</li>
-          ))}
-        </ul>
+        <HeroDemo text={c.demo} />
       </section>
 
-      <section className="home-example">
-        <h2>{c.exampleTitle}</h2>
-        <p className="lead">{c.exampleLead}</p>
-        <div className="doc">{example.content}</div>
+      <section className="lang-strip" aria-label={c.languagesLabel}>
+        <div className="lang-strip-inner">
+          <span>{c.languagesLabel}</span>
+          <ul>
+            {languages.map((l) => (
+              <li key={l}>
+                <img className="lang-logo" src={`${base}/lang/${langLogo[l]}.svg`} alt="" width={22} height={22} />
+                {l}
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      <section className="lp-section">
+      <section className="lp-block" id="language">
         <h2>{c.featuresTitle}</h2>
-        <div className="features">
+        <div className="lp-features">
           {c.features.map((f) => (
-            <div key={f.title} className="feature">
-              <span className="feature-icon" aria-hidden>
+            <div key={f.title}>
+              <div className="lp-icon" aria-hidden>
                 {f.icon}
-              </span>
+              </div>
               <h3>{f.title}</h3>
               <p>{f.body}</p>
             </div>
@@ -87,40 +85,44 @@ export async function Home({ locale }: { locale: Locale }) {
         </div>
       </section>
 
-      <section className="lp-section">
+      <section className="lp-block" id="guide">
         <h2>{c.stepsTitle}</h2>
-        <ol className="steps">
+        <div className="lp-steps">
           {c.steps.map((s, i) => (
-            <li key={s.title}>
-              <span className="step-num">{i + 1}</span>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
+            <div key={s.title} className="lp-step">
+              <div className="lp-step-text">
+                <div className="lp-step-head">
+                  <span>{String(i + 1).padStart(2, '0')}</span>
+                  <h3>{s.title}</h3>
+                </div>
+                <p>{s.body}</p>
+              </div>
               <pre>
                 <code>{s.code}</code>
               </pre>
-            </li>
+            </div>
           ))}
-        </ol>
+        </div>
       </section>
 
-      <section className="lp-section">
+      <section className="lp-block" id="runtimes">
         <h2>{c.matrixTitle}</h2>
-        <p className="lead">{c.matrixLead}</p>
-        <div className="table-wrap">
+        <p className="lp-lead">{c.matrixLead}</p>
+        <div className="lp-table">
           <table className="matrix">
             <thead>
               <tr>
                 {c.matrixHead.map((h) => (
-                  <th key={h}>{h}</th>
+                  <th key={h} scope="col">
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {matrix.map((m) => (
                 <tr key={m.lang}>
-                  <td>
-                    <strong>{m.lang}</strong>
-                  </td>
+                  <th scope="row">{m.lang}</th>
                   <td className="yes">✓</td>
                   <td className="yes">✓</td>
                   <td>{m.deps[locale]}</td>
@@ -134,21 +136,26 @@ export async function Home({ locale }: { locale: Locale }) {
             </tbody>
           </table>
         </div>
-        <p className="muted center">{c.matrixNote}</p>
+        <p className="lp-note">{c.matrixNote}</p>
       </section>
 
-      <section className="lp-section tools">
-        <h2>{c.toolsTitle}</h2>
-        <p className="lead">{c.toolsLead}</p>
-        <div className="tools-grid">
-          <ul>
-            {c.tools.map((t) => (
-              <li key={t.cmd}>
-                <code>{t.cmd}</code>
-                <p>{t.body}</p>
-              </li>
-            ))}
-          </ul>
+      <section className="lp-block" id="reference">
+        <div className="lp-cli">
+          <div className="lp-cli-text">
+            <h2>{c.toolsTitle}</h2>
+            <p className="lp-lead">{c.toolsLead}</p>
+            <ul className="lp-tools">
+              {c.tools.map((t) => (
+                <li key={t.cmd}>
+                  <code>{t.cmd}</code>
+                  <p>{t.body}</p>
+                </li>
+              ))}
+            </ul>
+            <Link href={to('/reference/cli/')} className="lp-ref">
+              {c.reference} →
+            </Link>
+          </div>
           <div className="terminal" role="img" aria-label={c.terminalTitle}>
             <div className="terminal-bar">
               <i />
@@ -161,14 +168,14 @@ export async function Home({ locale }: { locale: Locale }) {
         </div>
       </section>
 
-      <section className="cta">
+      <section className="lp-cta">
         <h2>{c.ctaTitle}</h2>
         <p>{c.ctaBody}</p>
-        <div className="hero-actions">
-          <Link href={to('/guide/getting-started/')} className="button brand">
+        <div className="lp-actions-row">
+          <Link href={to('/guide/getting-started/')} className="btn inverse">
             {c.start}
           </Link>
-          <Link href={to('/playground/')} className="button">
+          <Link href={to('/playground/')} className="btn outline">
             {c.playground}
           </Link>
         </div>

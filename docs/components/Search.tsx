@@ -46,7 +46,12 @@ export function SearchButton() {
   return (
     <>
       <button type="button" className="search-button" onClick={() => setOpen(true)} aria-label={text.search}>
-        <span aria-hidden>⌕</span> {text.search} <kbd>⌘K</kbd>
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.6" stroke="currentColor" strokeWidth="1.5" />
+          <path d="m10.6 10.6 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        <span className="grow">{text.search}</span>
+        <kbd>⌘K</kbd>
       </button>
       {open && <SearchModal onClose={() => setOpen(false)} />}
     </>
