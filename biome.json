@@ -24,7 +24,8 @@
       "!**/dist",
       "!**/*.tmLanguage.json",
       "!editors/vscode/snippets",
-      "!editors/vscode/schemas"
+      "!editors/vscode/schemas",
+      "!packages/typescript/README.md"
     ]
   },
   "formatter": {
