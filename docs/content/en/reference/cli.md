@@ -37,16 +37,12 @@ comatype check --config usage --service api
 ```
 
 ```text
-[warn]  comatfiles/get_user.comat:5:1  path の明示は非推奨です（...）
-[info]  OK: エンドポイント 11 件、警告 3 件
+[warn]  comatfiles/get_user.comat:5:1  an explicit path is deprecated (let the directory and file name decide it)
+[info]  OK: 11 endpoint(s), 4 warning(s)
 ```
 
-::: info The messages are in Japanese
-The messages that the CLI prints (as in the sample above) are currently in Japanese. The format `[error|warn] file:line:column  message` is the same in any language.
-:::
-
 - It warns about places where mistakes are easy to make: a `wrap` that applies to an endpoint with `cache`, a `wrapper` that no endpoint uses, `cookie on` with no cookie declaration in init.comat, and so on.
-- A diagnostic is `[error|warn] file:line:column  message` (the file is relative to the directory that has the config file). On a terminal, the tag is colored (`[error]` red, `[warn]` yellow, `[info]` cyan) and the location is bold, underlined cyan. `--color` forces it, and `--no-color` and `NO_COLOR` turn it off.
+- A diagnostic is `[error|warn|info] file:line:column  message` (the file is relative to the directory that has the config file). On a terminal, the tag is colored (`[error]` red, `[warn]` yellow, `[info]` cyan) and the location is bold, underlined cyan. `--color` forces it, and `--no-color` and `NO_COLOR` turn it off.
 - It checks syntax, type resolution, matching `path` against `params`, duplicate routes, `wrap` declarations, status codes, cookie settings, headers and more.
 
 ### Narrowing by topic (`check <topic>`)
@@ -100,10 +96,11 @@ comatype format .                     # in a directory with comatype.config.json
 ```
 
 ```text
-user/put_[id].comat  →  user/[id]/put.comat
-    ファイル名 `put_[id].comat` の `[id]` は非推奨（→ `[id]/put.comat`）
-old/:uid/delete.comat  →  old/[uid]/delete.comat
-    ディレクトリ名 `:uid` は廃止（→ `[uid]`）
+old/:uid/delete.comat  ->  old/[uid]/delete.comat
+    directory name `:uid` is removed (-> `[uid]`)
+user/put_[id].comat  ->  user/[id]/put.comat
+    `[id]` in file name `put_[id].comat` is deprecated (-> `[id]/put.comat`)
+[info]  comatfiles: 2 item(s) can be fixed. Run `comatype format comatfiles --fix` (add `-y` to apply all without asking)
 ```
 
 | What it fixes | After |

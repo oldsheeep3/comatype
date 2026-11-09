@@ -37,12 +37,14 @@ comatype check --config usage --service api
 ```
 
 ```text
-[warn]  comatfiles/get_user.comat:5:1  path の明示は非推奨です（...）
-[info]  OK: エンドポイント 11 件、警告 3 件
+[warn]  comatfiles/get_user.comat:5:1  an explicit path is deprecated (let the directory and file name decide it)
+[info]  OK: 11 endpoint(s), 4 warning(s)
 ```
 
+CLI のメッセージは英語です（ASCII のみ）。形式 `[error|warn|info] ファイル:行:桁  メッセージ` は、どの環境でも同じです。
+
 - 設定ミスになりやすいところは、警告を出します: `cache` を書いたエンドポイントに `wrap` が効いている / どのエンドポイントでも使われていない `wrapper` / `cookie on` なのに init.comat に cookie の宣言が無い、など。
-- 診断は `[error|warn] ファイル:行:桁  メッセージ`（ファイルは設定ファイルのあるディレクトリからの相対）。端末では、タグ（`[error]` は赤、`[warn]` は黄、`[info]` は水色）と、場所（太字・下線の水色）に色が付きます。`--color` で強制、`--no-color` と `NO_COLOR` で無効です。
+- 診断は `[error|warn|info] ファイル:行:桁  メッセージ`（ファイルは設定ファイルのあるディレクトリからの相対）。端末では、タグ（`[error]` は赤、`[warn]` は黄、`[info]` は水色）と、場所（太字・下線の水色）に色が付きます。`--color` で強制、`--no-color` と `NO_COLOR` で無効です。
 - 検査するのは、構文、型の解決、`path` と `params` の突き合わせ、ルートの重複、`wrap` の宣言、ステータスコード、cookie の設定、ヘッダなど。
 
 ### 分野で絞る（`check <分野>`）
@@ -96,10 +98,11 @@ comatype format .                     # comatype.config.json のあるディレ�
 ```
 
 ```text
-user/put_[id].comat  →  user/[id]/put.comat
-    ファイル名 `put_[id].comat` の `[id]` は非推奨（→ `[id]/put.comat`）
-old/:uid/delete.comat  →  old/[uid]/delete.comat
-    ディレクトリ名 `:uid` は廃止（→ `[uid]`）
+old/:uid/delete.comat  ->  old/[uid]/delete.comat
+    directory name `:uid` is removed (-> `[uid]`)
+user/put_[id].comat  ->  user/[id]/put.comat
+    `[id]` in file name `put_[id].comat` is deprecated (-> `[id]/put.comat`)
+[info]  comatfiles: 2 item(s) can be fixed. Run `comatype format comatfiles --fix` (add `-y` to apply all without asking)
 ```
 
 | 直すもの | 直した後 |
