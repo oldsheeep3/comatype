@@ -1,7 +1,7 @@
 name: Release
 
 # Runs when develop (or hotfix) is merged into main. The version comes from the VERSION file:
-# bump it in the merge. Each registry step is skipped when that version is already published,
+# bump it in the merge. Maven Central is released automatically after validation. Each registry step is skipped when that version is already published,
 # so the workflow can be re-run safely (workflow_dispatch).
 on:
   push:
