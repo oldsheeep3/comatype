@@ -13,13 +13,13 @@
     "gen:status": "node scripts/gen-status.mjs"
   },
   "dependencies": {
-    "@shikijs/monaco": "^2.5.0",
-    "@shikijs/rehype": "^2.5.0",
+    "@shikijs/monaco": "^4.6.0",
+    "@shikijs/rehype": "^4.6.0",
     "github-slugger": "^2.0.0",
     "hast-util-to-string": "^3.0.1",
     "mdast-util-to-string": "^4.0.0",
     "minisearch": "^7.2.0",
-    "monaco-editor": "^0.52.2",
+    "monaco-editor": "^0.57.0",
     "next": "^16.4.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -35,8 +35,8 @@
     "unist-util-visit": "^5.2.0"
   },
   "devDependencies": {
-    "@types/mdast": "^4.0.4",
     "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^26",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
