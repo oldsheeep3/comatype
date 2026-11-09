@@ -234,24 +234,7 @@ jobs:
         run: cargo build --release -p comatype-cli --target ${{ matrix.target }}
       - name: Package
         shell: bash
-        run: |
-          set -euo pipefail
-          out="target/${{ matrix.target }}/release"
-          ext=""
-          [[ "${{ matrix.target }}" == *windows* ]] && ext=".exe"
-          mkdir -p dist/stage
-          cp "$out/comatype$ext" "dist/stage/comatype$ext"
-          cp "$out/comat$ext" "dist/stage/comat$ext"
-          cp LICENSE dist/stage/
-          archive="comatype-${{ matrix.target }}"
-          if [ -n "$ext" ]; then
-            (cd dist/stage && 7z a -tzip "../$archive.zip" . >/dev/null)
-          else
-            tar -C dist/stage -czf "dist/$archive.tar.gz" .
-          fi
-          cp "$out/comatype$ext" "dist/comatype-bin-${{ matrix.vscode }}$ext"
-          rm -rf dist/stage
-          ls -la dist
+        run: ./scripts/package-cli.sh ${{ matrix.target }} ${{ matrix.vscode }}
       - uses: actions/upload-artifact@v4
         with:
           name: cli-${{ matrix.target }}
