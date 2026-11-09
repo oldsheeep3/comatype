@@ -1,0 +1,65 @@
+// 自動生成: comatype generate が作ったファイルです。手で編集しないでください
+import { t, defineStatus, defineEndpoint, type Schema, type StatusFn, type Endpoint } from '@comatype/typescript'
+import { Todo } from './types'
+
+export type Body = {
+  title: string;
+}
+export const Body: Schema<Body> = t.object({
+  title: t.string({ min: 1, max: 100 }),
+})
+
+export type Request = { body: Body }
+
+export type S200 = { status: 200; data: Todo }
+export const s200: StatusFn<S200, { data: Todo }> = defineStatus(200, t.lazy(() => Todo), null)
+export declare namespace s200 {
+  type Res = Todo
+}
+
+export type S400 = { status: 400; error: {
+    message: string;
+  } }
+export const s400: StatusFn<S400, { error: {
+    message: string;
+  } }> = defineStatus(400, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s400 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type Response = S200 | S400
+
+export type Ctx = {}
+
+export const endpoint: Endpoint<Request, Response, Ctx, "post"> = defineEndpoint({
+  method: "post",
+  path: "/todo",
+  module: "post_todo",
+  baseUrl: "http://localhost:3000",
+  wraps: [],
+  cookie: false,
+  params: null,
+  search: null,
+  body: Body,
+  requestHeaders: null,
+  responses: [s200, s400],
+})
+/** Same value as `endpoint` (callers import it as `path`) */
+export const path = endpoint
+
+const _ep = { path, endpoint, s200, s400 }
+type _Request = Request
+type _Response = Response
+type _Ctx = Ctx
+type _Body = Body
+declare namespace _ep {
+  export type Request = _Request
+  export type Response = _Response
+  export type Ctx = _Ctx
+  export type Body = _Body
+}
+export default _ep

@@ -1,0 +1,5 @@
+Todo {
+    id: uuidv4,
+    title: string,
+    done: bool,
+}

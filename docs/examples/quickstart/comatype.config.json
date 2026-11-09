@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../schema/comatype.config.schema.json",
+  "services": {
+    "api": {
+      "comatDir": "./comatfiles",
+      "targets": [
+        { "lang": "ts", "role": "client", "root": "./client" },
+        { "lang": "ts", "role": "server", "root": "./server" }
+      ]
+    }
+  }
+}

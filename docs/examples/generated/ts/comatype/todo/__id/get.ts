@@ -1,0 +1,65 @@
+// 自動生成: comatype generate が作ったファイルです。手で編集しないでください
+import { t, defineStatus, defineEndpoint, type Schema, type StatusFn, type Endpoint, type Uuidv4 } from '@comatype/typescript'
+import { Todo } from '../../types'
+
+export type Params = {
+  id: Uuidv4;
+}
+export const Params: Schema<Params> = t.object({
+  id: t.uuidv4(),
+})
+
+export type Request = { params: Params }
+
+export type S200 = { status: 200; data: Todo }
+export const s200: StatusFn<S200, { data: Todo }> = defineStatus(200, t.lazy(() => Todo), null)
+export declare namespace s200 {
+  type Res = Todo
+}
+
+export type S404 = { status: 404; error: {
+    message: string;
+  } }
+export const s404: StatusFn<S404, { error: {
+    message: string;
+  } }> = defineStatus(404, t.object({
+  message: t.string(),
+}), null)
+export declare namespace s404 {
+  type Res = {
+    message: string;
+  }
+}
+
+export type Response = S200 | S404
+
+export type Ctx = {}
+
+export const endpoint: Endpoint<Request, Response, Ctx, "get"> = defineEndpoint({
+  method: "get",
+  path: "/todo/:id",
+  module: "todo/__id/get",
+  baseUrl: "http://localhost:3000",
+  wraps: [],
+  cookie: false,
+  params: Params,
+  search: null,
+  body: null,
+  requestHeaders: null,
+  responses: [s200, s404],
+})
+/** Same value as `endpoint` (callers import it as `path`) */
+export const path = endpoint
+
+const _ep = { path, endpoint, s200, s404 }
+type _Request = Request
+type _Response = Response
+type _Ctx = Ctx
+type _Params = Params
+declare namespace _ep {
+  export type Request = _Request
+  export type Response = _Response
+  export type Ctx = _Ctx
+  export type Params = _Params
+}
+export default _ep

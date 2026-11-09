@@ -1,0 +1,51 @@
+{
+  "$schema": "../../../schema/comatype.config.schema.json",
+  "services": {
+    "api": {
+      "comatDir": "../quickstart/comatfiles",
+      "targets": [
+        {
+          "lang": "ts",
+          "role": "client",
+          "root": "./ts"
+        },
+        {
+          "lang": "go",
+          "role": "client",
+          "root": "./go",
+          "importPath": "example.com/app/comatype"
+        },
+        {
+          "lang": "python",
+          "role": "client",
+          "root": "./python"
+        },
+        {
+          "lang": "rust",
+          "role": "client",
+          "root": "./rust"
+        },
+        {
+          "lang": "java",
+          "role": "client",
+          "root": "./java"
+        },
+        {
+          "lang": "kotlin",
+          "role": "client",
+          "root": "./kotlin"
+        },
+        {
+          "lang": "swift",
+          "role": "client",
+          "root": "./swift"
+        },
+        {
+          "lang": "ruby",
+          "role": "client",
+          "root": "./ruby"
+        }
+      ]
+    }
+  }
+}
