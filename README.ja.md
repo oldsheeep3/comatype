@@ -7,6 +7,9 @@
 
 [English](README.md) | 日本語
 
+> [!NOTE]
+> Comatype は現在 **ベータ版**（0.0.x）です。言語・CLI・生成コードは、互換性のない形で変わることがあります。
+
 累計ダウンロード数:
 
 [![npm](https://img.shields.io/npm/dt/@comatype/typescript?label=npm&logo=npm)](https://www.npmjs.com/package/@comatype/typescript)
@@ -39,7 +42,9 @@ s404 ApiError
 
 ## 対応言語
 
-TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ client と server）。生成した client を、生成した server に繋ぐ E2E を、全言語でテストしています。
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Go](https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white) ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white) ![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white) ![Ruby](https://img.shields.io/badge/Ruby-CC342D?logo=ruby&logoColor=white) ![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white) ![Dart: planned](https://img.shields.io/badge/Dart-planned-lightgrey?logo=dart&logoColor=white)
+
+TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ client と server。Dart は予定）。生成した client を、生成した server に繋ぐ E2E を、全言語でテストしています。
 
 | 言語 | ランタイムのパッケージ | 状態 |
 |---|---|---|
