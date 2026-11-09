@@ -13,7 +13,7 @@ comatype <command> [options]
 | `check [topic]` | Check the `.comat` files. Exit code 1 if there are errors. You can narrow by topic, as in `check cache` |
 | `format [dir]` | Rewrite directory and file names to the recommended notation (by default it only suggests; `--fix` rewrites) |
 | `endpoints` | List endpoints as `GET /path` (colored per wrap; `-a` adds types and more, `-g` separates by wrap) |
-| `generate` | Generate code according to `targets` (ts / go / python / rust / java / kotlin / swift / ruby) |
+| `generate` | Generate code according to `targets` (ts / js / go / python / rust / java / kotlin / swift / ruby / csharp) |
 | `ir` | Check and print the IR (language-independent JSON) |
 | `parse <file>` | Parse one file and print the AST (JSON) |
 | `to-openapi` | Make OpenAPI 3 (YAML / JSON) from `.comat` |
@@ -124,7 +124,7 @@ comatype generate --dry-run              # write nothing, only show the destinat
 
 | Option | Meaning |
 |---|---|
-| `--lang <language>` | Narrow to `ts` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` |
+| `--lang <language>` | Narrow to `ts` / `js` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` / `csharp` |
 | `--role <role>` | Narrow to `client` / `server` |
 | `--dry-run` | Do not write files |
 

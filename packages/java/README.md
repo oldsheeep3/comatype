@@ -1,10 +1,17 @@
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
 # comatype for Java
 
 Comatype runtime for Java 21+: records, sealed responses, an HTTP client on `java.net.http` and a server on the JDK. No external dependencies.
 
 [Maven Central](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **Java** runtime that the generated code depends on.
 
 ## How to use

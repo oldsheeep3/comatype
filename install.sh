@@ -2,7 +2,7 @@
 # Installs the comatype CLI (and its short alias `comat`) from a GitHub release. No Rust toolchain needed.
 #
 #   curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh -s -- v0.0.3   # a version
+#   curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh -s -- v0.0.4   # a version
 #
 # COMATYPE_INSTALL_DIR  where to put the binaries (default: ~/.local/bin)
 # COMATYPE_RELEASE_BASE override the download base URL (for mirrors and tests)

@@ -1,10 +1,17 @@
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
 # comatype for Rust
 
 Comatype runtime for Rust: a blocking client `comatype::c` (ureq) and a small server `comatype::s`, with serde types.
 
 [crates.io](https://crates.io/crates/comatype) · [docs.rs](https://docs.rs/comatype) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **Rust** runtime that the generated code depends on.
 
 ## How to use

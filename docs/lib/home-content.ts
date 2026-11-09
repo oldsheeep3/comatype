@@ -1,10 +1,12 @@
 // Content of the landing page (LP), in every locale.
 
+import type { HeroDemoText } from '../components/HeroDemo'
 import type { Locale } from './i18n'
 
 export interface HomeContent {
   eyebrow: string
   title: string
+  titleAccent: string
   tagline: string
   start: string
   playground: string
@@ -13,6 +15,7 @@ export interface HomeContent {
   languagesLabel: string
   exampleTitle: string
   exampleLead: string
+  demo: HeroDemoText
   tabComat: string
   tabClient: string
   tabServer: string
@@ -32,7 +35,7 @@ export interface HomeContent {
   ctaBody: string
 }
 
-export const languages = ['TypeScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby'] as const
+export const languages = ['TypeScript', 'JavaScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby', 'C#'] as const
 
 /** Runtime facts per language: [language, client / server, runtime dependency in English, in Japanese]. */
 export const matrix: { lang: string; deps: Record<Locale, string>; registry: { name: string; url: string } }[] = [
@@ -40,6 +43,11 @@ export const matrix: { lang: string; deps: Record<Locale, string>; registry: { n
     lang: 'TypeScript',
     deps: { en: 'Fetch API (Node, Bun, Deno, Workers)', 'ja-jp': 'Fetch API（Node・Bun・Deno・Workers）' },
     registry: { name: 'npm', url: 'https://www.npmjs.com/package/@comatype/typescript' },
+  },
+  {
+    lang: 'JavaScript',
+    deps: { en: 'Fetch API (Node, Bun, Deno, Workers); .js plus .d.ts', 'ja-jp': 'Fetch API（Node・Bun・Deno・Workers）。.js と .d.ts' },
+    registry: { name: 'npm', url: 'https://www.npmjs.com/package/@comatype/javascript' },
   },
   {
     lang: 'Go',
@@ -76,21 +84,39 @@ export const matrix: { lang: string; deps: Record<Locale, string>; registry: { n
     deps: { en: 'Standard library only (Rack compatible)', 'ja-jp': '標準ライブラリのみ（Rack 互換）' },
     registry: { name: 'RubyGems', url: 'https://rubygems.org/gems/comatype' },
   },
+  {
+    lang: 'C#',
+    deps: { en: 'No dependencies (.NET 8+, async/await)', 'ja-jp': '依存なし（.NET 8 以上。async/await）' },
+    registry: { name: 'NuGet', url: 'https://www.nuget.org/packages/Comatype' },
+  },
 ]
 
 export const home: Record<Locale, HomeContent> = {
   en: {
     eyebrow: 'Schema-first API toolkit',
     title: 'Write your API types once.',
+    titleAccent: 'once.',
     tagline:
-      'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby.',
+      'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, JavaScript, Go, Python, Rust, Java, Kotlin, Swift, Ruby and C#.',
     start: 'Get started',
     playground: 'Try the Playground',
     reference: 'Reference',
-    installLabel: 'Build the CLI',
-    languagesLabel: 'One definition, eight languages',
+    installLabel: 'Install the CLI',
+    languagesLabel: 'One definition, ten languages',
     exampleTitle: 'One definition. Client and server.',
     exampleLead: 'The same .comat file produces the request and response types on both sides of the wire.',
+    demo: {
+      file: 'user/put_[id].comat',
+      fileNote: 'the one file you write',
+      generate: 'comat generate',
+      langLabel: 'Language to generate',
+      pause: 'Pause',
+      play: 'Play',
+      tablistLabel: 'Generated client and server',
+      tabClient: 'Client',
+      tabServer: 'Server (TypeScript)',
+      note: 'The same .comat file produces the request and response types on both sides of the wire.',
+    },
     tabComat: 'user/put_[id].comat',
     tabClient: 'Client (TypeScript)',
     tabServer: 'Server (TypeScript)',
@@ -151,7 +177,7 @@ export const home: Record<Locale, HomeContent> = {
         code: 'const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title',
       },
     ],
-    matrixTitle: 'Eight languages, client and server',
+    matrixTitle: 'Ten languages, client and server',
     matrixLead:
       'Every language has a generator, a runtime and an end-to-end test that connects the generated client to the generated server.',
     matrixHead: ['Language', 'Client', 'Server', 'Runtime', 'Package'],
@@ -177,15 +203,28 @@ export const home: Record<Locale, HomeContent> = {
   'ja-jp': {
     eyebrow: 'スキーマファーストの API ツールキット',
     title: 'API の型を、1 回だけ書く。',
+    titleAccent: '1 回だけ書く。',
     tagline:
-      'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby の、型付きで検証つきのクライアントとサーバを生成します。',
+      'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・JavaScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby・C# の、型付きで検証つきのクライアントとサーバを生成します。',
     start: 'はじめる',
     playground: 'Playground を試す',
     reference: 'リファレンス',
-    installLabel: 'CLI をビルドする',
-    languagesLabel: '1 つの定義から、8 つの言語へ',
+    installLabel: 'CLI をインストールする',
+    languagesLabel: '1 つの定義から、10 の言語へ',
     exampleTitle: '1 つの定義から、クライアントもサーバも',
     exampleLead: '同じ .comat から、通信の両側のリクエスト・レスポンスの型ができます。',
+    demo: {
+      file: 'user/put_[id].comat',
+      fileNote: '書くのはこの 1 ファイルだけ',
+      generate: 'comat generate',
+      langLabel: '生成する言語',
+      pause: '一時停止',
+      play: '再生',
+      tablistLabel: '生成されたクライアントとサーバ',
+      tabClient: 'クライアント',
+      tabServer: 'サーバ（TypeScript）',
+      note: '同じ .comat から、通信の両側のリクエスト型とレスポンス型が生成されます。',
+    },
     tabComat: 'user/put_[id].comat',
     tabClient: 'クライアント（TypeScript）',
     tabServer: 'サーバ（TypeScript）',
@@ -246,7 +285,7 @@ export const home: Record<Locale, HomeContent> = {
         code: 'const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title',
       },
     ],
-    matrixTitle: '8 つの言語、クライアントもサーバも',
+    matrixTitle: '10 の言語、クライアントもサーバも',
     matrixLead: 'どの言語にも、生成器とランタイムと、生成したクライアントを生成したサーバに繋ぐ E2E テストがあります。',
     matrixHead: ['言語', 'クライアント', 'サーバ', 'ランタイム', 'パッケージ'],
     matrixNote: 'Dart は予定です。',

@@ -13,7 +13,7 @@ comatype <コマンド> [オプション]
 | `check [分野]` | `.comat` を検査する。エラーがあれば終了コード 1。`check cache` のように、分野で絞れる |
 | `format [dir]` | ディレクトリ・ファイル名を、推奨の書き方に直す（既定は提案だけ。`--fix` で直す） |
 | `endpoints` | エンドポイントを `GET /path` の形で列挙する（wrap ごとに色分け。`-a` で型なども、`-g` で wrap ごとに区切る） |
-| `generate` | `targets` に従ってコードを生成する（ts / go / python / rust / java / kotlin / swift / ruby） |
+| `generate` | `targets` に従ってコードを生成する（ts / js / go / python / rust / java / kotlin / swift / ruby / csharp） |
 | `ir` | 検査して IR（言語に依存しない JSON）を出力する |
 | `parse <file>` | 1 ファイルを構文解析して AST（JSON）を出力する |
 | `to-openapi` | `.comat` から OpenAPI 3（YAML / JSON）を作る |
@@ -126,7 +126,7 @@ comatype generate --dry-run              # 書かずに、出力先だけ表示�
 
 | オプション | 内容 |
 |---|---|
-| `--lang <言語>` | `ts` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` に絞る |
+| `--lang <言語>` | `ts` / `js` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` / `csharp` に絞る |
 | `--role <役割>` | `client` / `server` に絞る |
 | `--dry-run` | ファイルを書かない |
 

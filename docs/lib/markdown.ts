@@ -91,6 +91,8 @@ const EXT_LANG: Record<string, string> = {
   rb: 'ruby',
   kt: 'kotlin',
   swift: 'swift',
+  cs: 'csharp',
+  mjs: 'js',
 }
 
 /** From `// #region name` to `// #endregion name` (the heading lines are not included) */
@@ -250,6 +252,7 @@ const LANGS = [
   'kotlin',
   'swift',
   'ruby',
+  'csharp',
 ] as unknown as BundledLanguage[]
 
 let processorPromise: Promise<ReturnType<typeof buildProcessor>> | undefined

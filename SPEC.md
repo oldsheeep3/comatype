@@ -13,7 +13,7 @@ Comatype は、`.comat` ファイルで API の型を 1 回だけ書き、各言
 - パーサは 1 つだけ作り、Rust 製の単一バイナリ `comatype` として配布する（各言語の環境に依存しない）。各言語に実装しない。パーサは `comatype-core` クレートにまとめ、CLI・LSP・WASM から共通で使う。
 - `comatype generate --lang <言語>` で、型・検証・`endpoint` などを生成する。
 - 各言語には薄いランタイム（`c` = クライアント、`s` = サーバ）を用意する。
-- 対象言語: TS / Go / Python / Rust / Java / Kotlin / Swift / Ruby（client + server。実装済み）、Dart（未実装）。
+- 対象言語: TS / JS / Go / Python / Rust / Java / Kotlin / Swift / Ruby / C#（client + server。実装済み）、Dart（未実装）。
 
 ## 2. ファイル構成
 
@@ -54,13 +54,14 @@ Comatype は、`.comat` ファイルで API の型を 1 回だけ書き、各言
 
 | 言語 | 既定のディレクトリ |
 |---|---|
-| TS | `comatype` |
+| TS / JS | `comatype` |
 | Go | `comatype` |
 | Python / Ruby | `comatype_gen` |
 | Rust | `src/comatype_gen` |
 | Java | `src/main/java/comatype/gen` |
 | Kotlin | `src/main/kotlin/comatype/gen` |
 | Swift | `Sources/ComatypeGen` |
+| C# | `ComatypeGen` |
 | Dart | `lib/comatype_gen` |
 
 - 同じ `root` に、同じ言語の複数の service がある場合は、`<既定>/<service>` になる。
@@ -303,20 +304,20 @@ s200 none, { Allow: string[] }            // このステータスのレスポ�
 
 「独自型」と書いた箇所は、その言語に適した標準型が無いことを示す。標準型を使う場合も、検証（バージョン、形式）はランタイムが行う。
 
-| 型 | TS | Go | Python | Rust | Java | Kotlin | Swift |
-|---|---|---|---|---|---|---|---|
-| `int` | `number` | `int` | `int` | `i64` | `long` | `Long` | `Int` |
-| `uuid` / `uuidv4` / `uuidv7` | 独自型 | 独自型 | `uuid.UUID` | 独自型 | `java.util.UUID` | `java.util.UUID` | `UUID` |
-| `date` | 独自型 | 独自型 | `datetime.date` | 独自型 | `LocalDate` | `LocalDate` | 独自型 |
-| `datetime` | 独自型 | `time.Time` | `datetime.datetime` | 独自型 | `Instant` | `Instant` | `Date` |
-| `time` | 独自型 | 独自型 | `datetime.time` | 独自型 | `LocalTime` | `LocalTime` | 独自型 |
-| `int64` | `bigint` | `int64` | `int` | 独自型（`Int64`） | `long` | `Long` | `Int64` |
-| `decimal` | 独自型 | 独自型 | `decimal.Decimal` | 独自型 | `BigDecimal` | `BigDecimal` | `Decimal` |
-| `url` | `URL` | `net/url.URL` | 独自型 | 独自型 | `URI` | `URI` | `URL` |
-| `bytes` | `Uint8Array` | `[]byte` | `bytes` | 独自型（`Bytes`） | `byte[]` | `ByteArray` | `Data` |
-| `json` | `unknown` | `json.RawMessage` | `Any` | `serde_json::Value` | `Object` | `Any` | `JSON`（ランタイムの enum） |
+| 型 | TS | Go | Python | Rust | Java | Kotlin | Swift | C# |
+|---|---|---|---|---|---|---|---|---|
+| `int` | `number` | `int` | `int` | `i64` | `long` | `Long` | `Int` | `long` |
+| `uuid` / `uuidv4` / `uuidv7` | 独自型 | 独自型 | `uuid.UUID` | 独自型 | `java.util.UUID` | `java.util.UUID` | `UUID` | `Guid` |
+| `date` | 独自型 | 独自型 | `datetime.date` | 独自型 | `LocalDate` | `LocalDate` | 独自型 | `DateOnly` |
+| `datetime` | 独自型 | `time.Time` | `datetime.datetime` | 独自型 | `Instant` | `Instant` | `Date` | `DateTimeOffset` |
+| `time` | 独自型 | 独自型 | `datetime.time` | 独自型 | `LocalTime` | `LocalTime` | 独自型 | `TimeOnly` |
+| `int64` | `bigint` | `int64` | `int` | 独自型（`Int64`） | `long` | `Long` | `Int64` | `long` |
+| `decimal` | 独自型 | 独自型 | `decimal.Decimal` | 独自型 | `BigDecimal` | `BigDecimal` | `Decimal` | `decimal` |
+| `url` | `URL` | `net/url.URL` | 独自型 | 独自型 | `URI` | `URI` | `URL` | `Uri` |
+| `bytes` | `Uint8Array` | `[]byte` | `bytes` | 独自型（`Bytes`） | `byte[]` | `ByteArray` | `Data` | `byte[]` |
+| `json` | `unknown` | `json.RawMessage` | `Any` | `serde_json::Value` | `Object` | `Any` | `JSON`（ランタイムの enum） | `object?` |
 
-Java / Kotlin の日時は `java.time`（標準ライブラリ）を使う。Dart は、生成器が未実装。Ruby は動的な言語なので、型は記述として生成し、変換と検証はランタイムが行う（`date` は `Date`、`datetime` は `Time`、`decimal` は `BigDecimal`、`url` は `URI`、`bytes` は `String`）。
+Java / Kotlin の日時は `java.time`（標準ライブラリ）を使う。C# の `decimal` は 28 桁までで、それを超える値は検証エラーになる。Dart は、生成器が未実装。Ruby は動的な言語なので、型は記述として生成し、変換と検証はランタイムが行う（`date` は `Date`、`datetime` は `Time`、`decimal` は `BigDecimal`、`url` は `URI`、`bytes` は `String`）。
 
 `email` と `phone` は、全言語で独自型（文字列）。
 
@@ -337,7 +338,7 @@ enum Role { admin, member, guest }       // 名前付き。通信上は文字列
 status: "active" | "banned"              // その場で書く
 ```
 
-- 各言語: TS はリテラルのユニオン、Go は文字列型＋定数、Python は `Enum` / `Literal`、Rust / Java / Kotlin / Swift は enum。
+- 各言語: TS はリテラルのユニオン、Go は文字列型＋定数、Python は `Enum` / `Literal`、Rust / Java / Kotlin / Swift / C# は enum（C# は `[WireName("...")]` を付けた `enum`）。
 
 ### 4.4 制約
 
@@ -356,7 +357,7 @@ zip: string(pattern: "^[0-9]{3}-[0-9]{4}$")
 
 `.comat` ごとに 1 つのモジュールを作る。名前は、ディレクトリとファイル名の単語をつないだもの（`__` は動的パスの印なので取り除く）。
 
-| `.comat` | PascalCase（Java / Kotlin / Swift / Ruby） | snake_case（Go / Python / Rust / Dart のパッケージ・モジュール・別名） | TS の import 先 |
+| `.comat` | PascalCase（Java / Kotlin / Swift / Ruby / C#） | snake_case（Go / Python / Rust / Dart のパッケージ・モジュール・別名） | TS の import 先 |
 |---|---|---|---|
 | `post_user.comat` | `PostUser` | `post_user` | `@/comatype/post_user` |
 | `user/get.comat` | `UserGet` | `user_get` | `@/comatype/user/get` |
@@ -525,7 +526,7 @@ s.init({ wrappers: { auth } })
 | ステータスコードの登録表 | `crates/comatype-core/src/status.rs` | 済。標準の 62 コード + 設定の `additionalStatusCodes`。未登録のコードはエラー。`comatype statuses` |
 | OpenAPI（`to-openapi` / `from-openapi`） | `crates/comatype-openapi` | 済。OpenAPI 3.0.3 の書き出しと取り込み（取り込みから続けてコード生成）。`scripts/check-openapi.sh` で公式のバリデータにかける |
 | 仕様書サイト | `docs/` | 済。Next.js（`output: 'export'` の静的サイト。出力は `docs/out/`。サブパス配信は `DOCS_BASE_PATH`）+ React + TypeScript。Monaco に `.comat` の文法（VS Code 拡張と同じ TextMate 文法）を入れた Playground とエディタ。`pnpm --dir docs build` / `test` |
-| `cache`（メモリ・cookie） | 各ランタイムの `cache` | 済。TS / Go / Python / Rust / Java / Kotlin / Swift / Ruby。cookie の統合テストは TS のみ（ほかは符号化と、メモリの E2E） |
+| `cache`（メモリ・cookie） | 各ランタイムの `cache` | 済。TS / Go / Python / Rust / Java / Kotlin / Swift / Ruby / C#。cookie の統合テストは TS のみ（ほかは符号化と、メモリの E2E） |
 | 言語サーバ（LSP） | `crates/comatype-lsp`（`comatype lsp`） | 済。入力中の診断（未保存の内容を使う）、定義ジャンプ、ホバー、アウトライン、補完。`cargo test -p comatype-lsp` |
 | VS Code 拡張 | `editors/vscode` | 済。言語サーバのクライアント、ハイライト（TextMate 文法 `source.comat`）、スニペット、生成コマンド。`cd editors/vscode && pnpm test`。実際の VS Code での動作は未確認。tree-sitter は未 |
 | Go ジェネレータ | `crates/comatype-gen-go` | 済（client / server。型・構造体タグ・`sNNN`・`init`・cookie） |
@@ -539,6 +540,8 @@ s.init({ wrappers: { auth } })
 | Kotlin ジェネレータ・ランタイム | `crates/comatype-gen-kotlin`、`packages/kotlin` | 済（data class・sealed interface。コルーチン（suspend）の c / s は `packages/kotlin`、型・検証は `packages/java`。標準ライブラリのみ。要 kotlinc。`scripts/e2e-kotlin.sh`） |
 | Swift ジェネレータ・ランタイム | `crates/comatype-gen-swift`、`packages/swift` | 済（Foundation のみ。クライアントは async、サーバは async ハンドラ + POSIX ソケットの HTTP/1.1 サーバ（keep-alive・チャンク対応）。`swift run comatype-selftest`、`scripts/e2e-swift.sh`） |
 | Ruby ジェネレータ・ランタイム | `crates/comatype-gen-ruby`、`packages/ruby` | 済（標準ライブラリのみ。サーバは Rack 互換 + 簡易サーバ。要 Ruby 3.1 以上。`ruby packages/ruby/test/comatype_test.rb`、`scripts/e2e-ruby.sh`） |
+| C# ジェネレータ・ランタイム | `crates/comatype-gen-csharp`、`packages/csharp` | 済（標準ライブラリのみ。record・sealed な record の階層。クライアントは `HttpClient` の async、サーバは async / 同期のハンドラ + `HttpListener`。要 .NET 8 以上。`scripts/e2e-csharp.sh`） |
+| JavaScript ジェネレータ・ランタイム | `crates/comatype-gen-ts`（`generate_js`）、`packages/javascript` | 済（`--lang js`。値の `.js`（ES モジュール）と型の `.d.ts` を出す。ランタイムは `packages/typescript/src` を JS にビルドした `@comatype/javascript`。`scripts/e2e-js.sh`） |
 
 ```bash
 cargo run -p comatype-cli -- check --config usage

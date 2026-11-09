@@ -7,6 +7,7 @@ name = "comatype-cli"
 version = "0.0.1"
 dependencies = [
  "comatype-core",
+ "comatype-gen-csharp",
  "comatype-gen-go",
  "comatype-gen-java",
  "comatype-gen-kotlin",
@@ -26,6 +27,13 @@ version = "0.0.1"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "comatype-gen-csharp"
+version = "0.0.1"
+dependencies = [
+ "comatype-core",
 ]
 
 [[package]]

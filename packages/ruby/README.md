@@ -1,10 +1,17 @@
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
 # comatype for Ruby
 
 Comatype runtime for Ruby: the client `Comatype::C` (Net::HTTP) and a Rack-compatible server `Comatype::S`. Standard library only.
 
 [RubyGems](https://rubygems.org/gems/comatype) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **Ruby** runtime that the generated code depends on.
 
 ## How to use

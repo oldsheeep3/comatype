@@ -29,7 +29,7 @@ body:
     attributes:
       label: Area
       multiple: true
-      options: [CLI, Parser / checker, Generator, TypeScript runtime, Go runtime, Python runtime, Rust runtime, Java / Kotlin runtime, Swift runtime, Ruby runtime, OpenAPI, VS Code extension, Website]
+      options: [CLI, Parser / checker, Generator, TypeScript / JavaScript runtime, Go runtime, Python runtime, Rust runtime, Java / Kotlin runtime, Swift runtime, Ruby runtime, C# runtime, OpenAPI, VS Code extension, Website]
   - type: input
     id: env
     attributes:

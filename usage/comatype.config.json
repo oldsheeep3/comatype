@@ -87,6 +87,26 @@
           "root": "./swift_server"
         },
         {
+          "lang": "js",
+          "role": "client",
+          "root": "./js_client"
+        },
+        {
+          "lang": "js",
+          "role": "server",
+          "root": "./js_server"
+        },
+        {
+          "lang": "csharp",
+          "role": "client",
+          "root": "./csharp_client"
+        },
+        {
+          "lang": "csharp",
+          "role": "server",
+          "root": "./csharp_server"
+        },
+        {
           "lang": "dart",
           "role": "client",
           "root": "./dart_client"

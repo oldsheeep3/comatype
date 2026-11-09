@@ -23,11 +23,13 @@
     "code generation",
     "language server",
     "typescript",
+    "javascript",
     "go",
     "python",
     "rust",
     "kotlin",
     "swift",
+    "csharp",
     "ruby",
     "java"
   ],

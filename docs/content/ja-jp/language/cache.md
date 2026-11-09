@@ -33,7 +33,7 @@ cache 60000          // 60 秒だけ、メモリにキャッシュする
 - **サーバ**は、ラッパーを通る**前に**キャッシュを引きます。当たれば、ラッパーもハンドラも動かさずに、保存した応答を返します。認証のヘッダ・cookie もキーに入るので、別のユーザーの応答が返ることはありません（ただし、セッションが失効しても ttl の間は、同じ認証情報のリクエストに保存した応答が返ります）。
 - **クライアント**は、ラッパーを通った後、通信の直前に引きます。当たれば通信しません（ラッパーは動きます）。
 - メモリのキャッシュは、プロセスごとです（複数のサーバのプロセスで共有しません）。最大 1000 件で、超えたら古いものから捨てます。
-- クライアントのキャッシュは、ログアウトなどのときに捨てられます: `c.clearCache()`（TypeScript）、`c.ClearCache()`（Go）、`c.clear_cache()`（Python）、`c::clear_cache()`（Rust）、`C.clearCache()`（Java / Kotlin の `CK`）、`C.clearCache()`（Swift）、`Comatype::C.clear_cache`（Ruby）。
+- クライアントのキャッシュは、ログアウトなどのときに捨てられます: `c.clearCache()`（TypeScript / JavaScript）、`c.ClearCache()`（Go）、`c.clear_cache()`（Python）、`c::clear_cache()`（Rust）、`C.clearCache()`（Java / Kotlin の `CK`）、`C.clearCache()`（Swift）、`Comatype::C.clear_cache`（Ruby）、`C.ClearCache()`（C#）。
 
 ## cookie にキャッシュする（クライアントのみ）
 

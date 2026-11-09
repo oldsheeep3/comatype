@@ -1,0 +1,160 @@
+// Run the generated usage csharp_client against csharp_server (COMATYPE_BASE_URL holds the peer's address)
+using Comatype;
+using ComatypeGen;
+
+static void Check(bool ok, string what)
+{
+    if (!ok)
+    {
+        Console.Error.WriteLine("FAIL: " + what);
+        Environment.Exit(1);
+    }
+}
+
+var nil4 = Guid.Parse("3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10");
+var baseUrl = Environment.GetEnvironmentVariable("COMATYPE_BASE_URL")!;
+var http = new HttpClient();
+
+async Task<HttpResponseMessage> Raw(string method, string url, string? auth, string? body)
+{
+    var msg = new HttpRequestMessage(new HttpMethod(method), url);
+    if (auth != null) msg.Headers.TryAddWithoutValidation("Authorization", auth);
+    if (body != null && body.Length != 0) msg.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+    return await http.SendAsync(msg);
+}
+
+// Wrapper: add Authorization
+C.ComatypeWrap bearer = (req, next) =>
+{
+    req.Headers.Set("Authorization", "Bearer session-token");
+    return next(req);
+};
+C.Init(new C.Config().WithWrappers(new Init.Wrappers(bearer)));
+
+var created = await C.PostAsync(
+    PostUser.Endpoint,
+    new PostUser.Request(PostUser.RequestHeaders.Empty(), new PostUser.Body("taro", new Email("taro@example.com"), new Phone("+819012345678")))
+);
+Check(created is PostUser.S200, "post_user: " + created);
+var uid = ((PostUser.S200)created).Body.Uid;
+
+var got = await C.GetAsync(
+    GetUser.Endpoint,
+    new GetUser.Request(new GetUser.Params(uid), GetUser.Search.Empty() with { Verbose = true }, GetUser.RequestHeaders.Empty())
+);
+Check(got is GetUser.S200 g && g.Body.Name == "taro", "get_user: " + got);
+
+var upd = await C.PutAsync(
+    UserPutId.Endpoint,
+    new UserPutId.Request(
+        new UserPutId.Params(uid),
+        UserPutId.RequestHeaders.Empty(),
+        new Types.UserData("jiro", new Email("j@example.com"), new Phone("+819011112222"), uid)
+    )
+);
+Check(upd is UserPutId.S200 u && u.Body.Name == "jiro", "put: " + upd);
+Check(((UserPutId.S200)upd).Headers.XResourceVersion == "v2", "put response header: " + upd);
+
+var list = await C.GetAsync(UserGet.Endpoint, new UserGet.Request(UserGet.Search.Empty() with { Limit = 1 }, UserGet.RequestHeaders.Empty()));
+Check(list is UserGet.S200 l && l.Body.Count == 1, "list: " + list);
+var all = await C.GetAsync(UserGet.Endpoint, new UserGet.Request(UserGet.Search.Empty(), UserGet.RequestHeaders.Empty()));
+Check(all is UserGet.S200, "list (no arguments): " + all);
+
+var q = await C.QueryAsync(QueryUser.Endpoint, new QueryUser.Request(QueryUser.RequestHeaders.Empty(), QueryUser.Body.Empty() with { Name = "jir" }));
+Check(q is QueryUser.S200 qq && qq.Body.Count == 1, "query: " + q);
+
+var opt = await C.OptionsAsync(OptionsUser.Endpoint, new OptionsUser.Request(OptionsUser.RequestHeaders.Empty()));
+Check(opt is OptionsUser.S200 o && string.Join(",", o.Headers.Allow) == "GET,POST,OPTIONS", "options: " + opt);
+
+var prof = await C.GetAsync(UserProfileGet.Endpoint, new UserProfileGet.Request(UserProfileGet.RequestHeaders.Empty()));
+Check(prof is UserProfileGet.S200 p && p.Body.Name == "guest", "profile: " + prof);
+
+var ping = await C.GetAsync(UserGetPing.Endpoint, new UserGetPing.Request(UserGetPing.RequestHeaders.Empty()));
+Check(ping is UserGetPing.S200 pg && pg.Body.Ok, "ping: " + ping);
+// Client cache (cache 60000): the second call makes no request (a request would flip ok)
+var ping2 = await C.GetAsync(UserGetPing.Endpoint, new UserGetPing.Request(UserGetPing.RequestHeaders.Empty()));
+Check(ping2 is UserGetPing.S200 p2 && p2.Body.Ok, "client cache: " + ping2);
+// After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+C.ClearCache();
+var ping3 = await C.GetAsync(UserGetPing.Endpoint, new UserGetPing.Request(UserGetPing.RequestHeaders.Empty()));
+Check(ping3 is UserGetPing.S200 p3 && p3.Body.Ok, "server cache: " + ping3);
+
+var bad = await C.PostAsync(UserPostLogin.Endpoint, new UserPostLogin.Request(UserPostLogin.RequestHeaders.Empty(), new UserPostLogin.Body(new Email("a@b.co"), "nope")));
+Check(bad is UserPostLogin.S401 b && b.Body.Code == "bad", "login(bad): " + bad);
+
+var nf = await C.GetAsync(GetUser.Endpoint, new GetUser.Request(new GetUser.Params(nil4), GetUser.Search.Empty(), GetUser.RequestHeaders.Empty()));
+Check(nf is GetUser.S404 n && n.Body.Code == "not_found", "not found: " + nf);
+
+var del = await C.DeleteAsync(UserDeleteId.Endpoint, new UserDeleteId.Request(new UserDeleteId.Params(uid), UserDeleteId.RequestHeaders.Empty()));
+Check(del is UserDeleteId.S204, "delete: " + del);
+var del2 = await C.DeleteAsync(UserDeleteId.Endpoint, new UserDeleteId.Request(new UserDeleteId.Params(uid), UserDeleteId.RequestHeaders.Empty()));
+Check(del2 is UserDeleteId.S404, "delete (second time): " + del2);
+
+// Validation before sending: an invalid email fails without sending a request
+try
+{
+    await C.PostAsync(UserPostLogin.Endpoint, new UserPostLogin.Request(UserPostLogin.RequestHeaders.Empty(), new UserPostLogin.Body(new Email("not-email"), "x")));
+    Check(false, "email validation");
+}
+catch (ValidationException e)
+{
+    Check(e.Path == "email", "email validation: " + e.Message);
+}
+try
+{
+    await C.GetAsync(
+        GetUser.Endpoint,
+        new GetUser.Request(new GetUser.Params(Guid.Parse("3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10")), GetUser.Search.Empty(), GetUser.RequestHeaders.Empty())
+    );
+    Check(false, "uuidv4 validation");
+}
+catch (ValidationException e)
+{
+    Check(e.Path == "id", "uuidv4 validation: " + e.Message);
+}
+
+// Without a wrapper, it fails before sending
+C.Init(new C.Config());
+try
+{
+    await C.GetAsync(UserProfileGet.Endpoint, new UserProfileGet.Request(UserProfileGet.RequestHeaders.Empty()));
+    Check(false, "missing wrapper");
+}
+catch (ComatypeException.Config e)
+{
+    Check(e.Message.Contains("auth"), "missing wrapper: " + e.Message);
+}
+
+// Without credentials, the server's auth wrapper returns 401
+var anon = await Raw("GET", baseUrl + "/user/profile", null, null);
+var anonBody = await anon.Content.ReadAsStringAsync();
+Check((int)anon.StatusCode == 401 && anonBody.Contains("unauthorized"), "anon: " + (int)anon.StatusCode + anonBody);
+// Invalid input gives 400
+var inv = await Raw("GET", baseUrl + "/user/not-a-uuid", "Bearer session-token", null);
+var invBody = await inv.Content.ReadAsStringAsync();
+Check((int)inv.StatusCode == 400 && invBody.Contains("validation_error"), "invalid: " + (int)inv.StatusCode + invBody);
+// Server cache: an identical request gets the same response
+var c1 = await (await Raw("GET", baseUrl + "/ping", null, null)).Content.ReadAsStringAsync();
+var c2 = await (await Raw("GET", baseUrl + "/ping", null, null)).Content.ReadAsStringAsync();
+Check(c1 == c2, "server cache (raw)");
+// 404 / 405
+Check((int)(await Raw("GET", baseUrl + "/nope", null, null)).StatusCode == 404, "404");
+var post = await Raw("POST", baseUrl + "/ping", null, "");
+Check((int)post.StatusCode == 405 && post.Content.Headers.Allow.Contains("GET"), "405: " + (int)post.StatusCode);
+
+// cookie: login issues a Set-Cookie, the jar keeps it and sends it back with the next request
+var jar = new CookieJar();
+C.Init(new C.Config().WithWrappers(new Init.Wrappers((req, next) => next(req))).WithCookieJar(jar));
+var r1 = await C.GetAsync(UserProfileGet.Endpoint, new UserProfileGet.Request(UserProfileGet.RequestHeaders.Empty()));
+Check(r1 is UserProfileGet.S401, "401 before login: " + r1);
+var ok = await C.PostAsync(UserPostLogin.Endpoint, new UserPostLogin.Request(UserPostLogin.RequestHeaders.Empty(), new UserPostLogin.Body(new Email("a@b.co"), "pw")));
+Check(ok is UserPostLogin.S200, "login: " + ok);
+Check(jar.Get("/").TryGetValue("session", out var sv) && sv == "session-token", "jar: " + string.Join(",", jar.Get("/")));
+var r2 = await C.GetAsync(UserProfileGet.Endpoint, new UserProfileGet.Request(UserProfileGet.RequestHeaders.Empty()));
+Check(r2 is UserProfileGet.S200, "authenticated by the cookie alone: " + r2);
+var resp = await Raw("POST", baseUrl + "/user/login", null, "{\"email\":\"a@b.co\",\"password\":\"pw\"}");
+var want = "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax";
+var got2 = resp.Headers.TryGetValues("Set-Cookie", out var sc) ? string.Join("|", sc) : "";
+Check(want == got2, "Set-Cookie: " + got2);
+
+Console.WriteLine("e2e csharp (generated client <-> generated server): OK");

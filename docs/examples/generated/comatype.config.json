@@ -10,6 +10,11 @@
           "root": "./ts"
         },
         {
+          "lang": "js",
+          "role": "client",
+          "root": "./js"
+        },
+        {
           "lang": "go",
           "role": "client",
           "root": "./go",
@@ -44,6 +49,11 @@
           "lang": "ruby",
           "role": "client",
           "root": "./ruby"
+        },
+        {
+          "lang": "csharp",
+          "role": "client",
+          "root": "./csharp"
         }
       ]
     }

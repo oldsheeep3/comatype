@@ -170,13 +170,20 @@ cache 60000          // cache the response in memory for 60 seconds
 - Only 2xx responses without `Set-Cookie` are cached. `cache` in `defaults.comat` or `init.comat` is ignored with a warning.
 {cache_client}"""
 
-TEMPLATE = """# {title}
+TEMPLATE = """<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
+# {title}
 
 {tagline}
 
 {links}
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **{language}** runtime that the generated code depends on.
 
 ## How to use

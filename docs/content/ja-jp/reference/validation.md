@@ -15,13 +15,14 @@ Comatype は、通信の**両側**で、同じスキーマを使って検証し�
 
 | 言語 | 型 | 位置 |
 |---|---|---|
-| TypeScript | `ValidationError` | `path`（`body.email`、`params.id`、`tags[0]`） |
+| TypeScript / JavaScript | `ValidationError` | `path`（`body.email`、`params.id`、`tags[0]`） |
 | Go | `*comatype.ValidationError` | `Path` |
 | Python | `ComatypeValidationError` | `path` |
 | Rust | `comatype::Error::Validation(ValidationError)` | `path` |
 | Java / Kotlin | `comatype.ValidationException` | `path` |
 | Swift | `ValidationError` | `path` |
 | Ruby | `Comatype::ValidationError` | `path` |
+| C# | `Comatype.ValidationException` | `Path` |
 
 ## サーバの応答
 

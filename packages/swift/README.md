@@ -1,10 +1,17 @@
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal-dark.svg">
+  <img alt="Comatype" src="https://raw.githubusercontent.com/oldsheeep3/comatype/main/assets/logo/logo-horizontal.svg" height="56">
+</picture>
+</p>
+
 # Comatype for Swift
 
 Comatype runtime for Swift (Swift Package `Comatype`): an async client on URLSession and an async server on POSIX sockets. Foundation only.
 
 [Source](https://github.com/oldsheeep3/comatype/tree/main/packages/swift) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **Swift** runtime that the generated code depends on.
 
 ## How to use

@@ -34,25 +34,24 @@
 
 | キー | 必須 | 内容 |
 |---|---|---|
-| `lang` | ✅ | `ts` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby`（`dart` は書けるが、生成は未対応） |
+| `lang` | ✅ | `ts` / `js` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` / `csharp`（`dart` は書けるが、生成は未対応） |
 | `role` | ✅ | `client` / `server` |
 | `root` | ✅ | その言語のプロジェクトの場所 |
 | `out` | | 出力先。省略すると、言語ごとの既定（下） |
-| `package` | | Java / Kotlin だけ。生成物のパッケージ名。省略すると、`out` の `src/main/java/`（Kotlin は `src/main/kotlin/`）以降のパス（無ければ `comatype.gen`） |
+| `package` | | Java / Kotlin / C# だけ。生成物のパッケージ名（C# は名前空間）。省略すると、`out` の `src/main/java/`（Kotlin は `src/main/kotlin/`）以降のパス（無ければ `comatype.gen`。C# は `ComatypeGen`） |
 | `importPath` | | Go だけ。生成先の import path。省略すると、`root` から上へ探した `go.mod` の `module` と、`go.mod` から `out` までの相対パスで決める |
 
 #### 出力先の既定
 
 | 言語 | 既定の `out`（`root` の下） |
 |---|---|
-| TypeScript、Go | `comatype` |
+| TypeScript、JavaScript、Go | `comatype` |
 | Python、Ruby | `comatype_gen` |
 | Rust | `src/comatype_gen` |
 | Java | `src/main/java/comatype/gen` |
 | Kotlin | `src/main/kotlin/comatype/gen` |
 | Swift | `Sources/ComatypeGen` |
-| Kotlin | `src/main/kotlin/comatype/gen` |
-| Swift | `Sources/ComatypeGen` |
+| C# | `ComatypeGen` |
 | Dart | `lib/comatype_gen` |
 
 - 同じ `root` に、同じ言語の複数の service があると、`<既定>/<service>` になります。

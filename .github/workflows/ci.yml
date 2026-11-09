@@ -101,7 +101,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: TypeScript runtime
-        run: pnpm --dir packages/typescript typecheck && pnpm --dir packages/typescript test && pnpm --dir packages/typescript build
+        run: pnpm --dir packages/typescript typecheck && pnpm --dir packages/typescript test && pnpm --dir packages/typescript build && pnpm --dir packages/javascript build
       - name: VS Code extension (test, then build the .vsix without publishing it)
         run: |
           pnpm --dir editors/vscode test
@@ -137,3 +137,11 @@ jobs:
           gradle-version: current
       - name: Java and Kotlin runtimes
         run: gradle -p packages :java:selfTest :kotlin:build --console=plain
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: C# runtime
+        run: |
+          dotnet build packages/csharp/Comatype.csproj -c Release
+          dotnet format whitespace packages/csharp/Comatype.csproj --verify-no-changes
+          ./scripts/test-csharp.sh

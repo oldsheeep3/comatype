@@ -1,6 +1,6 @@
 # Comatype for VS Code
 
-Language support for [Comatype](https://comatype.sheeplab.net) `.comat` files. Comatype turns API definitions written in `.comat` into typed clients, servers and validation code for TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby.
+Language support for [Comatype](https://comatype.sheeplab.net) `.comat` files. Comatype turns API definitions written in `.comat` into typed clients, servers and validation code for TypeScript, Go, Python, Rust, Java, Kotlin, Swift, Ruby and C#.
 
 ## Requirements
 
