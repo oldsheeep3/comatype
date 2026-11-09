@@ -160,7 +160,7 @@ impl StmtKind {
         match self {
             StmtKind::Import { .. } => "import",
             StmtKind::Enum { .. } => "enum",
-            StmtKind::TypeDecl { .. } => "型の宣言",
+            StmtKind::TypeDecl { .. } => "type declaration",
             StmtKind::Path { .. } => "path",
             StmtKind::Params { .. } => "params",
             StmtKind::Search { .. } => "search",

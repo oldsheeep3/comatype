@@ -11,43 +11,43 @@ const require = createRequire(import.meta.url)
 const { findConfig, parseDiagnostics, importLinks, exportOpenApiArgs, importOpenApiArgs, TARGET_PRESETS } = require('../lib.js')
 const root = fileURLToPath(new URL('../../..', import.meta.url))
 
-test('parseDiagnostics: 位置つき・位置なし・サマリ行', () => {
+test('parseDiagnostics: with a position, without a position, summary lines', () => {
   const out = [
-    'comatfiles/get_user.comat:5:1: warning: path の明示は非推奨です',
-    'comatfiles/user/put_[id].comat:12:8: error: 型 `X` が見つかりません',
-    'comatype.config.json: error: coatDir が見つかりません',
-    'エラー 1 件、警告 1 件',
-    'OK: エンドポイント 11 件、警告 3 件',
+    'comatfiles/get_user.comat:5:1: warning: an explicit path is deprecated',
+    'comatfiles/user/put_[id].comat:12:8: error: type `X` not found',
+    'comatype.config.json: error: coatDir not found',
+    '1 error(s), 1 warning(s)',
+    'OK: 11 endpoint(s), 3 warning(s)',
   ].join('\n')
   const d = parseDiagnostics(out, '/proj')
   assert.deepEqual(d, [
-    { file: '/proj/comatfiles/get_user.comat', line: 4, col: 0, severity: 'warning', message: 'path の明示は非推奨です' },
-    { file: '/proj/comatfiles/user/put_[id].comat', line: 11, col: 7, severity: 'error', message: '型 `X` が見つかりません' },
-    { file: '/proj/comatype.config.json', line: 0, col: 0, severity: 'error', message: 'coatDir が見つかりません' },
+    { file: '/proj/comatfiles/get_user.comat', line: 4, col: 0, severity: 'warning', message: 'an explicit path is deprecated' },
+    { file: '/proj/comatfiles/user/put_[id].comat', line: 11, col: 7, severity: 'error', message: 'type `X` not found' },
+    { file: '/proj/comatype.config.json', line: 0, col: 0, severity: 'error', message: 'coatDir not found' },
   ])
 })
 
-test('parseDiagnostics: 新しい表示（[error] / [warn] / [info]）', () => {
+test('parseDiagnostics: the new format ([error] / [warn] / [info])', () => {
   const out = [
-    '[warn]  comatfiles/get_user.comat:5:1  path の明示は非推奨です',
-    '[error] comatfiles/user/put_[id].comat:12:8  型 `X` が見つかりません',
-    '[error] comatfiles/post_a.comat  cache は get / query のエンドポイントだけに書けます（post）',
-    '[error] エラー 1 件、警告 1 件',
-    '[info]  OK: エンドポイント 11 件、警告 3 件',
+    '[warn]  comatfiles/get_user.comat:5:1  an explicit path is deprecated',
+    '[error] comatfiles/user/put_[id].comat:12:8  type `X` not found',
+    '[error] comatfiles/post_a.comat  cache can only be written in get / query endpoints (post)',
+    '[error] 1 error(s), 1 warning(s)',
+    '[info]  OK: 11 endpoint(s), 3 warning(s)',
   ].join('\n')
   const d = parseDiagnostics(out, '/proj')
   assert.deepEqual(
     d.map((x) => [x.file, x.line, x.col, x.severity, x.message]),
     [
-      ['/proj/comatfiles/get_user.comat', 4, 0, 'warning', 'path の明示は非推奨です'],
-      ['/proj/comatfiles/user/put_[id].comat', 11, 7, 'error', '型 `X` が見つかりません'],
-      ['/proj/comatfiles/post_a.comat', 0, 0, 'error', 'cache は get / query のエンドポイントだけに書けます（post）'],
+      ['/proj/comatfiles/get_user.comat', 4, 0, 'warning', 'an explicit path is deprecated'],
+      ['/proj/comatfiles/user/put_[id].comat', 11, 7, 'error', 'type `X` not found'],
+      ['/proj/comatfiles/post_a.comat', 0, 0, 'error', 'cache can only be written in get / query endpoints (post)'],
     ],
   )
 })
 
-test('importLinks: パスの範囲', () => {
-  const text = '// c\nimport A, B from ../types/x.comat\n  import C from ./c.comat // 後ろ\nbody A'
+test('importLinks: the range of the path', () => {
+  const text = '// c\nimport A, B from ../types/x.comat\n  import C from ./c.comat // trailing\nbody A'
   const links = importLinks(text)
   assert.equal(links.length, 2)
   assert.deepEqual(links[0], { line: 1, start: 17, end: 33, target: '../types/x.comat' })
@@ -55,7 +55,7 @@ test('importLinks: パスの範囲', () => {
   assert.equal(line2.slice(links[1].start, links[1].end), './c.comat')
 })
 
-test('findConfig: 上に向かって探す', () => {
+test('findConfig: searches upwards', () => {
   const exists = (p) => p === '/a/comatype.config.json'
   assert.equal(findConfig('/a/b/c', exists), '/a/comatype.config.json')
   assert.equal(findConfig('/x/y', exists), undefined)
@@ -64,8 +64,8 @@ test('findConfig: 上に向かって探す', () => {
 // Runs the real CLI output through the extension's parser (needs the comatype binary; run cargo build first)
 const bin = join(root, 'target/debug/comatype')
 
-test('実際の comatype check の出力を診断にできる（エラー・警告）', (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('the real output of comatype check can be turned into diagnostics (errors and warnings)', (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const dir = mkdtempSync(join(tmpdir(), 'comat-vscode-'))
   mkdirSync(join(dir, 'comatfiles'))
   writeFileSync(join(dir, 'comatype.config.json'), '{"services":{"api":{"comatDir":"./comatfiles"}}}')
@@ -81,8 +81,8 @@ test('実際の comatype check の出力を診断にできる（エラー・警�
   assert.ok(d.some((x) => x.severity === 'warning' && x.line === 0))
 })
 
-test('usage の check は警告だけ（エラー 0）で、診断に変換できる', (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません')
+test('check on usage gives warnings only (0 errors) and can be converted to diagnostics', (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing')
   const usage = join(root, 'usage')
   const res = spawnSync(bin, ['check', '--config', usage], { encoding: 'utf8' })
   assert.equal(res.status, 0)
@@ -90,12 +90,12 @@ test('usage の check は警告だけ（エラー 0）で、診断に変換で�
   assert.equal(d.filter((x) => x.severity === 'error').length, 0)
   // Warnings: explicit path (3) and cache + wrap (2: get_me, and get_news in the wraps service)
   const warnings = d.filter((x) => x.severity === 'warning')
-  assert.equal(warnings.filter((x) => x.message.includes('path の明示')).length, 3)
+  assert.equal(warnings.filter((x) => x.message.includes('an explicit path')).length, 3)
   assert.equal(warnings.filter((x) => x.message.includes('cache')).length, 2)
   assert.equal(warnings.length, 5)
 })
 
-test('package.json: 文法・スニペット・コマンドの参照先が存在する', () => {
+test('package.json: the grammar, snippets and commands it refers to exist', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
   const c = pkg.contributes
   for (const rel of [c.grammars[0].path, c.snippets[0].path, c.languages[0].configuration, pkg.main]) {
@@ -113,17 +113,17 @@ test('package.json: 文法・スニペット・コマンドの参照先が存在
   ])
 })
 
-test('ステータスコードのスニペットは、登録表（comatype statuses）と一致する', (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('the status code snippets match the registry (comatype statuses)', (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const expected = JSON.parse(execFileSync(bin, ['statuses', '--snippets'], { encoding: 'utf8' }))
   const actual = JSON.parse(readFileSync(new URL('../snippets/status.json', import.meta.url), 'utf8'))
-  assert.deepEqual(actual, expected, 'scripts/gen-status-snippets.sh で作り直してください')
+  assert.deepEqual(actual, expected, 'regenerate with scripts/gen-status-snippets.sh')
   assert.equal(Object.keys(actual).length, 62)
   // Codes that cannot have a body are none; the others are { message: string }
   assert.deepEqual(actual.s204.body, ['s204 none'])
   assert.deepEqual(actual.s404.body, ['s404 {', '\tmessage: string,', '}'])
   assert.equal(actual.s404.description, '404 Not Found')
-  assert.equal(actual.s306, undefined, '未使用のコードは入れない')
+  assert.equal(actual.s306, undefined, 'unused codes are not included')
   // The snippet prefixes match the codes in the list
   const list = JSON.parse(execFileSync(bin, ['statuses', '--json'], { encoding: 'utf8' }))
   assert.deepEqual(
@@ -132,7 +132,7 @@ test('ステータスコードのスニペットは、登録表（comatype statu
   )
 })
 
-test('OpenAPI コマンドの引数', () => {
+test('arguments of the OpenAPI commands', () => {
   assert.deepEqual(exportOpenApiArgs('/p/comatype.config.json', '/p/openapi.yml'), [
     'to-openapi',
     '--config',

@@ -21,7 +21,7 @@ pub struct Imported {
 
 /// Reads YAML or JSON text (JSON is a subset of YAML). Numeric keys such as `200:` become strings
 pub fn parse_document(text: &str) -> Result<Value, String> {
-    let y: serde_yaml::Value = serde_yaml::from_str(text).map_err(|e| format!("YAML / JSON として読めません: {e}"))?;
+    let y: serde_yaml::Value = serde_yaml::from_str(text).map_err(|e| format!("cannot read as YAML / JSON: {e}"))?;
     Ok(yaml_to_json(y))
 }
 
@@ -133,7 +133,7 @@ impl<'a> Conv<'a> {
 
     fn expr(&mut self, s: &Value, indent: usize, depth: usize) -> String {
         if depth > 12 {
-            self.warn("型の入れ子が深すぎるので json にしました");
+            self.warn("the type nesting is too deep, so json was used");
             return "json".into();
         }
         if let Some(r) = s.get("$ref").and_then(Value::as_str) {
@@ -148,14 +148,14 @@ impl<'a> Conv<'a> {
                         self.names[&n].clone()
                     }
                     None => {
-                        self.warn(format!("{r} が見つからないので json にしました"));
+                        self.warn(format!("{r} was not found, so json was used"));
                         "json".into()
                     }
                 },
                 None => match self.lookup(r) {
                     Some(t) => self.expr(t, indent, depth + 1),
                     None => {
-                        self.warn(format!("{r} が見つからないので json にしました"));
+                        self.warn(format!("{r} was not found, so json was used"));
                         "json".into()
                     }
                 },
@@ -209,7 +209,7 @@ impl<'a> Conv<'a> {
                 }
                 return strs.iter().map(|v| quote(v)).collect::<Vec<_>>().join(" | ");
             }
-            self.warn("文字列以外の enum は、元の型にしました");
+            self.warn("an enum that is not made of strings was replaced by its base type");
         }
         if let Some(c) = s.get("const").and_then(Value::as_str) {
             return quote(c);
@@ -223,7 +223,7 @@ impl<'a> Conv<'a> {
                     None => "json".into(),
                 };
                 if item.contains(" | ") {
-                    self.warn("ユニオンの配列は表せないので、json[] にしました");
+                    self.warn("an array of a union cannot be expressed, so json[] was used");
                     "json[]".into()
                 } else {
                     format!("{item}[]")
@@ -240,7 +240,7 @@ impl<'a> Conv<'a> {
                 }
             }
             Some("number") => {
-                self.warn("number（小数）は表せないので json にしました（金額などは decimal を使います）");
+                self.warn("number (a fractional value) cannot be expressed, so json was used (use decimal for money and the like)");
                 "json".into()
             }
             Some("boolean") => "bool".into(),
@@ -282,7 +282,7 @@ impl<'a> Conv<'a> {
         let lines = self.fields(s, indent + 1, depth);
         if lines.is_empty() {
             if s.get("additionalProperties").is_some() {
-                self.warn("additionalProperties（map）は表せないので json にしました");
+                self.warn("additionalProperties (a map) cannot be expressed, so json was used");
             }
             return "json".into();
         }
@@ -397,7 +397,7 @@ fn imports_for(deps: &BTreeSet<String>, names: &BTreeMap<String, String>, prefix
 
 pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
     if doc.get("openapi").and_then(Value::as_str).is_none_or(|v| !v.starts_with('3')) {
-        return Err("OpenAPI 3 の文書ではありません（`openapi: 3.x` がありません）".into());
+        return Err("not an OpenAPI 3 document (`openapi: 3.x` is missing)".into());
     }
     let mut out = Imported {
         title: doc["info"]["title"].as_str().unwrap_or("api").to_string(),
@@ -473,7 +473,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
             ops.push(("query".into(), op));
         }
         if item.get("trace").is_some() {
-            cv.warnings.push(format!("{path}: trace は未対応なので読み飛ばしました"));
+            cv.warnings.push(format!("{path}: trace is not supported and was skipped"));
         }
         for (method, op) in ops {
             cv.place = format!("{} {path}", method.to_uppercase());
@@ -570,7 +570,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                         body.push_str(&format!("body {e}\n\n"));
                     }
                     Err(_) => {
-                        cv.warn("JSON ではないリクエストボディは json にしました");
+                        cv.warn("a request body that is not JSON was replaced by json");
                         body.push_str("body json\n\n");
                     }
                 }
@@ -578,15 +578,15 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
             // Responses
             let responses = op.get("responses").and_then(Value::as_object).cloned().unwrap_or_default();
             if responses.is_empty() {
-                cv.warn("responses がありません");
+                cv.warn("there are no responses");
             }
             for (code, r) in &responses {
                 let Ok(code_n) = code.parse::<u16>() else {
-                    cv.warn(format!("レスポンス `{code}`（default や 2XX など）は読み飛ばしました。ステータスコードを書いてください"));
+                    cv.warn(format!("the response `{code}` (default, 2XX and the like) was skipped; write a status code"));
                     continue;
                 };
                 if !(100..=599).contains(&code_n) {
-                    cv.warn(format!("ステータスコード {code} は範囲外なので読み飛ばしました"));
+                    cv.warn(format!("status code {code} is out of range and was skipped"));
                     continue;
                 }
                 let r = match r.get("$ref").and_then(Value::as_str) {
@@ -606,7 +606,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                 let schema = match r.get("content").map(json_schema).unwrap_or(Err(false)) {
                     Ok(sch) => Some(sch),
                     Err(true) => {
-                        cv.warn(format!("{code_n} の JSON ではないレスポンスは、本文なしにしました"));
+                        cv.warn(format!("the response {code_n} that is not JSON was given no body"));
                         None
                     }
                     Err(false) => None,
@@ -614,7 +614,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
                 let mut line = format!("s{code_n}");
                 if no_body(code_n) {
                     if schema.is_some() {
-                        cv.warn(format!("{code_n} は本文を持てないので、本文は読み飛ばしました"));
+                        cv.warn(format!("{code_n} cannot have a body, so the body was skipped"));
                     }
                     line.push_str(" none");
                 } else {
@@ -666,7 +666,7 @@ pub fn import(doc: &Value, statuses: &StatusTable) -> Result<Imported, String> {
         "comatfiles/init.comat".into(),
         match &out.base_url {
             Some(u) => format!("baseUrl {u}\n"),
-            None => "// プロジェクト固有の設定（baseUrl、wrapper、cookie）をここに書く\n".to_string(),
+            None => "// Write the project-specific settings (baseUrl, wrapper, cookie) here\n".to_string(),
         },
     ));
     out.additional_status_codes = additional.into_iter().collect();

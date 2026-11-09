@@ -126,33 +126,33 @@ fn header_precedence() {
 #[test]
 fn errors_are_reported() {
     let cases: &[(&[(&str, &str)], &str)] = &[
-        (&[("init.comat", INIT), ("fetch_a.comat", "s200 none")], "メソッド"),
-        (&[("init.comat", INIT), ("get_[id].comat", "s200 none")], "params に宣言されていません"),
+        (&[("init.comat", INIT), ("fetch_a.comat", "s200 none")], "method"),
+        (&[("init.comat", INIT), ("get_[id].comat", "s200 none")], "is not declared in params"),
         (&[("init.comat", INIT), ("get_a.comat", "params { id: uuid }\ns200 none")], "path"),
-        (&[("init.comat", INIT), ("get_a.comat", "s200 none"), ("(g)/get_a.comat", "s200 none")], "重複"),
-        (&[("init.comat", INIT), ("get_a.comat", "wrap nope\ns200 none")], "宣言されていません"),
-        (&[("init.comat", INIT), ("get_a.comat", "s200 Missing")], "見つかりません"),
-        (&[("init.comat", INIT), ("post_a.comat", "body { a: string }\nbody { b: string }\ns200 none")], "1 つだけ"),
+        (&[("init.comat", INIT), ("get_a.comat", "s200 none"), ("(g)/get_a.comat", "s200 none")], "duplicate"),
+        (&[("init.comat", INIT), ("get_a.comat", "wrap nope\ns200 none")], "is not declared in init.comat"),
+        (&[("init.comat", INIT), ("get_a.comat", "s200 Missing")], "not found"),
+        (&[("init.comat", INIT), ("post_a.comat", "body { a: string }\nbody { b: string }\ns200 none")], "only once per file"),
         (&[("init.comat", INIT), ("post_a.comat", "body { a: none }\ns200 none")], "none"),
         (&[("init.comat", INIT), ("get_a.comat", "s200 { a: empty[] }")], "empty"),
-        (&[("init.comat", INIT), ("get_a.comat", "s200 none\ns200 none")], "重複"),
+        (&[("init.comat", INIT), ("get_a.comat", "s200 none\ns200 none")], "duplicate"),
         (&[("init.comat", INIT), ("get_a.comat", "baseUrl http://x\ns200 none")], "baseUrl"),
         (&[("init.comat", INIT), ("defaults.comat", "body { a: string }")], "defaults.comat"),
-        (&[("init.comat", INIT), ("get_a.comat", "path nope\ns200 none")], "`/` か `./`"),
-        (&[("init.comat", INIT), ("get_a.comat", "s200 string(pattern: \"[\"")], "必要です"),
-        (&[("init.comat", INIT), ("a/init.comat", INIT)], "直下"),
+        (&[("init.comat", INIT), ("get_a.comat", "path nope\ns200 none")], "start with `/` or `./`"),
+        (&[("init.comat", INIT), ("get_a.comat", "s200 string(pattern: \"[\"")], "expected"),
+        (&[("init.comat", INIT), ("a/init.comat", INIT)], "directly under"),
         (
             &[
                 ("init.comat", INIT),
                 ("../types/T.comat", "T { ...T2 }\nT2 { ...T }"),
                 ("get_a.comat", "import T from ../types/T.comat\ns200 T"),
             ],
-            "循環",
+            "circular",
         ),
     ];
     for (files, needle) in cases {
         let r = run(files);
-        assert!(has_error(&r, needle), "期待 `{needle}` 実際 {:?}", r.diagnostics);
+        assert!(has_error(&r, needle), "expected `{needle}` got {:?}", r.diagnostics);
         assert!(r.ir.is_none());
     }
 }
@@ -175,17 +175,17 @@ fn cookie_settings_are_checked() {
     assert_eq!(svc.cookie.as_ref().unwrap().settings["maxAge"], "3600");
 
     let cases: &[(&str, &str)] = &[
-        ("cookie session { secure: yes }", "不正な値"),
-        ("cookie session { sameSite: lax2 }", "不正な値"),
-        ("cookie session { sameSite: none }", "secure: true が必要"),
-        ("cookie session { httpOnly: true, httpOnly: false }", "重複"),
-        ("cookie session { nope: 1 }", "未知の cookie の設定"),
-        ("cookie session { maxAge: -5 }", "不正な値"),
-        ("cookie session { path: api }", "`/` で始めて"),
+        ("cookie session { secure: yes }", "not a valid value"),
+        ("cookie session { sameSite: lax2 }", "not a valid value"),
+        ("cookie session { sameSite: none }", "requires secure: true"),
+        ("cookie session { httpOnly: true, httpOnly: false }", "duplicate"),
+        ("cookie session { nope: 1 }", "unknown cookie setting"),
+        ("cookie session { maxAge: -5 }", "not a valid value"),
+        ("cookie session { path: api }", "must start with `/`"),
     ];
     for (init, needle) in cases {
         let r = run(&[("init.comat", init)]);
-        assert!(has_error(&r, needle), "期待 `{needle}` 実際 {:?}", r.diagnostics);
+        assert!(has_error(&r, needle), "expected `{needle}` got {:?}", r.diagnostics);
     }
 }
 
@@ -193,7 +193,7 @@ fn cookie_settings_are_checked() {
 fn only_registered_status_codes_are_allowed() {
     for bad in ["s499 none", "s306 none", "s600 none", "s099 none"] {
         let r = run(&[("init.comat", INIT), ("get.comat", bad)]);
-        assert!(has_error(&r, "未定義"), "{bad}: {:?}", r.diagnostics);
+        assert!(has_error(&r, "is not defined"), "{bad}: {:?}", r.diagnostics);
         assert!(r.ir.is_none());
     }
     // All standard codes can be used
@@ -204,7 +204,7 @@ fn only_registered_status_codes_are_allowed() {
     }
     // Same inside a wrapper
     let r = run(&[("init.comat", "wrapper w { s498 E }\nE { code: string }\n"), ("get.comat", "s200 none")]);
-    assert!(has_error(&r, "未定義"));
+    assert!(has_error(&r, "is not defined"));
 }
 
 #[test]
@@ -216,10 +216,10 @@ fn additional_status_codes_extend_the_registry() {
     assert_eq!(codes, vec![299, 499]);
 
     for (cfg, needle) in [
-        (r#"{"services":{},"additionalStatusCodes":[{"status":404,"message":"x"}]}"#, "標準で定義済み"),
-        (r#"{"services":{},"additionalStatusCodes":[{"status":700,"message":"x"}]}"#, "100〜599"),
-        (r#"{"services":{},"additionalStatusCodes":[{"status":299,"message":"a"},{"status":299,"message":"b"}]}"#, "重複"),
-        (r#"{"services":{},"additionalStatusCodes":[{"status":299,"message":" "}]}"#, "message が空"),
+        (r#"{"services":{},"additionalStatusCodes":[{"status":404,"message":"x"}]}"#, "already defined"),
+        (r#"{"services":{},"additionalStatusCodes":[{"status":700,"message":"x"}]}"#, "between 100 and 599"),
+        (r#"{"services":{},"additionalStatusCodes":[{"status":299,"message":"a"},{"status":299,"message":"b"}]}"#, "duplicate"),
+        (r#"{"services":{},"additionalStatusCodes":[{"status":299,"message":" "}]}"#, "message is empty"),
     ] {
         let r = run_with_config(cfg, &[]);
         assert!(has_error(&r, needle), "{needle}: {:?}", r.diagnostics);
@@ -242,17 +242,17 @@ fn omitted_status_body_defaults_to_message_object_or_none() {
     assert_eq!(msg["kind"], "object");
     assert_eq!(msg["fields"][0]["name"], "message");
     assert_eq!(msg["fields"][0]["type"]["name"], "string");
-    assert!(by(204).body.is_none(), "本文を持てないコードの既定は none");
+    assert!(by(204).body.is_none(), "the default for codes without a body is none");
     assert!(by(404).body.is_some() && by(404).headers.len() == 1);
     assert!(by(500).body.is_none());
-    assert!(by(401).body.is_some(), "wrapper の中でも省略できる");
+    assert!(by(401).body.is_some(), "can be omitted inside a wrapper too");
 }
 
 #[test]
 fn bodyless_statuses_cannot_have_a_body() {
     for code in ["s204", "s205", "s304", "s101", "s100"] {
         let r = run(&[("init.comat", INIT), ("get.comat", &format!("{code} E"))]);
-        assert!(has_error(&r, "ボディを持てません"), "{code}: {:?}", r.diagnostics);
+        assert!(has_error(&r, "cannot have a body"), "{code}: {:?}", r.diagnostics);
     }
 }
 
@@ -287,7 +287,7 @@ fn cache_is_read_for_get_and_query() {
 #[test]
 fn cache_on_other_methods_is_an_error() {
     let r = run(&[("init.comat", INIT), ("post_a.comat", "cache 1000\ns200 none\n")]);
-    assert!(has_error(&r, "cache は get / query"), "{:?}", errors(&r));
+    assert!(has_error(&r, "cache can only be written in get / query"), "{:?}", errors(&r));
     // `cache off` is harmless on any method
     let ok = run(&[("init.comat", INIT), ("post_a.comat", "cache off\ns200 none\n")]);
     assert!(errors(&ok).is_empty(), "{:?}", errors(&ok));
@@ -307,7 +307,7 @@ fn cache_in_defaults_and_init_warns_and_is_ignored() {
 fn cache_syntax_errors() {
     for bad in ["cache\n", "cache 0\n", "cache abc\n", "cache 100 memory\n", "cache 100 cookie extra\n"] {
         let r = run(&[("init.comat", INIT), ("get_a.comat", &format!("{bad}s200 none\n"))]);
-        assert!(!errors(&r).is_empty(), "{bad:?} はエラーのはず");
+        assert!(!errors(&r).is_empty(), "{bad:?} should be an error");
     }
 }
 
@@ -315,12 +315,12 @@ fn cache_syntax_errors() {
 fn cache_cookie_with_a_short_ttl_warns() {
     let r = run(&[("init.comat", INIT), ("get_a.comat", "cache 500 cookie\ns200 none\n")]);
     assert!(errors(&r).is_empty());
-    assert!(warnings(&r).iter().any(|m| m.contains("秒単位")), "{:?}", warnings(&r));
+    assert!(warnings(&r).iter().any(|m| m.contains("whole seconds")), "{:?}", warnings(&r));
 }
 
 fn route_of(r: &CheckResult, module: &str) -> String {
     let ir = r.ir.as_ref().expect("ir");
-    let ep = ir.services["api"].endpoints.iter().find(|e| e.module == module).unwrap_or_else(|| panic!("{module} が無い"));
+    let ep = ir.services["api"].endpoints.iter().find(|e| e.module == module).unwrap_or_else(|| panic!("{module} not found"));
     format!("{} {}", ep.method, ep.path)
 }
 
@@ -345,7 +345,7 @@ fn bracket_directories_and_files_make_dynamic_segments() {
 fn old_dynamic_names_are_removed() {
     // File names `get__id` and `get_:id`, and directory names `:id` and `__id`, are removed (error)
     for (file, needle) in
-        [("a/get__id.comat", "廃止"), ("a/get_:id.comat", "廃止"), ("a/:id/get.comat", "廃止"), ("a/__id/get.comat", "廃止")]
+        [("a/get__id.comat", "removed"), ("a/get_:id.comat", "removed"), ("a/:id/get.comat", "removed"), ("a/__id/get.comat", "removed")]
     {
         let r = run(&[("init.comat", INIT), (file, "params { id: string }\ns200 none\n")]);
         assert!(has_error(&r, needle), "{file}: {:?}", errors(&r));
@@ -367,9 +367,9 @@ fn bracket_collisions_and_bad_names_are_errors() {
         ("a/[id]/get.comat", "params { id: string }\ns200 none\n"),
         ("a/get_[id].comat", "params { id: string }\ns200 none\n"),
     ]);
-    assert!(has_error(&r, "重複"), "{:?}", errors(&r));
+    assert!(has_error(&r, "duplicate"), "{:?}", errors(&r));
     for dir in ["a/[...rest]/get.comat", "a/[]/get.comat", "a/[[id]]/get.comat", "a/[_id]/get.comat"] {
         let r = run(&[("init.comat", INIT), (dir, "s200 none\n")]);
-        assert!(!errors(&r).is_empty(), "{dir} はエラーのはず");
+        assert!(!errors(&r).is_empty(), "{dir} should be an error");
     }
 }

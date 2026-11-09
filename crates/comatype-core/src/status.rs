@@ -95,7 +95,7 @@ mod tests {
         }
         assert!(BUILTIN.iter().all(|(c, m)| (100..=599).contains(c) && !m.is_empty()));
         assert_eq!(builtin_message(404), Some("Not Found"));
-        assert_eq!(builtin_message(306), None, "306 は未使用");
+        assert_eq!(builtin_message(306), None, "306 is unused");
         assert_eq!(builtin_message(499), None);
     }
 

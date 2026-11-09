@@ -74,7 +74,7 @@ pub fn check_with_overlay(cfg: &Config, base: &Path, only: Option<&str>, overlay
     let mut services = BTreeMap::new();
     if let Some(name) = only {
         if !cfg.services.contains_key(name) {
-            diags.push(Diagnostic::error("comatype.config.json", Span::default(), format!("service `{name}` がありません")));
+            diags.push(Diagnostic::error("comatype.config.json", Span::default(), format!("service `{name}` does not exist")));
         }
     }
     let base = base.canonicalize().unwrap_or_else(|_| base.to_path_buf());
@@ -97,7 +97,7 @@ pub fn check_with_overlay(cfg: &Config, base: &Path, only: Option<&str>, overlay
 /// Parses a single file only (for looking at the AST)
 pub fn parse_only(path: &Path) -> Result<ComatypeFile, Diagnostic> {
     let name = path.display().to_string();
-    let text = std::fs::read_to_string(path).map_err(|e| Diagnostic::error(&name, Span::default(), format!("読めません: {e}")))?;
+    let text = std::fs::read_to_string(path).map_err(|e| Diagnostic::error(&name, Span::default(), format!("cannot read: {e}")))?;
     parser::parse(&name, &text)
 }
 
@@ -127,7 +127,7 @@ impl Workspace {
         let text = match read {
             Ok(t) => t,
             Err(e) => {
-                self.diags.push(Diagnostic::error(&display, Span::default(), format!("読めません: {e}")));
+                self.diags.push(Diagnostic::error(&display, Span::default(), format!("cannot read: {e}")));
                 return None;
             }
         };
@@ -147,20 +147,24 @@ impl Workspace {
             match &st.kind {
                 StmtKind::TypeDecl { name, .. } | StmtKind::Enum { name, .. } => {
                     if SCALARS.contains(&name.as_str()) || matches!(name.as_str(), "null" | "none" | "empty") {
-                        self.diags.push(Diagnostic::error(&display, st.span, format!("`{name}` は組み込みの名前なので型名に使えません")));
+                        self.diags.push(Diagnostic::error(
+                            &display,
+                            st.span,
+                            format!("`{name}` is a built-in name and cannot be used as a type name"),
+                        ));
                     } else if decls.insert(name.clone(), i).is_some() {
-                        self.diags.push(Diagnostic::error(&display, st.span, format!("型 `{name}` が重複しています")));
+                        self.diags.push(Diagnostic::error(&display, st.span, format!("type `{name}` is duplicated")));
                     }
                 }
                 StmtKind::Import { names, from } => {
                     let target = normalize(&dir.join(from));
                     if !target.is_file() {
-                        self.diags.push(Diagnostic::error(&display, st.span, format!("import 先が見つかりません: {from}")));
+                        self.diags.push(Diagnostic::error(&display, st.span, format!("import target not found: {from}")));
                         continue;
                     }
                     for n in names {
                         if imports.insert(n.clone(), (target.clone(), st.span)).is_some() {
-                            self.diags.push(Diagnostic::error(&display, st.span, format!("`{n}` が重複して import されています")));
+                            self.diags.push(Diagnostic::error(&display, st.span, format!("`{n}` is imported more than once")));
                         }
                     }
                     targets.push(target);
@@ -171,7 +175,7 @@ impl Workspace {
         for n in imports.keys() {
             if decls.contains_key(n) {
                 let sp = imports[n].1;
-                self.diags.push(Diagnostic::error(&display, sp, format!("import した `{n}` が、このファイルの型と重複しています")));
+                self.diags.push(Diagnostic::error(&display, sp, format!("imported `{n}` clashes with a type in this file")));
             }
         }
         let src = Rc::new(SrcFile { path: path.clone(), display, module, ast, decls, imports, used: RefCell::new(HashSet::new()) });
@@ -183,7 +187,7 @@ impl Workspace {
         for (n, (target, sp)) in &src.imports {
             if let Some(Some(tf)) = self.files.get(target) {
                 if !tf.decls.contains_key(n) {
-                    self.diags.push(Diagnostic::error(&src.display, *sp, format!("{} に型 `{n}` がありません", tf.display)));
+                    self.diags.push(Diagnostic::error(&src.display, *sp, format!("type `{n}` does not exist in {}", tf.display)));
                 }
             }
         }
@@ -234,7 +238,7 @@ impl<'a> Resolver<'a> {
     /// Body of `sNNN`. An unregistered code is an error. Omitting the type gives the default (`{ message: string }`; none for codes without a body)
     fn status_body(&mut self, f: &SrcFile, span: Span, code: u16, ty: &Option<TypeExpr>) -> Result<Option<ir::Type>, ()> {
         if !self.ws.statuses.contains_key(&code) {
-            self.error(f, span, format!("ステータスコード {code} は未定義です（標準のコードか、comatype.config.json の additionalStatusCodes で足したコードだけ使えます）"));
+            self.error(f, span, format!("status code {code} is not defined (only standard codes and codes added with additionalStatusCodes in comatype.config.json can be used)"));
             return Err(());
         }
         let no_body = crate::status::no_body(code);
@@ -249,7 +253,7 @@ impl<'a> Resolver<'a> {
             })),
             Some(t) => {
                 if no_body && !matches!(t, TypeExpr::None { .. }) {
-                    self.error(f, span, format!("ステータス {code} はボディを持てません（`s{code} none` と書くか、型を省略してください）"));
+                    self.error(f, span, format!("status {code} cannot have a body (write `s{code} none` or omit the type)"));
                     return Err(());
                 }
                 Ok(self.ty(f, t, Pos::StatusBody))
@@ -266,7 +270,7 @@ impl<'a> Resolver<'a> {
                         Constraint::Pattern { .. } => name == "string",
                     };
                     if !ok {
-                        self.error(f, Span::default(), format!("`{name}` にはこの制約を付けられません"));
+                        self.error(f, Span::default(), format!("this constraint cannot be applied to `{name}`"));
                     }
                 }
                 Some(ir::Type::Scalar { name: name.clone(), constraint: constraint.clone() })
@@ -274,7 +278,7 @@ impl<'a> Resolver<'a> {
             TypeExpr::Ref { name, span } => match self.ws.lookup(f, name) {
                 Some((df, _)) => Some(ir::Type::Ref { id: type_id(&df, name), name: name.clone() }),
                 None => {
-                    self.error(f, *span, format!("型 `{name}` が見つかりません（宣言するか import してください）"));
+                    self.error(f, *span, format!("type `{name}` not found (declare it or import it)"));
                     None
                 }
             },
@@ -302,13 +306,13 @@ impl<'a> Resolver<'a> {
             TypeExpr::Null => Some(ir::Type::Null),
             TypeExpr::None { span } => {
                 if pos != Pos::StatusBody {
-                    self.error(f, *span, "`none` はレスポンスのボディ（`s200 none`）にだけ書けます");
+                    self.error(f, *span, "`none` can only be used as a response body (`s200 none`)");
                 }
                 None
             }
             TypeExpr::Empty { span } => {
                 if pos != Pos::Field {
-                    self.error(f, *span, "`empty` はフィールドの型（`uid: empty`）にだけ書けます");
+                    self.error(f, *span, "`empty` can only be used as a field type (`uid: empty`)");
                 }
                 None
             }
@@ -324,7 +328,7 @@ impl<'a> Resolver<'a> {
             match m {
                 Member::Field { name, optional, ty, span } => {
                     if !explicit.insert(name) {
-                        self.error(f, *span, format!("フィールド `{name}` が重複しています"));
+                        self.error(f, *span, format!("field `{name}` is duplicated"));
                         ok = false;
                         continue;
                     }
@@ -339,18 +343,18 @@ impl<'a> Resolver<'a> {
                 }
                 Member::Spread { name, span } => {
                     let Some((df, idx)) = self.ws.lookup(f, name) else {
-                        self.error(f, *span, format!("型 `{name}` が見つかりません"));
+                        self.error(f, *span, format!("type `{name}` not found"));
                         ok = false;
                         continue;
                     };
                     let StmtKind::TypeDecl { members: inner, .. } = &df.ast.stmts[idx].kind else {
-                        self.error(f, *span, format!("`...{name}` は enum なので展開できません"));
+                        self.error(f, *span, format!("`...{name}` is an enum and cannot be spread"));
                         ok = false;
                         continue;
                     };
                     let id = type_id(&df, name);
                     if stack.contains(&id) {
-                        self.error(f, *span, format!("`...{name}` が循環しています"));
+                        self.error(f, *span, format!("`...{name}` is circular"));
                         ok = false;
                         continue;
                     }
@@ -426,17 +430,17 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
         // cache is set per endpoint. It has no effect in defaults.comat / init.comat, so warn and ignore it
         if matches!(kind, StmtKind::Cache { .. }) && matches!(role, Role::Defaults | Role::Init) {
             let place = if role == Role::Init { "init.comat" } else { "defaults.comat" };
-            r.warn(f, st.span, format!("`cache` は {place} に書いても効きません（エンドポイントの .comat に書いてください）。無視します"));
+            r.warn(f, st.span, format!("`cache` has no effect in {place} (write it in an endpoint .comat file); ignored"));
             continue;
         }
         if !allowed {
             let place = match role {
                 Role::Init => "init.comat",
                 Role::Defaults => "defaults.comat",
-                Role::Endpoint => "エンドポイントの .comat",
-                Role::TypeLib => "型だけのファイル",
+                Role::Endpoint => "an endpoint .comat file",
+                Role::TypeLib => "a types-only file",
             };
-            r.error(f, st.span, format!("`{}` は {} には書けません", kind.keyword(), place));
+            r.error(f, st.span, format!("`{}` cannot be written in {}", kind.keyword(), place));
             continue;
         }
         // Things that may be written only once per file
@@ -456,7 +460,7 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
         };
         if let Some(k) = once {
             if let Some(prev) = seen.insert(k, st.span) {
-                r.error(f, st.span, format!("`{k}` は 1 ファイルに 1 つだけです（{} 行目にもあります）", prev.line));
+                r.error(f, st.span, format!("`{k}` is allowed only once per file (also on line {})", prev.line));
                 continue;
             }
         }
@@ -470,7 +474,7 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
             StmtKind::Body { ty } => out.body = r.ty(f, ty, Pos::Other),
             StmtKind::Status { code, ty, headers } => {
                 if !codes.insert(*code) {
-                    r.error(f, st.span, format!("s{code} が重複しています"));
+                    r.error(f, st.span, format!("s{code} is duplicated"));
                     continue;
                 }
                 let Ok(body) = r.status_body(f, st.span, *code, ty) else { continue };
@@ -485,7 +489,11 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
             StmtKind::Cache { mode } => {
                 if let crate::ast::CacheMode::Cookie { ttl_ms } = mode {
                     if *ttl_ms < 1000 {
-                        r.warn(f, st.span, "cookie のキャッシュの ttl は秒単位です（1000 ミリ秒未満は 1 秒に切り上げます）");
+                        r.warn(
+                            f,
+                            st.span,
+                            "the ttl of a cookie cache is in whole seconds (values under 1000 ms are rounded up to 1 second)",
+                        );
                     }
                 }
                 out.cache = Some(mode.clone());
@@ -500,7 +508,7 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
             }
             StmtKind::Wrapper { name, ctx, statuses } => {
                 if !wrapper_names.insert(name) {
-                    r.error(f, st.span, format!("wrapper `{name}` が重複しています"));
+                    r.error(f, st.span, format!("wrapper `{name}` is duplicated"));
                     continue;
                 }
                 let ctx_fields = match ctx {
@@ -511,7 +519,7 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
                 let mut seen_codes = HashSet::new();
                 for s in statuses {
                     if !seen_codes.insert(s.code) {
-                        r.error(f, s.span, format!("s{} が重複しています", s.code));
+                        r.error(f, s.span, format!("s{} is duplicated", s.code));
                         continue;
                     }
                     let Ok(body) = r.status_body(f, s.span, s.code, &s.ty) else { continue };
@@ -529,13 +537,13 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
 /// Checks the `cookie session { ... }` setting
 fn check_cookie_def(r: &mut Resolver, f: &SrcFile, span: Span, name: &str, settings: &[Setting]) {
     if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-        r.error(f, span, format!("cookie の名前 `{name}` が不正です"));
+        r.error(f, span, format!("invalid cookie name `{name}`"));
     }
     let mut seen = HashSet::new();
     let get = |k: &str| settings.iter().find(|s| s.key == k).map(|s| s.value.as_str());
     for s in settings {
         if !seen.insert(s.key.as_str()) {
-            r.error(f, span, format!("cookie の設定 `{}` が重複しています", s.key));
+            r.error(f, span, format!("cookie setting `{}` is duplicated", s.key));
             continue;
         }
         let ok = match s.key.as_str() {
@@ -544,20 +552,20 @@ fn check_cookie_def(r: &mut Resolver, f: &SrcFile, span: Span, name: &str, setti
             "path" | "domain" => !s.value.is_empty(),
             "maxAge" => s.value.parse::<u64>().is_ok(),
             other => {
-                r.error(f, span, format!("未知の cookie の設定 `{other}`（httpOnly, secure, sameSite, path, domain, maxAge）"));
+                r.error(f, span, format!("unknown cookie setting `{other}` (httpOnly, secure, sameSite, path, domain, maxAge)"));
                 continue;
             }
         };
         if !ok {
-            r.error(f, span, format!("cookie の設定 {}: `{}` は不正な値です", s.key, s.value));
+            r.error(f, span, format!("cookie setting {}: `{}` is not a valid value", s.key, s.value));
         }
     }
     if get("sameSite") == Some("none") && get("secure") != Some("true") {
-        r.error(f, span, "sameSite: none には secure: true が必要です");
+        r.error(f, span, "sameSite: none requires secure: true");
     }
     if let Some(p) = get("path") {
         if !p.starts_with('/') {
-            r.error(f, span, "cookie の path は `/` で始めてください");
+            r.error(f, span, "a cookie path must start with `/`");
         }
     }
 }
@@ -575,7 +583,7 @@ fn type_defs(ws: &Workspace, diags: &mut Vec<Diagnostic>) -> BTreeMap<String, ir
                     let mut seen = HashSet::new();
                     for v in variants {
                         if !seen.insert(v) {
-                            r.error(f, st.span, format!("enum `{name}` の値 `{v}` が重複しています"));
+                            r.error(f, st.span, format!("value `{v}` of enum `{name}` is duplicated"));
                         }
                     }
                     Some((name, ir::TypeDef::Enum { values: variants.clone() }))
@@ -627,7 +635,7 @@ fn build_service(
     let mut ws = Workspace { base: base.to_path_buf(), files: BTreeMap::new(), diags: Vec::new(), overlay, statuses };
     let comat_dir = normalize(comat_dir);
     if !comat_dir.is_dir() {
-        let d = Diagnostic::error("comatype.config.json", Span::default(), format!("comatDir が見つかりません: {}", comat_dir.display()));
+        let d = Diagnostic::error("comatype.config.json", Span::default(), format!("comatDir not found: {}", comat_dir.display()));
         return (None, vec![d]);
     }
     let mut paths = Vec::new();
@@ -646,7 +654,7 @@ fn build_service(
                 Role::Init
             }
             "init.comat" => {
-                diags.push(Diagnostic::error(&ws.display(&p), Span::default(), "init.comat は comatDir の直下にだけ置けます"));
+                diags.push(Diagnostic::error(&ws.display(&p), Span::default(), "init.comat can only be placed directly under comatDir"));
                 continue;
             }
             "defaults.comat" => Role::Defaults,
@@ -681,7 +689,7 @@ fn build_service(
         diags.push(Diagnostic::warning(
             "comatfiles/init.comat",
             Span::default(),
-            "init.comat がありません（baseUrl と wrapper の宣言が無いものとして扱います）",
+            "init.comat not found (treated as having no baseUrl and no wrapper declarations)",
         ));
     }
     let wrapper_map: HashMap<&str, &ir::Wrapper> = init.wrappers.iter().map(|w| (w.name.as_str(), w)).collect();
@@ -720,7 +728,7 @@ fn build_service(
         };
         if let Some((_, seg)) = raw_stem.split_once('_') {
             if seg.starts_with('_') || seg.starts_with(':') {
-                fail(&mut diags, Span::default(), format!("ファイル名 `{}` の動的なセグメントは、廃止された書き方です（`__name` / `:name`）。ディレクトリ名の `[name]/{}.comat`（推奨）か、`{}_[name].comat` に直してください", file[0], raw_stem.split_once('_').unwrap().0, raw_stem.split_once('_').unwrap().0));
+                fail(&mut diags, Span::default(), format!("a dynamic segment in the file name `{}` uses a removed syntax (`__name` / `:name`); use a directory name `[name]/{}.comat` (recommended) or `{}_[name].comat`", file[0], raw_stem.split_once('_').unwrap().0, raw_stem.split_once('_').unwrap().0));
                 continue;
             }
         }
@@ -729,11 +737,7 @@ fn build_service(
             None => (stem.clone(), None),
         };
         if !METHODS.contains(&method.as_str()) {
-            fail(
-                &mut diags,
-                Span::default(),
-                format!("ファイル名 `{}` のメソッド `{method}` が不正です（{}）", file[0], METHODS.join(" / ")),
-            );
+            fail(&mut diags, Span::default(), format!("invalid method `{method}` in file name `{}` ({})", file[0], METHODS.join(" / ")));
             continue;
         }
         let mut dir_segs: Vec<String> = Vec::new();
@@ -742,7 +746,7 @@ fn build_service(
         for d in dirs.iter().filter(|d| !is_group(d)) {
             if let Some(name) = d.strip_prefix('[').and_then(|x| x.strip_suffix(']')) {
                 if !valid_name(name) || name.starts_with('_') {
-                    fail(&mut diags, Span::default(), format!("動的なディレクトリ名 `{d}` が不正です（`[名前]`。名前は英数字・`-`・`_`。`[...名前]` や `[[名前]]` のような、複数のセグメントに合うものや省略できるものは使えません）"));
+                    fail(&mut diags, Span::default(), format!("invalid dynamic directory name `{d}` (use `[name]`, where name is alphanumeric, `-` or `_`; catch-all `[...name]` and optional `[[name]]` segments are not supported)"));
                     bad_dir = true;
                 }
                 dir_segs.push(format!(":{name}"));
@@ -752,14 +756,14 @@ fn build_service(
                     &mut diags,
                     Span::default(),
                     format!(
-                        "ディレクトリ名 `{d}` は廃止された書き方です。動的なセグメントは `[{}]` と書いてください",
+                        "the directory name `{d}` uses a removed syntax; write a dynamic segment as `[{}]`",
                         d.trim_start_matches(':').trim_start_matches('_')
                     ),
                 );
                 bad_dir = true;
             } else {
                 if !valid_name(d) {
-                    fail(&mut diags, Span::default(), format!("ディレクトリ名 `{d}` を path のセグメントにできません"));
+                    fail(&mut diags, Span::default(), format!("the directory name `{d}` cannot be used as a path segment"));
                     bad_dir = true;
                 }
                 dir_segs.push(d.clone());
@@ -778,14 +782,14 @@ fn build_service(
         // path
         let mut segs: Vec<String> = Vec::new();
         let route = if let Some((v, span)) = &me.path {
-            f_warn(&mut diags, f, *span, "path の明示は非推奨です（ディレクトリとファイル名から決める形にしてください）");
+            f_warn(&mut diags, f, *span, "an explicit path is deprecated (let the directory and file name decide it)");
             if let Some(abs) = v.strip_prefix('/') {
                 segs.extend(abs.split('/').map(String::from));
             } else if v == "." || v.starts_with("./") {
                 segs.extend(dir_segs.iter().map(|s| s.to_string()));
                 segs.extend(v[1..].split('/').map(String::from));
             } else {
-                fail(&mut diags, *span, format!("path は `/` か `./` で始めてください（`{v}`）"));
+                fail(&mut diags, *span, format!("path must start with `/` or `./` (`{v}`)"));
                 continue;
             }
             normalize_route(segs, &mut diags, f, *span)
@@ -794,14 +798,14 @@ fn build_service(
             if let Some(s) = &seg {
                 if let Some(name) = s.strip_prefix('_') {
                     if !valid_name(name) || name.starts_with('_') {
-                        fail(&mut diags, Span::default(), format!("動的パスの名前 `{name}` が不正です（{}）", file[0]));
+                        fail(&mut diags, Span::default(), format!("invalid dynamic path name `{name}` ({})", file[0]));
                         continue;
                     }
                     segs.push(format!(":{name}"));
                 } else if valid_name(s) {
                     segs.push(s.clone());
                 } else {
-                    fail(&mut diags, Span::default(), format!("セグメント `{s}` が不正です（{}）", file[0]));
+                    fail(&mut diags, Span::default(), format!("invalid segment `{s}` ({})", file[0]));
                     continue;
                 }
             }
@@ -813,24 +817,24 @@ fn build_service(
         let dyn_names: Vec<&str> = route.split('/').filter_map(|s| s.strip_prefix(':')).collect();
         for n in &dyn_names {
             if !me.params.iter().any(|x| &x.name == n) {
-                fail(&mut diags, Span::default(), format!("path の `:{n}` が params に宣言されていません"));
+                fail(&mut diags, Span::default(), format!("`:{n}` in path is not declared in params"));
             }
         }
         for pf in &me.params {
             if !dyn_names.contains(&pf.name.as_str()) {
-                fail(&mut diags, Span::default(), format!("params の `{}` が path（{route}）にありません", pf.name));
+                fail(&mut diags, Span::default(), format!("`{}` in params is not in the path ({route})", pf.name));
             }
             if pf.optional {
-                fail(&mut diags, Span::default(), format!("params の `{}` は省略できません", pf.name));
+                fail(&mut diags, Span::default(), format!("`{}` in params cannot be optional", pf.name));
             }
         }
 
         // Collisions
         if let Some(prev) = routes.insert((method.clone(), route.clone()), rel_disp.clone()) {
-            fail(&mut diags, Span::default(), format!("{} {route} が {prev} と重複しています", method.to_uppercase()));
+            fail(&mut diags, Span::default(), format!("{} {route} duplicates {prev}", method.to_uppercase()));
         }
         if let Some(prev) = modules.insert(module.clone(), rel_disp.clone()) {
-            fail(&mut diags, Span::default(), format!("生成物のモジュール名 `{module}` が {prev} と重複しています"));
+            fail(&mut diags, Span::default(), format!("generated module name `{module}` duplicates {prev}"));
         }
 
         // Merging defaults: comatDir → each directory → the file itself
@@ -882,7 +886,7 @@ fn build_service(
                         statuses.entry(resp.status).or_insert((resp.body.clone(), Vec::new()));
                     }
                 }
-                None => fail(&mut diags, Span::default(), format!("wrap `{w}` は init.comat で宣言されていません")),
+                None => fail(&mut diags, Span::default(), format!("wrap `{w}` is not declared in init.comat")),
             }
         }
 
@@ -903,7 +907,7 @@ fn build_service(
 
         let cache = match &me.cache {
             Some(c) if !matches!(c, crate::ast::CacheMode::Off) && method != "get" && method != "query" => {
-                fail(&mut diags, Span::default(), format!("cache は get / query のエンドポイントだけに書けます（{method}）"));
+                fail(&mut diags, Span::default(), format!("cache can only be written in get / query endpoints ({method})"));
                 None
             }
             c => c.clone(),
@@ -933,7 +937,7 @@ fn build_service(
                 &ws.display(&comat_dir.join(&e.file)),
                 Span::default(),
                 format!(
-                    "cache を書いたエンドポイントに wrap（{}）が効いています。クライアントのキャッシュのキーに Authorization は入らないので、ユーザーが変わるときは clearCache() を呼んでください。サーバのキャッシュはラッパーの前に引くため、認証が外れた後も ttl の間は応答が返ります",
+                    "the endpoint with cache is wrapped by ({}). The client cache key does not include Authorization, so call clearCache() when the user changes. The server cache is looked up before the wrapper, so responses are still served for the ttl after authentication is removed",
                     e.wraps.join(", ")
                 ),
             ));
@@ -944,15 +948,12 @@ fn build_service(
             diags.push(Diagnostic::warning(
                 &ws.display(&comat_dir.join("init.comat")),
                 Span::default(),
-                format!(
-                    "wrapper `{}` は、どのエンドポイントでも有効になっていません（wrap {} を defaults.comat か .comat に書いてください）",
-                    w.name, w.name
-                ),
+                format!("wrapper `{}` is not enabled in any endpoint (write wrap {} in defaults.comat or a .comat file)", w.name, w.name),
             ));
         }
     }
     if init.cookie_def.is_none() && endpoints.iter().any(|e| e.cookie) {
-        diags.push(Diagnostic::warning(&ws.display(&comat_dir.join("init.comat")), Span::default(), "cookie on のエンドポイントがありますが、init.comat に cookie の宣言（`cookie 名前 { ... }`）が無いので、サーバは cookie を発行できません"));
+        diags.push(Diagnostic::warning(&ws.display(&comat_dir.join("init.comat")), Span::default(), "there are endpoints with cookie on, but init.comat has no cookie declaration (`cookie name { ... }`), so the server cannot issue cookies"));
     }
 
     // Unused imports
@@ -960,7 +961,7 @@ fn build_service(
         let used = f.used.borrow();
         for (n, (_, sp)) in &f.imports {
             if !used.contains(n) {
-                diags.push(Diagnostic::warning(&f.display, *sp, format!("import した `{n}` が使われていません")));
+                diags.push(Diagnostic::warning(&f.display, *sp, format!("imported `{n}` is not used")));
             }
         }
     }
@@ -980,7 +981,7 @@ fn normalize_route(segs: Vec<String>, diags: &mut Vec<Diagnostic>, f: &SrcFile, 
         match s.as_str() {
             "" | "." => {}
             ".." => {
-                diags.push(Diagnostic::error(&f.display, span, "path に `..` は使えません"));
+                diags.push(Diagnostic::error(&f.display, span, "`..` cannot be used in path"));
                 return None;
             }
             _ => out.push(s),

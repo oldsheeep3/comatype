@@ -21,7 +21,7 @@ const registry = new Registry({
 })
 export const grammar = await registry.loadGrammar('source.comat')
 
-/** テキストを行ごとにトークン化する。戻り値: 行 → [{ text, scopes: ['source.comat', ...] }] */
+/** Tokenizes text line by line. Returns: line -> [{ text, scopes: ['source.comat', ...] }] */
 export function tokenize(text) {
   let ruleStack = INITIAL
   return text.split('\n').map((line) => {
@@ -31,7 +31,7 @@ export function tokenize(text) {
   })
 }
 
-/** 1 行の中の、text に一致するトークンのスコープ（最も内側のもの）。無ければ undefined */
+/** The scopes of the token in a line that matches text (the innermost one). undefined if there is none */
 export function scopeOf(line, text, nth = 0) {
   const hits = tokenize(line)[0].filter((t) => t.text === text)
   return hits[nth]?.scopes.at(-1)

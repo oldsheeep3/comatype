@@ -87,7 +87,7 @@ fn export_maps_paths_params_bodies_and_responses() {
     assert_eq!(put["responses"]["404"]["description"], "Not Found");
     assert_eq!(put["responses"]["404"]["content"]["application/json"]["schema"]["properties"]["message"], json!({"type": "string"}));
     assert!(put["responses"]["204"].get("content").is_none());
-    assert_eq!(put["responses"]["401"]["description"], "Unauthorized", "ラッパーのステータスも入る");
+    assert_eq!(put["responses"]["401"]["description"], "Unauthorized", "the status of the wrapper is included");
     assert_eq!(put["x-comatype-wraps"], json!(["auth"]));
 
     // QUERY does not exist in 3.0, so it goes in an extension key
@@ -241,13 +241,13 @@ fn import_converts_an_openapi_document_into_a_checkable_project() {
     assert!(pet.contains(r#"nick?: string(pattern: "^[a-z]+\\d$"),"#), "{pet}");
     assert!(file(&imp, "types/Kind.comat").contains("enum Kind {\n    cat,\n    dog,\n}"));
     assert!(file(&imp, "types/Base.comat").contains("id: uuid,"), "{}", file(&imp, "types/Base.comat"));
-    assert!(imp.files.iter().all(|(p, _)| p != "types/Id.comat"), "alias は inline");
+    assert!(imp.files.iter().all(|(p, _)| p != "types/Id.comat"), "alias is inlined");
     assert!(file(&imp, "types/NewPet.comat").contains("child?: {\n        x: int64,\n    },"), "{}", file(&imp, "types/NewPet.comat"));
 
     // Warnings
     let w = imp.warnings.join("\n");
-    for needle in ["default", "number", "additionalProperties", "ユニオンの配列", "trace", "JSON ではない", "204"] {
-        assert!(w.contains(needle), "警告に {needle} がありません:\n{w}");
+    for needle in ["default", "number", "additionalProperties", "an array of a union", "trace", "that is not JSON", "204"] {
+        assert!(w.contains(needle), "the warnings lack {needle}:\n{w}");
     }
     let _ = fs::remove_dir_all(root);
 }

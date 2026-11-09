@@ -46,7 +46,7 @@ class Client {
     const hit = this.messages.find(pred)
     if (hit) return Promise.resolve(hit)
     return new Promise((ok, ng) => {
-      const t = setTimeout(() => ng(new Error('待ち時間切れ')), ms)
+      const t = setTimeout(() => ng(new Error('timed out')), ms)
       this.waiters.push((m) => (pred(m) ? (clearTimeout(t), ok(m), true) : false))
     })
   }
@@ -57,8 +57,8 @@ class Client {
   }
 }
 
-test('実際の comatype lsp: 診断（構文エラー→修正）、定義ジャンプ、終了コード', async (t) => {
-  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype がありません（cargo build）')
+test('the real comatype lsp: diagnostics (syntax error -> fix), go to definition, exit code', async (t) => {
+  if (spawnSync(bin, ['help']).error) return t.skip('target/debug/comatype is missing (cargo build)')
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'comat-lsp-')))
   mkdirSync(join(dir, 'comatfiles'))
   mkdirSync(join(dir, 'types'))
