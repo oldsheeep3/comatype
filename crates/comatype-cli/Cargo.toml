@@ -1,0 +1,24 @@
+[package]
+name = "comatype-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "comatype"
+
+[[bin]]
+name = "comatype"
+path = "src/main.rs"
+
+[dependencies]
+comatype-core = { path = "../comatype-core" }
+comatype-gen-ts = { path = "../comatype-gen-ts" }
+comatype-gen-go = { path = "../comatype-gen-go" }
+comatype-gen-python = { path = "../comatype-gen-python" }
+comatype-gen-rust = { path = "../comatype-gen-rust" }
+comatype-gen-java = { path = "../comatype-gen-java" }
+comatype-gen-kotlin = { path = "../comatype-gen-kotlin" }
+comatype-gen-swift = { path = "../comatype-gen-swift" }
+comatype-gen-ruby = { path = "../comatype-gen-ruby" }
+comatype-lsp = { path = "../comatype-lsp" }
+comatype-openapi = { path = "../comatype-openapi" }
+serde_json = "1"
