@@ -15,7 +15,7 @@ tasks.register<JavaExec>("selfTest") {
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
     if (System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null) signAllPublications()
-    coordinates("io.github.oldsheeep3", "comatype", project.version.toString())
+    coordinates("net.sheeplab.comatype", "comatype", project.version.toString())
     pom {
         name.set("comatype")
         description.set("Comatype runtime for Java (types, validation, client and server)")

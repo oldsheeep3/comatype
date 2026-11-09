@@ -21,3 +21,4 @@ build
 __pycache__
 .venv
 .kotlin
+*.egg-info

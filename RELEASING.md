@@ -14,9 +14,9 @@ Branches: `main` is the release, `develop` is the next version, `hotfix` is for 
 |---|---|---|
 | npm | `@comatype/typescript` | secret `NPM_TOKEN` (an automation token; the `@comatype` scope must exist on npm and be yours) |
 | Go | `github.com/oldsheeep3/comatype/packages/go` | nothing: the tag `packages/go/vX.Y.Z` is the release |
-| PyPI | `comatype-api` | PyPI trusted publishing for this repository, workflow `release.yml`, environment `pypi` |
+| PyPI | `comatype` | PyPI trusted publishing for this repository, workflow `release.yml`, environment `pypi` |
 | crates.io | `comatype` | secret `CARGO_REGISTRY_TOKEN` (the crate name must be free) |
-| Maven Central | `io.github.oldsheeep3:comatype`, `io.github.oldsheeep3:comatype-ktx` | secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD` (Central Portal user token), `SIGNING_KEY`, `SIGNING_KEY_PASSWORD` (ASCII-armored GPG key); the namespace `io.github.oldsheeep3` must be verified in the Central Portal |
+| Maven Central | `net.sheeplab.comatype:comatype`, `net.sheeplab.comatype:comatype-ktx` | secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD` (Central Portal user token), `SIGNING_KEY`, `SIGNING_KEY_PASSWORD` (ASCII-armored GPG key); the namespace `net.sheeplab` must be verified in the Central Portal (it is, via a DNS TXT record managed in cloudflare-iac) |
 
 ## Turning it on
 

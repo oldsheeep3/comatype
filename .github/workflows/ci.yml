@@ -70,6 +70,6 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.12"
+          gradle-version: current
       - name: Java and Kotlin runtimes
         run: gradle -p packages :java:selfTest :kotlin:build --console=plain

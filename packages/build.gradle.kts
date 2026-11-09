@@ -5,7 +5,7 @@ plugins {
 }
 
 allprojects {
-    group = "io.github.oldsheeep3"
+    group = "net.sheeplab.comatype"
     version = (findProperty("releaseVersion") as String?) ?: "0.0.1-SNAPSHOT"
     repositories { mavenCentral() }
 }

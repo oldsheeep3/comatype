@@ -6,7 +6,7 @@ import { createClient, createCookieJar, createServer, defineEndpoint, defineStat
 import { MemoryCache, clientCacheKey, decodeCacheCookie, encodeCacheCookie, fnv1a, serverCacheKey } from '../src/cache.ts'
 import { nodeListener } from '../src/node.ts'
 
-const s200 = defineStatus<any, any>(200, t.object({ n: t.int() }))
+const s200 = defineStatus<{ status: 200; data: { n: number } }, { data: { n: number } }>(200, t.object({ n: t.int() }))
 
 const make = (cache: any) =>
   defineEndpoint<any, any, {}, 'get'>({
