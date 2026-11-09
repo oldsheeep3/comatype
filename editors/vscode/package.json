@@ -1,16 +1,51 @@
 {
-  "name": "comatype-vscode",
+  "name": "comatype",
   "displayName": "Comatype",
-  "description": "Comatype の .comat ファイル用の拡張: 言語サーバ（リアルタイムの診断、定義ジャンプ、ホバー、補完、アウトライン）、シンタックスハイライト、スニペット、生成コマンド、OpenAPI の書き出しと取り込み",
-  "version": "0.0.1",
+  "description": "Language support for Comatype .comat API definitions: live diagnostics, go to definition, hover, completion, outline, syntax highlighting, snippets, code generation and OpenAPI export/import",
+  "version": "0.0.2",
   "publisher": "comatype",
   "license": "MIT",
-  "private": true,
+  "homepage": "https://comatype.sheeplab.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oldsheeep3/comatype.git",
+    "directory": "editors/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/oldsheeep3/comatype/issues"
+  },
+  "icon": "images/icon.png",
+  "keywords": [
+    "comatype",
+    "comat",
+    "api",
+    "openapi",
+    "code generation",
+    "language server",
+    "typescript",
+    "go",
+    "python",
+    "rust",
+    "kotlin",
+    "swift",
+    "ruby",
+    "java"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
   "engines": {
     "vscode": "^1.82.0"
   },
-  "categories": [
-    "Programming Languages"
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:comat",
+    "workspaceContains:**/comatype.config.json",
+    "onCommand:comatype.exportOpenApi",
+    "onCommand:comatype.importOpenApi",
+    "onCommand:comatype.showStatusCodes"
   ],
   "contributes": {
     "languages": [
@@ -81,42 +116,41 @@
         "comatype.path": {
           "type": "string",
           "default": "comatype",
-          "description": "comatype コマンドの場所（PATH に無いとき）"
+          "description": "Path to the comatype executable. Set it when comatype is not on PATH."
         },
         "comatype.config": {
           "type": "string",
           "default": "",
-          "description": "comatype.config.json の場所（ワークスペースからの相対）。空なら、開いているファイルから上に向かって探す"
+          "description": "Location of comatype.config.json, relative to the workspace folder. When empty, it is searched for upwards from the open file."
         },
         "comatype.checkOnSave": {
           "type": "boolean",
           "default": true,
-          "description": "言語サーバを使わないときだけ: 開いたとき・保存したときに comatype check を実行して、診断を出す"
+          "description": "Only when the language server is off: run comatype check when a .comat file is opened or saved and show the result as diagnostics."
         },
         "comatype.languageServer.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "言語サーバ（comatype lsp）を使う。入力中の診断、定義ジャンプ、ホバー、補完、アウトライン。オフなら、保存時に comatype check を実行する従来の方法になる"
+          "description": "Use the language server (comatype lsp) for diagnostics while typing, go to definition, hover, completion and outline. When off, comatype check runs on save instead."
         }
       }
     }
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "build": "esbuild extension.js --bundle --platform=node --format=cjs --target=node18 --external:vscode --minify --outfile=dist/extension.js",
+    "vscode:prepublish": "pnpm run build",
+    "package": "vsce package --no-dependencies",
+    "pretest": "pnpm run build"
   },
-  "devDependencies": {
-    "vscode-oniguruma": "^2.0.1",
-    "vscode-textmate": "^9.2.0"
-  },
-  "main": "./extension.js",
-  "activationEvents": [
-    "onLanguage:comat",
-    "workspaceContains:**/comatype.config.json",
-    "onCommand:comatype.exportOpenApi",
-    "onCommand:comatype.importOpenApi",
-    "onCommand:comatype.showStatusCodes"
-  ],
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.28.2",
+    "ovsx": "^1.3.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
   }
 }

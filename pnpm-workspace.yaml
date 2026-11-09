@@ -3,6 +3,7 @@ packages:
   - "editors/*"
   - "docs"
 allowBuilds:
+  '@vscode/vsce-sign': false
   esbuild: false
 minimumReleaseAgeExclude:
   - '@next/env@16.4.5'

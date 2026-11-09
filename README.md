@@ -33,6 +33,7 @@ TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby — each as a client 
 | Java / Kotlin | `net.sheeplab.comatype:comatype`, `:comatype-ktx` (Maven Central) | release pipeline ready, not published yet |
 | Ruby | `comatype` (RubyGems) | release pipeline ready, not published yet |
 | Swift | `packages/swift` | in this repository only |
+| VS Code extension | `comatype.comatype` (VS Code Marketplace, Open VSX) | release pipeline ready, not published yet |
 
 ## The command line
 
