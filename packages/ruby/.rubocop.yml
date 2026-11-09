@@ -1,0 +1,40 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: disable
+  SuggestExtensions: false
+
+Layout/LineLength:
+  Max: 160
+
+Style/Documentation:
+  Enabled: false
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+Style/FrozenStringLiteralComment:
+  Enabled: true
+Metrics:
+  Enabled: false
+Naming/MethodParameterName:
+  Enabled: false
+Naming/PredicatePrefix:
+  Enabled: false
+Style/Next:
+  Enabled: false
+Style/GuardClause:
+  Enabled: false
+Style/IfUnlessModifier:
+  Enabled: false
+Style/ClassVars:
+  Enabled: false
+Lint/MissingSuper:
+  Enabled: false
+Style/SafeNavigation:
+  Enabled: false
+Style/StringConcatenation:
+  Enabled: false
+Style/FormatStringToken:
+  Enabled: false
+Lint/StructNewOverride:
+  Enabled: false
+Style/Attr:
+  Enabled: false

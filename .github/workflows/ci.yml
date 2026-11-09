@@ -47,6 +47,30 @@ jobs:
           python -m pip install ruff
           ruff check packages/python
           ruff format --check packages/python
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+      - name: Java and Kotlin (Spotless)
+        run: gradle -p packages spotlessCheck --console=plain
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Ruby (RuboCop)
+        run: |
+          gem install rubocop
+          cd packages/ruby && rubocop
+
+  lint-swift:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift (swift-format)
+        run: swift format lint --strict -r packages/swift/Sources
 
   rust:
     runs-on: ubuntu-latest
