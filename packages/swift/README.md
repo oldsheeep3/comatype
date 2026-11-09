@@ -30,10 +30,10 @@ macOS 12 / iOS 15 or later, Swift 5.9 or later. Put the generated code in the ta
 The `comatype` command (parser, checker and generators) is separate from the runtime:
 
 ```bash
-cargo install --git https://github.com/oldsheeep3/comatype comatype-cli
+curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh
 ```
 
-This installs the `comatype` command and its short alias `comat`.
+This downloads the prebuilt `comatype` command (and its short alias `comat`) for macOS (arm64, x64) and Linux (x64, arm64) from the [latest release](https://github.com/oldsheeep3/comatype/releases/latest); no Rust toolchain needed. On Windows, download `comatype-x86_64-pc-windows-msvc.zip` from the release page. To build it from source instead: `cargo install --git https://github.com/oldsheeep3/comatype comatype-cli`.
 
 ### Import
 

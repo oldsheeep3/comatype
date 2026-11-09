@@ -19,10 +19,10 @@ REPO = "https://github.com/oldsheeep3/comatype"
 SITE = "https://comatype.sheeplab.net"
 
 CLI_INSTALL = f"""```bash
-cargo install --git {REPO} comatype-cli
+curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh
 ```
 
-This installs the `comatype` command and its short alias `comat`."""
+This downloads the prebuilt `comatype` command (and its short alias `comat`) for macOS (arm64, x64) and Linux (x64, arm64) from the [latest release]({REPO}/releases/latest); no Rust toolchain needed. On Windows, download `comatype-x86_64-pc-windows-msvc.zip` from the release page. To build it from source instead: `cargo install --git {REPO} comatype-cli`."""
 
 CHECK = """```bash
 comatype check                  # check every .comat file; prints [error] / [warn] / [info] lines, exits 1 on errors

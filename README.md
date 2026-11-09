@@ -37,7 +37,9 @@ TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby — each as a client 
 ## The command line
 
 ```bash
-cargo build -p comatype-cli       # builds `comatype` (and its short alias `comat`)
+# install a prebuilt binary (macOS, Linux; on Windows use the zip on the release page)
+curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh
+# or build it from source:  cargo install --git https://github.com/oldsheeep3/comatype comatype-cli
 
 comatype check                    # check every .comat file
 comatype generate                 # generate code for the targets in comatype.config.json

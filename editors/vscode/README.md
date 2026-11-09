@@ -4,7 +4,7 @@ Language support for [Comatype](https://comatype.sheeplab.net) `.comat` files. C
 
 ## Requirements
 
-The language server and the commands run the `comatype` command line tool, so it has to be installed (see the [repository](https://github.com/oldsheeep3/comatype) for how to build it). Syntax highlighting, snippets and the `comatype.config.json` schema work without it.
+The language server and the commands run the `comatype` command line tool. The platform builds of this extension (macOS arm64 / x64, Linux x64 / arm64, Windows x64) **bundle it**, so nothing else has to be installed. Other platforms get the universal build, which uses `comatype` from `PATH` (see the [repository](https://github.com/oldsheeep3/comatype) for the installer). Syntax highlighting, snippets and the `comatype.config.json` schema need no tool at all.
 
 ## Features
 
@@ -39,14 +39,14 @@ Open the Command Palette and type `Comatype`.
 
 | Setting                           | Default    | Description                                                                                                                      |
 | --------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `comatype.path`                   | `comatype` | Path to the `comatype` executable. Set it when it is not on `PATH`.                                                              |
+| `comatype.path`                   | `comatype` | Path to the `comatype` executable. Leave it as `comatype` to use the bundled binary, or the one on `PATH`.                                                              |
 | `comatype.config`                 | empty      | Location of `comatype.config.json`, relative to the workspace folder. When empty, it is searched for upwards from the open file. |
 | `comatype.languageServer.enabled` | `true`     | Use the language server (`comatype lsp`). When off, `comatype check` runs on save instead.                                       |
 | `comatype.checkOnSave`            | `true`     | Only when the language server is off: run `comatype check` when a file is opened or saved.                                       |
 
 ## How the language server is found
 
-The extension starts `comatype lsp` as a child process and talks to it over standard input and output. The executable is the value of `comatype.path` (default `comatype`), resolved through your `PATH` like any command. If it cannot be started, the extension shows an error and logs the reason in the **Comatype** output channel; set `comatype.path` to an absolute path (for example `<repository>/target/debug/comatype`) and run `Comatype: Restart Language Server`.
+The extension starts `comatype lsp` as a child process and talks to it over standard input and output. The executable is, in this order: the value of `comatype.path` when you changed it from the default, the binary bundled in the extension (`bin/comatype`), and `comatype` resolved through your `PATH`. If it cannot be started, the extension shows an error and logs the reason in the **Comatype** output channel; set `comatype.path` to an absolute path (for example `<repository>/target/debug/comatype`) and run `Comatype: Restart Language Server`.
 
 ## Links
 

@@ -38,7 +38,9 @@ TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ cl
 ## コマンドライン
 
 ```bash
-cargo build -p comatype-cli       # `comatype`（短い別名は `comat`）をビルド
+# ビルド済みのバイナリを入れる（macOS・Linux。Windows はリリースページの zip）
+curl -fsSL https://raw.githubusercontent.com/oldsheeep3/comatype/main/install.sh | sh
+# ソースからビルドする場合:  cargo install --git https://github.com/oldsheeep3/comatype comatype-cli
 
 comatype check                    # 全 .comat を検査
 comatype generate                 # comatype.config.json の targets にコードを生成
