@@ -75,9 +75,52 @@ fn reindent(code: &str) -> String {
 // ---- Names ----
 
 const KEYWORDS: &[&str] = &[
-    "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "interface", "is", "null", "object", "package", "return", "super",
-    "this", "throw", "true", "try", "typealias", "typeof", "val", "var", "when", "while", "by", "catch", "constructor", "delegate", "dynamic", "field", "file",
-    "finally", "get", "import", "init", "param", "property", "receiver", "set", "setparam", "value", "where",
+    "as",
+    "break",
+    "class",
+    "continue",
+    "do",
+    "else",
+    "false",
+    "for",
+    "fun",
+    "if",
+    "in",
+    "interface",
+    "is",
+    "null",
+    "object",
+    "package",
+    "return",
+    "super",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typealias",
+    "typeof",
+    "val",
+    "var",
+    "when",
+    "while",
+    "by",
+    "catch",
+    "constructor",
+    "delegate",
+    "dynamic",
+    "field",
+    "file",
+    "finally",
+    "get",
+    "import",
+    "init",
+    "param",
+    "property",
+    "receiver",
+    "set",
+    "setparam",
+    "value",
+    "where",
 ];
 
 pub fn words(s: &str) -> Vec<String> {
@@ -92,7 +135,7 @@ pub fn words(s: &str) -> Vec<String> {
             continue;
         }
         let prev_lower = i > 0 && chars[i - 1].is_ascii_lowercase();
-        let next_lower = chars.get(i + 1).map_or(false, |n| n.is_ascii_lowercase());
+        let next_lower = chars.get(i + 1).is_some_and(|n| n.is_ascii_lowercase());
         let prev_upper = i > 0 && chars[i - 1].is_ascii_uppercase();
         if c.is_ascii_uppercase() && !cur.is_empty() && (prev_lower || (prev_upper && next_lower)) {
             out.push(std::mem::take(&mut cur));
@@ -112,13 +155,21 @@ fn cap(w: &str) -> String {
 
 pub fn pascal(s: &str) -> String {
     let out: String = words(s).iter().map(|w| cap(&w.to_ascii_lowercase())).collect::<Vec<_>>().concat();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("V{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("V{out}")
+    } else {
+        out
+    }
 }
 
 /// `user/put__id` → `UserPutId`
 pub fn module_class(module: &str) -> String {
     let out: String = module.split(|c: char| !c.is_ascii_alphanumeric()).filter(|w| !w.is_empty()).map(cap).collect();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("M{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("M{out}")
+    } else {
+        out
+    }
 }
 
 /// Property name (camelCase)
@@ -128,15 +179,23 @@ pub fn camel(s: &str) -> String {
         let w = w.to_ascii_lowercase();
         out.push_str(&if i == 0 { w } else { cap(&w) });
     }
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) {
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
         out = format!("f{}", cap(&out));
     }
-    if KEYWORDS.contains(&out.as_str()) { format!("{out}_") } else { out }
+    if KEYWORDS.contains(&out.as_str()) {
+        format!("{out}_")
+    } else {
+        out
+    }
 }
 
 pub fn constant(s: &str) -> String {
     let out = words(s).iter().map(|w| w.to_ascii_uppercase()).collect::<Vec<_>>().join("_");
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("V_{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("V_{out}")
+    } else {
+        out
+    }
 }
 
 fn kstr(s: &str) -> String {
@@ -354,13 +413,18 @@ impl<'a> Gen<'a> {
                             "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" => {
                                 s.push_str(&format!("comatype.Check.len({path}, comatype.Wire.str({var}), {}, {})\n", opt(min), opt(max)))
                             }
-                            "int" | "int64" => s.push_str(&format!("comatype.Check.range({path}, {var}.toDouble(), {}, {})\n", opt(min), opt(max))),
+                            "int" | "int64" => {
+                                s.push_str(&format!("comatype.Check.range({path}, {var}.toDouble(), {}, {})\n", opt(min), opt(max)))
+                            }
                             "decimal" => s.push_str(&format!("comatype.Check.range({path}, {var}, {}, {})\n", opt(min), opt(max))),
                             _ => {}
                         }
                     }
                     Some(Constraint::Pattern { value }) => {
-                        if matches!(name.as_str(), "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" | "decimal") {
+                        if matches!(
+                            name.as_str(),
+                            "string" | "email" | "phone" | "url" | "date" | "time" | "datetime" | "uuid" | "uuidv4" | "uuidv7" | "decimal"
+                        ) {
                             s.push_str(&format!("comatype.Check.pattern({path}, comatype.Wire.str({var}), {})\n", kstr(value)));
                         }
                     }
@@ -445,7 +509,9 @@ impl<'a> Gen<'a> {
         let mut body = String::new();
         if mode == Mode::Json {
             body.push_str(&format!("override fun validate(path: String) {{\n{checks}}}\n\n"));
-            body.push_str(&format!("override fun encode(): Any? {{\nval m = java.util.LinkedHashMap<String, Any?>()\n{puts}return m\n}}\n\n"));
+            body.push_str(&format!(
+                "override fun encode(): Any? {{\nval m = java.util.LinkedHashMap<String, Any?>()\n{puts}return m\n}}\n\n"
+            ));
             body.push_str(&format!(
                 "companion object {{\n    @JvmStatic\n    fun decode(j: Any?, path: String): {name} {{\n        val m = comatype.Codec.`object`(j, path)\n        val v = {name}({})\n        v.validate(path)\n        return v\n    }}\n}}\n",
                 args.join(", ")
@@ -644,7 +710,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
     let ctx_wrappers: Vec<&Wrapper> = ep.wraps.iter().filter_map(|w| svc.wrappers.iter().find(|x| &x.name == w)).collect();
     if role == Role::Server {
         let comps: Vec<String> = ctx_wrappers.iter().map(|w| format!("val {}: Init.{}Ctx", camel(&w.name), pascal(&w.name))).collect();
-        body.push_str(&if comps.is_empty() { "/** 有効なラッパーが足した値 */\nclass Ctx\n\n".to_string() } else { format!("/** 有効なラッパーが足した値 */\ndata class Ctx({})\n\n", comps.join(", ")) });
+        body.push_str(&if comps.is_empty() {
+            "/** 有効なラッパーが足した値 */\nclass Ctx\n\n".to_string()
+        } else {
+            format!("/** 有効なラッパーが足した値 */\ndata class Ctx({})\n\n", comps.join(", "))
+        });
     }
     let all_optional = |fs: &[Field]| fs.iter().all(|f| f.optional || strip_null(&f.ty).1);
     let mut req_comps: Vec<(&str, String, String)> = Vec::new(); // (name, type, default)
@@ -699,7 +769,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let d = if all_optional(&r.headers) { format!(" = S{c}Headers()") } else { String::new() };
             comps.push(format!("val headers: S{c}Headers{d}"));
         }
-        variants.push_str(&if comps.is_empty() { format!("object S{c} : Response\n") } else { format!("data class S{c}({}) : Response\n", comps.join(", ")) });
+        variants.push_str(&if comps.is_empty() {
+            format!("object S{c} : Response\n")
+        } else {
+            format!("data class S{c}({}) : Response\n", comps.join(", "))
+        });
     }
     body.push_str(&format!("/** 全ステータスのレスポンス */\nsealed interface Response\n\n{variants}\n"));
 
@@ -711,7 +785,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
         "comatype.NoArg".to_string()
     };
     let res_ty = if role == Role::Server && cookie { "comatype.S.Reply<Response>".to_string() } else { "Response".to_string() };
-    let wraps = if ep.wraps.is_empty() { "java.util.List.of<String>()".to_string() } else { format!("java.util.List.of({})", ep.wraps.iter().map(|w| kstr(w)).collect::<Vec<_>>().join(", ")) };
+    let wraps = if ep.wraps.is_empty() {
+        "java.util.List.of<String>()".to_string()
+    } else {
+        format!("java.util.List.of({})", ep.wraps.iter().map(|w| kstr(w)).collect::<Vec<_>>().join(", "))
+    };
     let base = svc.base_url.as_ref().map_or("null".to_string(), |u| kstr(u));
     let cd = match (&svc.cookie, ep.cookie) {
         (Some(c), true) => cookie_def_kt(c),
@@ -739,16 +817,29 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
 
     match role {
         Role::Client => {
-            let mut f = format!("private fun buildRequest(arg: {arg}): comatype.RawRequest {{\n    val raw = comatype.RawRequest({}, {})\n", kstr(&ep.method), kstr(&ep.path));
+            let mut f = format!(
+                "private fun buildRequest(arg: {arg}): comatype.RawRequest {{\n    val raw = comatype.RawRequest({}, {})\n",
+                kstr(&ep.method),
+                kstr(&ep.path)
+            );
             if arg == "Request" {
                 if has("params") {
-                    f.push_str(&format!("    arg.params.validate(\"\")\n    comatype.Wire.fillPath(raw, {})\n", wire_pairs(&ep.params, "arg.params")));
+                    f.push_str(&format!(
+                        "    arg.params.validate(\"\")\n    comatype.Wire.fillPath(raw, {})\n",
+                        wire_pairs(&ep.params, "arg.params")
+                    ));
                 }
                 if has("search") {
-                    f.push_str(&format!("    arg.search.validate(\"\")\n    comatype.Wire.addQuery(raw, {})\n", wire_pairs(&ep.search, "arg.search")));
+                    f.push_str(&format!(
+                        "    arg.search.validate(\"\")\n    comatype.Wire.addQuery(raw, {})\n",
+                        wire_pairs(&ep.search, "arg.search")
+                    ));
                 }
                 if has("headers") {
-                    f.push_str(&format!("    arg.headers.validate(\"\")\n    comatype.Wire.setHeaders(raw.headers, {})\n", wire_pairs(&ep.request_headers, "arg.headers")));
+                    f.push_str(&format!(
+                        "    arg.headers.validate(\"\")\n    comatype.Wire.setHeaders(raw.headers, {})\n",
+                        wire_pairs(&ep.request_headers, "arg.headers")
+                    ));
                 }
                 if has("body") {
                     f.push_str("    raw.body = encodeBody(arg.body)\n    raw.headers.set(\"Content-Type\", \"application/json\")\n");
@@ -776,7 +867,10 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
                     args.push("headers = headers");
                 }
                 let ctor = if args.is_empty() { format!("S{c}") } else { format!("S{c}({})", args.join(", ")) };
-                p.push_str(&format!("        {c} -> {{\n{}            {ctor}\n        }}\n", inner.lines().map(|l| format!("            {l}\n")).collect::<String>()));
+                p.push_str(&format!(
+                    "        {c} -> {{\n{}            {ctor}\n        }}\n",
+                    inner.lines().map(|l| format!("            {l}\n")).collect::<String>()
+                ));
             }
             p.push_str("        else -> throw comatype.ComatypeException.UnexpectedStatus(raw.status, raw.body)\n    }\n}\n");
             body.push_str(&p);
@@ -785,11 +879,17 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let mut f = String::from("private fun parseRequest(raw: comatype.RawRequest): Request {\n");
             let mut inits = Vec::new();
             if has("params") {
-                f.push_str(&format!("    val params = {}\n    params.validate(\"\")\n", wire_build("Params", &ep.params, &g, "comatype.Wire.paramValues(raw, {})", false)));
+                f.push_str(&format!(
+                    "    val params = {}\n    params.validate(\"\")\n",
+                    wire_build("Params", &ep.params, &g, "comatype.Wire.paramValues(raw, {})", false)
+                ));
                 inits.push("params = params");
             }
             if has("search") {
-                f.push_str(&format!("    val search = {}\n    search.validate(\"\")\n", wire_build("Search", &ep.search, &g, "comatype.Wire.queryValues(raw, {})", false)));
+                f.push_str(&format!(
+                    "    val search = {}\n    search.validate(\"\")\n",
+                    wire_build("Search", &ep.search, &g, "comatype.Wire.queryValues(raw, {})", false)
+                ));
                 inits.push("search = search");
             }
             if has("headers") {
@@ -806,7 +906,9 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             if has("ctx") {
                 let cs: Vec<String> = ctx_wrappers
                     .iter()
-                    .map(|w| format!("{} = comatype.S.ctx(raw, {}, Init.{}Ctx::class.java)", camel(&w.name), kstr(&w.name), pascal(&w.name)))
+                    .map(|w| {
+                        format!("{} = comatype.S.ctx(raw, {}, Init.{}Ctx::class.java)", camel(&w.name), kstr(&w.name), pascal(&w.name))
+                    })
                     .collect();
                 f.push_str(&format!("    val ctx = Ctx({})\n", cs.join(", ")));
                 inits.push("ctx = ctx");
@@ -819,16 +921,22 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             b.push_str("    val out: comatype.RawResponse = when (res) {\n");
             for r in &ep.responses {
                 let c = r.status;
-                let pat = if r.body.is_none() && r.headers.is_empty() { format!("is S{c}") } else { format!("is S{c}") };
+                let pat = format!("is S{c}");
                 let mut st = format!("val o = comatype.RawResponse({c})\n");
                 if r.body.is_some() {
                     st.push_str(&format!("o.body = encodeS{c}(res.body)\no.headers.set(\"Content-Type\", \"application/json\")\n"));
                 }
                 if !r.headers.is_empty() {
-                    st.push_str(&format!("res.headers.validate(\"\")\ncomatype.Wire.setHeaders(o.headers, {})\n", wire_pairs(&r.headers, "res.headers")));
+                    st.push_str(&format!(
+                        "res.headers.validate(\"\")\ncomatype.Wire.setHeaders(o.headers, {})\n",
+                        wire_pairs(&r.headers, "res.headers")
+                    ));
                 }
                 st.push_str("o\n");
-                b.push_str(&format!("        {pat} -> {{\n{}        }}\n", st.lines().map(|l| format!("            {l}\n")).collect::<String>()));
+                b.push_str(&format!(
+                    "        {pat} -> {{\n{}        }}\n",
+                    st.lines().map(|l| format!("            {l}\n")).collect::<String>()
+                ));
             }
             b.push_str("    }\n");
             if cookie {

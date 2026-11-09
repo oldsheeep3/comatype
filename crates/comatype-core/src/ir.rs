@@ -14,11 +14,22 @@ pub enum Type {
         #[serde(skip_serializing_if = "Option::is_none")]
         constraint: Option<Constraint>,
     },
-    Ref { id: String, name: String },
-    Object { fields: Vec<Field> },
-    Array { item: Box<Type> },
-    Union { variants: Vec<Type> },
-    Literal { value: String },
+    Ref {
+        id: String,
+        name: String,
+    },
+    Object {
+        fields: Vec<Field>,
+    },
+    Array {
+        item: Box<Type>,
+    },
+    Union {
+        variants: Vec<Type>,
+    },
+    Literal {
+        value: String,
+    },
     Null,
 }
 

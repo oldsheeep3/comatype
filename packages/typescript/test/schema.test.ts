@@ -1,12 +1,15 @@
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { t, ValidationError, defineStatus } from '../src/index.ts'
+import { test } from 'node:test'
+import { defineStatus, t, ValidationError } from '../src/index.ts'
 
 test('object: 必須・省略・余分なキー', () => {
   const s = t.object<{ a: string; b?: number }>({ a: t.string(), b: t.opt(t.int()) })
   assert.deepEqual(s.parse({ a: 'x', extra: 1 }), { a: 'x' })
   assert.deepEqual(s.parse({ a: 'x', b: 2 }), { a: 'x', b: 2 })
-  assert.throws(() => s.parse({ b: 2 }), (e: unknown) => e instanceof ValidationError && e.path === 'a')
+  assert.throws(
+    () => s.parse({ b: 2 }),
+    (e: unknown) => e instanceof ValidationError && e.path === 'a',
+  )
 })
 
 test('制約', () => {

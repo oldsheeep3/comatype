@@ -1,10 +1,10 @@
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { createRequire } from 'node:module'
+import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
@@ -36,11 +36,14 @@ test('parseDiagnostics: 新しい表示（[error] / [warn] / [info]）', () => {
     '[info]  OK: エンドポイント 11 件、警告 3 件',
   ].join('\n')
   const d = parseDiagnostics(out, '/proj')
-  assert.deepEqual(d.map((x) => [x.file, x.line, x.col, x.severity, x.message]), [
-    ['/proj/comatfiles/get_user.comat', 4, 0, 'warning', 'path の明示は非推奨です'],
-    ['/proj/comatfiles/user/put_[id].comat', 11, 7, 'error', '型 `X` が見つかりません'],
-    ['/proj/comatfiles/post_a.comat', 0, 0, 'error', 'cache は get / query のエンドポイントだけに書けます（post）'],
-  ])
+  assert.deepEqual(
+    d.map((x) => [x.file, x.line, x.col, x.severity, x.message]),
+    [
+      ['/proj/comatfiles/get_user.comat', 4, 0, 'warning', 'path の明示は非推奨です'],
+      ['/proj/comatfiles/user/put_[id].comat', 11, 7, 'error', '型 `X` が見つかりません'],
+      ['/proj/comatfiles/post_a.comat', 0, 0, 'error', 'cache は get / query のエンドポイントだけに書けます（post）'],
+    ],
+  )
 })
 
 test('importLinks: パスの範囲', () => {
@@ -100,7 +103,14 @@ test('package.json: 文法・スニペット・コマンドの参照先が存在
   }
   const snippets = JSON.parse(readFileSync(new URL('../snippets/comat.json', import.meta.url), 'utf8'))
   assert.ok(Object.keys(snippets).length >= 10)
-  assert.deepEqual(c.commands.map((x) => x.command).sort(), ['comatype.check', 'comatype.exportOpenApi', 'comatype.generate', 'comatype.importOpenApi', 'comatype.restartServer', 'comatype.showStatusCodes'])
+  assert.deepEqual(c.commands.map((x) => x.command).sort(), [
+    'comatype.check',
+    'comatype.exportOpenApi',
+    'comatype.generate',
+    'comatype.importOpenApi',
+    'comatype.restartServer',
+    'comatype.showStatusCodes',
+  ])
 })
 
 test('ステータスコードのスニペットは、登録表（comatype statuses）と一致する', (t) => {
@@ -116,15 +126,36 @@ test('ステータスコードのスニペットは、登録表（comatype statu
   assert.equal(actual.s306, undefined, '未使用のコードは入れない')
   // The snippet prefixes match the codes in the list
   const list = JSON.parse(execFileSync(bin, ['statuses', '--json'], { encoding: 'utf8' }))
-  assert.deepEqual(Object.values(actual).map((x) => x.prefix), list.map((x) => `s${x.status}`))
+  assert.deepEqual(
+    Object.values(actual).map((x) => x.prefix),
+    list.map((x) => `s${x.status}`),
+  )
 })
 
-
 test('OpenAPI コマンドの引数', () => {
-  assert.deepEqual(exportOpenApiArgs('/p/comatype.config.json', '/p/openapi.yml'), ['to-openapi', '--config', '/p/comatype.config.json', '-o', '/p/openapi.yml'])
+  assert.deepEqual(exportOpenApiArgs('/p/comatype.config.json', '/p/openapi.yml'), [
+    'to-openapi',
+    '--config',
+    '/p/comatype.config.json',
+    '-o',
+    '/p/openapi.yml',
+  ])
   assert.deepEqual(exportOpenApiArgs('/c', '/o.yml', 'api').slice(-2), ['--service', 'api'])
-  const targets = [{ lang: 'ts', role: 'client', root: './client' }, { lang: 'go', role: 'server', root: './s' }]
-  assert.deepEqual(importOpenApiArgs('/spec.yml', '/dest', targets, true, false), ['from-openapi', '/spec.yml', '--out', '/dest', '--target', 'ts:client:./client', '--target', 'go:server:./s', '--generate'])
+  const targets = [
+    { lang: 'ts', role: 'client', root: './client' },
+    { lang: 'go', role: 'server', root: './s' },
+  ]
+  assert.deepEqual(importOpenApiArgs('/spec.yml', '/dest', targets, true, false), [
+    'from-openapi',
+    '/spec.yml',
+    '--out',
+    '/dest',
+    '--target',
+    'ts:client:./client',
+    '--target',
+    'go:server:./s',
+    '--generate',
+  ])
   // Without an output location, --generate is not added (nothing can be generated). Overwrite with --force
   assert.deepEqual(importOpenApiArgs('/spec.yml', '/dest', [], true, true), ['from-openapi', '/spec.yml', '--out', '/dest', '--force'])
   assert.ok(TARGET_PRESETS.every((t) => ['ts', 'go', 'python'].includes(t.lang) && ['client', 'server'].includes(t.role)))

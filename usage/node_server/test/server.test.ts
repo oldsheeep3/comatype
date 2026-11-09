@@ -1,6 +1,7 @@
 // Server-only tests: use no network, call s.handle(Request) directly
-import { beforeEach, test } from 'node:test'
+
 import assert from 'node:assert/strict'
+import { beforeEach, test } from 'node:test'
 import { s } from '../app'
 import { DEMO, db } from '../db'
 

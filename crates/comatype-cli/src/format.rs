@@ -37,7 +37,7 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         }
         if p.is_dir() {
             walk(&p, out);
-        } else if p.extension().map_or(false, |e| e == "comat") {
+        } else if p.extension().is_some_and(|e| e == "comat") {
             out.push(p);
         }
     }
@@ -54,7 +54,8 @@ fn bracket(name: &str) -> Option<&str> {
 
 /// New relative path of one file (None if nothing changes) and the reason
 fn rewrite(rel: &Path) -> Option<(PathBuf, String)> {
-    let comps: Vec<String> = rel.components().filter_map(|c| if let Component::Normal(s) = c { s.to_str().map(String::from) } else { None }).collect();
+    let comps: Vec<String> =
+        rel.components().filter_map(|c| if let Component::Normal(s) = c { s.to_str().map(String::from) } else { None }).collect();
     let (file, dirs) = comps.split_last()?;
     let mut reasons = Vec::new();
     let mut out: Vec<String> = Vec::new();
@@ -97,9 +98,11 @@ fn rewrite(rel: &Path) -> Option<(PathBuf, String)> {
 fn has_relative_path_directive(text: &str) -> bool {
     text.lines().any(|l| {
         let t = l.trim_start();
-        t.strip_prefix("path").map_or(false, |r| r.starts_with(char::is_whitespace) && {
-            let v = r.trim().trim_matches(|c| c == '\'' || c == '"');
-            v == "." || v.starts_with("./")
+        t.strip_prefix("path").is_some_and(|r| {
+            r.starts_with(char::is_whitespace) && {
+                let v = r.trim().trim_matches(|c| c == '\'' || c == '"');
+                v == "." || v.starts_with("./")
+            }
         })
     })
 }
@@ -124,8 +127,14 @@ pub fn plan(root: &Path) -> Plan {
             plan.skipped.push((f.clone(), format!("移動先 {} がすでにあります", new_rel.display())));
             continue;
         }
-        if new_level && to.parent().map_or(false, |d| d.join("defaults.comat").exists()) {
-            plan.skipped.push((f.clone(), format!("移動先のディレクトリ {} に defaults.comat があり、効く設定が変わります。手で確かめてください", to.parent().unwrap().strip_prefix(root).unwrap_or(Path::new("")).display())));
+        if new_level && to.parent().is_some_and(|d| d.join("defaults.comat").exists()) {
+            plan.skipped.push((
+                f.clone(),
+                format!(
+                    "移動先のディレクトリ {} に defaults.comat があり、効く設定が変わります。手で確かめてください",
+                    to.parent().unwrap().strip_prefix(root).unwrap_or(Path::new("")).display()
+                ),
+            ));
             continue;
         }
         if let Some(prev) = targets.insert(lexical(&to), f.clone()) {
@@ -162,7 +171,11 @@ fn relative(from_dir: &Path, to: &Path) -> String {
     let mut parts: Vec<String> = vec!["..".into(); a.len() - common];
     parts.extend(b[common..].iter().map(|s| s.to_string_lossy().to_string()));
     let joined = parts.join("/");
-    if joined.starts_with("..") { joined } else { format!("./{joined}") }
+    if joined.starts_with("..") {
+        joined
+    } else {
+        format!("./{joined}")
+    }
 }
 
 /// Rewrites relative `import` paths after the move. `moves`: old → new (textually collapsed paths). Returns the files that were rewritten
@@ -275,7 +288,12 @@ pub fn run(dirs: &[PathBuf], opts: &Options, report_info: &dyn Fn(&str)) -> i32 
         }
         if !opts.fix {
             pending += plan.moves.len();
-            report_info(&format!("{}: 直せるものが {} 件あります。`comatype format {} --fix` で直せます（`-y` で、確かめずに全部）", root.display(), plan.moves.len(), root.display()));
+            report_info(&format!(
+                "{}: 直せるものが {} 件あります。`comatype format {} --fix` で直せます（`-y` で、確かめずに全部）",
+                root.display(),
+                plan.moves.len(),
+                root.display()
+            ));
             continue;
         }
         let mut accepted: Vec<Move> = Vec::new();
@@ -321,5 +339,9 @@ pub fn run(dirs: &[PathBuf], opts: &Options, report_info: &dyn Fn(&str)) -> i32 
             }
         }
     }
-    if pending > 0 && !opts.fix { 1 } else { 0 }
+    if pending > 0 && !opts.fix {
+        1
+    } else {
+        0
+    }
 }

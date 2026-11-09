@@ -1,5 +1,5 @@
 // Comatype VS Code extension: diagnostics (comatype check), commands, import links
-'use strict'
+
 const vscode = require('vscode')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
@@ -127,18 +127,27 @@ function registerCommonCommands(context) {
       output.appendLine(`$ comatype ${args.join(' ')}`)
       let res = await runComatype(args, folder[0].fsPath)
       if (res.code !== 0 && /既にあります/.test(res.stderr)) {
-        const ok = await vscode.window.showWarningMessage('comatfiles か comatype.config.json が既にあります。上書きしますか？', { modal: true }, '上書きする')
+        const ok = await vscode.window.showWarningMessage(
+          'comatfiles か comatype.config.json が既にあります。上書きしますか？',
+          { modal: true },
+          '上書きする',
+        )
         if (!ok) return
         res = await runComatype(importOpenApiArgs(picked[0].fsPath, folder[0].fsPath, targets, targets.length > 0, true), folder[0].fsPath)
       }
       output.appendLine(res.stderr.trimEnd())
       if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: OpenAPI を取り込めませんでした（出力を見てください）')
-      vscode.window.showInformationMessage(targets.length ? 'Comatype: .comat を作って、コードを生成しました' : 'Comatype: .comat と comatype.config.json を作りました')
+      vscode.window.showInformationMessage(
+        targets.length ? 'Comatype: .comat を作って、コードを生成しました' : 'Comatype: .comat と comatype.config.json を作りました',
+      )
     }),
 
     vscode.commands.registerCommand('comatype.showStatusCodes', async () => {
       const config = configForActiveEditor()
-      const res = await runComatype(['statuses', '--json', ...(config ? ['--config', config] : [])], config ? path.dirname(config) : undefined)
+      const res = await runComatype(
+        ['statuses', '--json', ...(config ? ['--config', config] : [])],
+        config ? path.dirname(config) : undefined,
+      )
       if (res.code !== 0) return vscode.window.showErrorMessage('Comatype: ステータスコードの一覧を取れませんでした')
       const list = JSON.parse(res.stdout)
       const item = await vscode.window.showQuickPick(
@@ -163,7 +172,10 @@ async function runGenerate(output) {
   const explicit = settings.get('config')
   const config = explicit
     ? path.resolve(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '.', explicit)
-    : [uri && path.dirname(uri.fsPath), ...(vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath)].filter(Boolean).map((d) => findConfig(d)).find(Boolean)
+    : [uri && path.dirname(uri.fsPath), ...(vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath)]
+        .filter(Boolean)
+        .map((d) => findConfig(d))
+        .find(Boolean)
   if (!config) {
     vscode.window.showWarningMessage(`${CONFIG_NAME} が見つかりません`)
     return
@@ -264,7 +276,11 @@ function activateWithoutServer(context) {
     const byFile = new Map()
     for (const d of found) {
       const range = new vscode.Range(d.line, d.col, d.line, Number.MAX_SAFE_INTEGER)
-      const diag = new vscode.Diagnostic(range, d.message, d.severity === 'error' ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning)
+      const diag = new vscode.Diagnostic(
+        range,
+        d.message,
+        d.severity === 'error' ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning,
+      )
       diag.source = 'comatype'
       if (!byFile.has(d.file)) byFile.set(d.file, [])
       byFile.get(d.file).push(diag)
@@ -312,7 +328,10 @@ function activateWithoutServer(context) {
         provideDocumentLinks(doc) {
           const dir = path.dirname(doc.uri.fsPath)
           return importLinks(doc.getText()).map((l) => {
-            const link = new vscode.DocumentLink(new vscode.Range(l.line, l.start, l.line, l.end), vscode.Uri.file(path.resolve(dir, l.target)))
+            const link = new vscode.DocumentLink(
+              new vscode.Range(l.line, l.start, l.line, l.end),
+              vscode.Uri.file(path.resolve(dir, l.target)),
+            )
             link.tooltip = `${l.target} を開く`
             return link
           })

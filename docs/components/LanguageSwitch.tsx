@@ -4,7 +4,7 @@
 // so that the automatic redirect for Japanese browsers does not fight a manual choice.
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { localeName, locales, stripLocale, withLocale, type Locale } from '../lib/i18n'
+import { type Locale, localeName, locales, stripLocale, withLocale } from '../lib/i18n'
 import { useLocale, useUi } from './useLocale'
 
 export function LanguageSwitch() {
@@ -22,7 +22,15 @@ export function LanguageSwitch() {
   return (
     <div className="lang-switch" role="group" aria-label={text.language}>
       {locales.map((l) => (
-        <Link key={l} href={withLocale(l, rest)} hrefLang={l === 'en' ? 'en' : 'ja'} lang={l === 'en' ? 'en' : 'ja'} className={l === current ? 'active' : ''} aria-current={l === current ? 'true' : undefined} onClick={() => remember(l)}>
+        <Link
+          key={l}
+          href={withLocale(l, rest)}
+          hrefLang={l === 'en' ? 'en' : 'ja'}
+          lang={l === 'en' ? 'en' : 'ja'}
+          className={l === current ? 'active' : ''}
+          aria-current={l === current ? 'true' : undefined}
+          onClick={() => remember(l)}
+        >
           {localeName[l]}
         </Link>
       ))}

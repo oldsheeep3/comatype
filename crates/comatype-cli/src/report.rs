@@ -18,7 +18,11 @@ fn on() -> bool {
 }
 
 fn paint(s: &str, code: &str) -> String {
-    if on() { format!("\x1b[{code}m{s}\x1b[0m") } else { s.to_string() }
+    if on() {
+        format!("\x1b[{code}m{s}\x1b[0m")
+    } else {
+        s.to_string()
+    }
 }
 
 /// Aligns the width of the tag (`[error]` is the longest)
@@ -32,7 +36,7 @@ fn tag(level: &str) -> String {
 }
 
 pub fn format_diag(d: &Diagnostic) -> String {
-    let (level, ) = match d.severity {
+    let (level,) = match d.severity {
         Severity::Error => ("error",),
         Severity::Warning => ("warn",),
     };

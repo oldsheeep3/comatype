@@ -3,17 +3,17 @@
 //   The result is the union of the statuses passed (narrow it with status). 2xx is data, everything else is error
 // `delete` is a reserved word in TS, so call it as c.delete() instead of a named import
 import { c } from '@comatype/typescript'
-import post_user from '@/comatype/post_user'
 import get_user from '@/comatype/get_user'
 import options_user from '@/comatype/options_user'
+import post_user from '@/comatype/post_user'
 import query_user from '@/comatype/query_user'
+import user_delete__id from '@/comatype/user/delete__id'
 import user_get from '@/comatype/user/get'
 import user_get_me from '@/comatype/user/get_me'
 import user_get_ping from '@/comatype/user/get_ping'
-import user_put__id from '@/comatype/user/put__id'
-import user_delete__id from '@/comatype/user/delete__id'
 import user_post_login from '@/comatype/user/post_login'
 import user_profile_get from '@/comatype/user/profile/get'
+import user_put__id from '@/comatype/user/put__id'
 
 /** Sign up (POST /user). The body is Body (no uid) */
 export const postUser = (input: post_user.Body) => c.post(post_user.path, input, post_user.s200).then((res) => res.data)
@@ -29,8 +29,7 @@ export const putUser = (id: string, user: user_put__id.Body) =>
 // #endregion put-user
 
 /** DELETE /user/:id */
-export const deleteUser = (id: string) =>
-  c.delete(user_delete__id.path, { params: { id } }, user_delete__id.s204, user_delete__id.s404)
+export const deleteUser = (id: string) => c.delete(user_delete__id.path, { params: { id } }, user_delete__id.s204, user_delete__id.s404)
 
 /** GET /user?limit= */
 export const listUsers = (limit?: number) => c.get(user_get.path, { search: { limit } }, user_get.s200)
@@ -42,8 +41,7 @@ export const queryUsers = (condition: query_user.Body) => c.query(query_user.pat
 export const optionsUser = () => c.options(options_user.path, options_user.s200)
 
 /** POST /user/login. On success the server issues a Set-Cookie */
-export const login = (input: user_post_login.Body) =>
-  c.post(user_post_login.path, input, user_post_login.s200, user_post_login.s401)
+export const login = (input: user_post_login.Body) => c.post(user_post_login.path, input, user_post_login.s200, user_post_login.s401)
 
 /** GET /user/profile (wrap auth is on, so 401 without login) */
 export const getProfile = () => c.get(user_profile_get.path, user_profile_get.s200, user_profile_get.s401)

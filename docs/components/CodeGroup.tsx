@@ -1,7 +1,7 @@
 'use client'
 
 // Tabs of `::: code-group`. The titles are put into data-titles on the server side
-import { Children, useState, type ReactNode } from 'react'
+import { Children, type ReactNode, useState } from 'react'
 
 export function CodeGroup({ children, 'data-titles': titlesJson }: { children?: ReactNode; 'data-titles'?: string }) {
   const titles: string[] = titlesJson ? JSON.parse(titlesJson) : []
@@ -11,7 +11,14 @@ export function CodeGroup({ children, 'data-titles': titlesJson }: { children?: 
     <div className="code-group">
       <div className="tabs" role="tablist">
         {titles.map((t, i) => (
-          <button key={`${t}-${i}`} type="button" role="tab" aria-selected={i === active} className={i === active ? 'active' : ''} onClick={() => setActive(i)}>
+          <button
+            key={`${t}-${i}`}
+            type="button"
+            role="tab"
+            aria-selected={i === active}
+            className={i === active ? 'active' : ''}
+            onClick={() => setActive(i)}
+          >
             {t}
           </button>
         ))}

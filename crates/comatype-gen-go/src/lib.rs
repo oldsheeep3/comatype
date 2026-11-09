@@ -46,8 +46,31 @@ pub fn generate(svc: &Service, role: Role, import_path: &str) -> Result<Vec<GenF
 // ---- Names ----
 
 const KEYWORDS: &[&str] = &[
-    "break", "case", "chan", "const", "continue", "default", "defer", "else", "fallthrough", "for", "func", "go", "goto", "if", "import",
-    "interface", "map", "package", "range", "return", "select", "struct", "switch", "type", "var",
+    "break",
+    "case",
+    "chan",
+    "const",
+    "continue",
+    "default",
+    "defer",
+    "else",
+    "fallthrough",
+    "for",
+    "func",
+    "go",
+    "goto",
+    "if",
+    "import",
+    "interface",
+    "map",
+    "package",
+    "range",
+    "return",
+    "select",
+    "struct",
+    "switch",
+    "type",
+    "var",
 ];
 
 const INITIALISMS: &[&str] = &[
@@ -63,8 +86,12 @@ pub fn package_name(module: &str) -> String {
         .map(|w| w.to_ascii_lowercase())
         .collect::<Vec<_>>()
         .join("_");
-    let n = if n.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("p_{n}") } else { n };
-    if KEYWORDS.contains(&n.as_str()) { format!("{n}_") } else { n }
+    let n = if n.chars().next().is_none_or(|c| c.is_ascii_digit()) { format!("p_{n}") } else { n };
+    if KEYWORDS.contains(&n.as_str()) {
+        format!("{n}_")
+    } else {
+        n
+    }
 }
 
 /// Splits into words (at separators and camelCase humps)
@@ -80,7 +107,7 @@ fn words(s: &str) -> Vec<String> {
             continue;
         }
         let prev_lower = i > 0 && chars[i - 1].is_ascii_lowercase();
-        let next_lower = chars.get(i + 1).map_or(false, |n| n.is_ascii_lowercase());
+        let next_lower = chars.get(i + 1).is_some_and(|n| n.is_ascii_lowercase());
         let prev_upper = i > 0 && chars[i - 1].is_ascii_uppercase();
         if c.is_ascii_uppercase() && !cur.is_empty() && (prev_lower || (prev_upper && next_lower)) {
             out.push(std::mem::take(&mut cur));
@@ -108,7 +135,11 @@ pub fn pascal(s: &str) -> String {
             }
         })
         .collect();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("F{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("F{out}")
+    } else {
+        out
+    }
 }
 
 fn tag_quote(s: &str) -> Result<String, String> {
@@ -250,10 +281,8 @@ impl<'a> Gen<'a> {
                     return Ok(inner);
                 }
                 if non_null.len() == variants.len() && variants.iter().all(|v| matches!(v, Type::Literal { .. })) {
-                    let vals: Vec<&str> = variants
-                        .iter()
-                        .map(|v| if let Type::Literal { value } = v { value.as_str() } else { "" })
-                        .collect();
+                    let vals: Vec<&str> =
+                        variants.iter().map(|v| if let Type::Literal { value } = v { value.as_str() } else { "" }).collect();
                     if vals.iter().any(|v| v.contains('|')) {
                         return Err("リテラルのユニオンの値に `|` は使えません".into());
                     }
@@ -390,7 +419,11 @@ fn imports(body: &str, import_path: &str, runtime: &[&str]) -> String {
     if !ext.is_empty() {
         groups.push(ext.concat());
     }
-    if groups.is_empty() { String::new() } else { format!("import (\n{})\n\n", groups.join("\n")) }
+    if groups.is_empty() {
+        String::new()
+    } else {
+        format!("import (\n{})\n\n", groups.join("\n"))
+    }
 }
 
 // ---- types/types.go ----
@@ -538,7 +571,9 @@ fn endpoint_file(svc: &Service, ep: &Endpoint, role: Role, import_path: &str) ->
     if role == Role::Server && cookie {
         resp_fields.push_str("\t// Cookie は発行する cookie（WithCookie / ClearCookie で付ける）\n\tCookie *comatype.CookieValue\n");
     }
-    body.push_str(&format!("// Response は全ステータスのレスポンス。Status のフィールドだけが入る\ntype Response struct {{\n\tStatus int\n{resp_fields}}}\n\n"));
+    body.push_str(&format!(
+        "// Response は全ステータスのレスポンス。Status のフィールドだけが入る\ntype Response struct {{\n\tStatus int\n{resp_fields}}}\n\n"
+    ));
     body.push_str(&ctor);
     if role == Role::Server && cookie {
         body.push_str("// WithCookie は init.comat の cookie を発行する\nfunc (r Response) WithCookie(value string, opts ...comatype.CookieOption) Response {\n\tv := &comatype.CookieValue{Value: value}\n\tfor _, o := range opts {\n\t\to(v)\n\t}\n\tr.Cookie = v\n\treturn r\n}\n\n// ClearCookie は cookie を削除する\nfunc (r Response) ClearCookie() Response {\n\tr.Cookie = &comatype.CookieValue{Delete: true}\n\treturn r\n}\n\n");
@@ -589,7 +624,11 @@ fn endpoint_file(svc: &Service, ep: &Endpoint, role: Role, import_path: &str) ->
     match role {
         Role::Client => {
             // arg → RawRequest
-            let mut f = format!("func buildRequest(arg {arg}) (*comatype.RawRequest, error) {{\n\traw := comatype.NewRawRequest({}, {})\n", go_string(&ep.method), go_string(&ep.path));
+            let mut f = format!(
+                "func buildRequest(arg {arg}) (*comatype.RawRequest, error) {{\n\traw := comatype.NewRawRequest({}, {})\n",
+                go_string(&ep.method),
+                go_string(&ep.path)
+            );
             if arg == "Request" {
                 for (name, call) in [("Params", "SetParams"), ("Search", "SetQuery"), ("Headers", "SetHeaders"), ("Body", "SetBody")] {
                     if has(name) {

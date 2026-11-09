@@ -37,7 +37,21 @@ pub struct Import {
 
 /// Words that cannot be the first word of a type declaration
 const KEYWORDS: &[&str] = &[
-    "import", "enum", "path", "params", "search", "body", "header", "headerReq", "headerRes", "wrap", "cookie", "cache", "baseUrl", "wrapper", "ctx",
+    "import",
+    "enum",
+    "path",
+    "params",
+    "search",
+    "body",
+    "header",
+    "headerReq",
+    "headerRes",
+    "wrap",
+    "cookie",
+    "cache",
+    "baseUrl",
+    "wrapper",
+    "ctx",
 ];
 
 pub const BUILTIN_TYPES: &[&str] = &[
@@ -145,8 +159,7 @@ pub fn scan_imports(text: &str) -> Vec<Import> {
             continue;
         }
         let mut names = Vec::new();
-        loop {
-            let Some((s, e, name)) = ident_after(&chars, pos) else { break };
+        while let Some((s, e, name)) = ident_after(&chars, pos) {
             if name == "from" && !names.is_empty() {
                 // `from` after the name
                 pos = e;

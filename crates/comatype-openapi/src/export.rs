@@ -87,7 +87,11 @@ impl Ctx {
                     json!({"type": "string", "enum": vals})
                 } else if rest.len() == 1 {
                     let inner = self.schema(rest[0]);
-                    if inner.get("$ref").is_some() { json!({"allOf": [inner]}) } else { inner }
+                    if inner.get("$ref").is_some() {
+                        json!({"allOf": [inner]})
+                    } else {
+                        inner
+                    }
                 } else {
                     json!({"oneOf": rest.iter().map(|v| self.schema(v)).collect::<Vec<_>>()})
                 };

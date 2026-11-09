@@ -1,8 +1,8 @@
 'use client'
 
+import type * as Monaco from 'monaco-editor'
 // Shows and edits `.comat` in Monaco Editor. The grammar is the same as the VS Code extension's (the TextMate grammar goes through shiki).
 import { useEffect, useRef, useState } from 'react'
-import type * as Monaco from 'monaco-editor'
 import { DARK_THEME, LIGHT_THEME, loadMonaco } from './monaco'
 
 interface Props {
@@ -77,7 +77,7 @@ export function ComatEditor({ value, onChange, onReady, readOnly = false, height
       editorRef.current = undefined
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [value, readOnly, maxHeight, height])
 
   // When value changes from outside (switching the Playground example)
   useEffect(() => {

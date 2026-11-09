@@ -1,9 +1,9 @@
 // Client `c`: builds typed fetch calls from endpoint descriptors and status functions
 
-import { BUILT } from './endpoint.ts'
-import type { ComatypeWrap, Endpoint, Method, RawRequest, RawResponse, StatusFn } from './endpoint.ts'
+import { CACHE_COOKIE_PREFIX, cacheable, clientCacheKey, decodeCacheCookie, encodeCacheCookie, fnv1a, MemoryCache } from './cache.ts'
 import type { CookieJar } from './cookie.ts'
-import { CACHE_COOKIE_PREFIX, MemoryCache, cacheable, clientCacheKey, decodeCacheCookie, encodeCacheCookie, fnv1a } from './cache.ts'
+import type { ComatypeWrap, Endpoint, Method, RawRequest, RawResponse, StatusFn } from './endpoint.ts'
+import { BUILT } from './endpoint.ts'
 import { ComatypeError, UnexpectedStatusError } from './errors.ts'
 import type { RegisteredWrappers } from './index.ts'
 import { coerceObject, headerString, toWireString, validateOut } from './wire.ts'
@@ -36,25 +36,15 @@ type SearchIsOptional<R> = R extends { search: any } ? never : unknown
 
 export interface ClientMethod<M extends Method> {
   <R extends NoReq, Res, S extends Statuses>(endpoint: Endpoint<R, Res, any, M>, ...statuses: S): Promise<Result<S>>
-  <R extends BodyReq, Res, S extends Statuses>(
-    endpoint: Endpoint<R, Res, any, M>,
-    body: R['body'],
-    ...statuses: S
-  ): Promise<Result<S>>
+  <R extends BodyReq, Res, S extends Statuses>(endpoint: Endpoint<R, Res, any, M>, body: R['body'], ...statuses: S): Promise<Result<S>>
   <R extends OptSearchReq, Res, S extends Statuses>(
     endpoint: Endpoint<R, Res, any, M> & SearchIsOptional<R>,
     ...statuses: S
   ): Promise<Result<S>>
-  <R extends AnyReq, Res, S extends Statuses>(
-    endpoint: Endpoint<R, Res, any, M>,
-    request: R,
-    ...statuses: S
-  ): Promise<Result<S>>
+  <R extends AnyReq, Res, S extends Statuses>(endpoint: Endpoint<R, Res, any, M>, request: R, ...statuses: S): Promise<Result<S>>
 }
 
-export type WrappersInit = {} extends RegisteredWrappers
-  ? { wrappers?: RegisteredWrappers }
-  : { wrappers: RegisteredWrappers }
+export type WrappersInit = {} extends RegisteredWrappers ? { wrappers?: RegisteredWrappers } : { wrappers: RegisteredWrappers }
 
 export type ClientInit = WrappersInit & {
   /** Precedence: this option > env COMATYPE_BASE_URL > baseUrl in init.comat */
@@ -109,7 +99,11 @@ const withoutCacheCookies = (c: Record<string, string | undefined>): Record<stri
 function readCacheCookie(cfg: ClientConfig, name: string): RawResponse | undefined {
   const doc = (globalThis as { document?: { cookie: string } }).document
   let value: string | undefined
-  if (doc) value = doc.cookie.split(';').map((p) => p.trim().split('=')).find(([k]) => k === name)?.[1]
+  if (doc)
+    value = doc.cookie
+      .split(';')
+      .map((p) => p.trim().split('='))
+      .find(([k]) => k === name)?.[1]
   else value = cfg.cookie?.jar?.get('/')[name]
   return value ? decodeCacheCookie(value) : undefined
 }
@@ -129,8 +123,7 @@ function writeCacheCookie(cfg: ClientConfig, name: string, res: RawResponse, ttl
   return true
 }
 
-const isStatusFn = (x: unknown): x is StatusFn<any, any> =>
-  typeof x === 'function' && typeof (x as any).status === 'number' && 'kind' in x
+const isStatusFn = (x: unknown): x is StatusFn<any, any> => typeof x === 'function' && typeof (x as any).status === 'number' && 'kind' in x
 
 const env = (name: string): string | undefined =>
   (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name]
@@ -211,7 +204,10 @@ export function createClient(root: Root = { config: {} }, extra: Extra = { heade
 
       const send = async (r: RawRequest<any>): Promise<RawResponse> => {
         const base = cfg.baseUrl ?? env('COMATYPE_BASE_URL') ?? ep.baseUrl
-        if (!base) throw new ComatypeError('base url がありません（init の baseUrl か COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）')
+        if (!base)
+          throw new ComatypeError(
+            'base url がありません（init の baseUrl か COMATYPE_BASE_URL、init.comat の baseUrl のどれかで指定してください）',
+          )
         const qs = new URLSearchParams()
         for (const [k, v] of Object.entries(r.search)) {
           if (v === undefined) continue
@@ -240,7 +236,7 @@ export function createClient(root: Root = { config: {} }, extra: Extra = { heade
           signal: extra.signal,
         })
         const text = await res.text()
-        let parsed: unknown = undefined
+        let parsed: unknown
         if (text !== '') {
           try {
             parsed = JSON.parse(text)

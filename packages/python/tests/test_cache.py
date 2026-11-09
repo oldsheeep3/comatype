@@ -25,7 +25,7 @@ def test_memory_cache_ttl_and_limit() -> None:
 
 
 def test_cookie_roundtrip() -> None:
-    r = RawResponse(status=200, headers=Headers({"x-a": "あ"}), body='{"n":1}'.encode())
+    r = RawResponse(status=200, headers=Headers({"x-a": "あ"}), body=b'{"n":1}')
     v = encode_cache_cookie(r)
     assert v is not None and not set(v) & set("=;, ")
     got = decode_cache_cookie(v)

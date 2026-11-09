@@ -79,7 +79,7 @@ pub fn check_with_overlay(cfg: &Config, base: &Path, only: Option<&str>, overlay
     }
     let base = base.canonicalize().unwrap_or_else(|_| base.to_path_buf());
     for (name, s) in &cfg.services {
-        if only.map_or(false, |o| o != name) {
+        if only.is_some_and(|o| o != name) {
             continue;
         }
         let dir = base.join(&s.comat_dir);
@@ -91,10 +91,7 @@ pub fn check_with_overlay(cfg: &Config, base: &Path, only: Option<&str>, overlay
     }
     diags.sort_by(|a, b| (&a.file, a.line, a.col).cmp(&(&b.file, b.line, b.col)));
     let has_error = diags.iter().any(|d| d.is_error());
-    CheckResult {
-        ir: if has_error { None } else { Some(ir::Ir { version: ir::IR_VERSION, services }) },
-        diagnostics: diags,
-    }
+    CheckResult { ir: if has_error { None } else { Some(ir::Ir { version: ir::IR_VERSION, services }) }, diagnostics: diags }
 }
 
 /// Parses a single file only (for looking at the AST)
@@ -244,7 +241,11 @@ impl<'a> Resolver<'a> {
         match ty {
             None if no_body => Ok(None),
             None => Ok(Some(ir::Type::Object {
-                fields: vec![ir::Field { name: "message".into(), optional: false, ty: ir::Type::Scalar { name: "string".into(), constraint: None } }],
+                fields: vec![ir::Field {
+                    name: "message".into(),
+                    optional: false,
+                    ty: ir::Type::Scalar { name: "string".into(), constraint: None },
+                }],
             })),
             Some(t) => {
                 if no_body && !matches!(t, TypeExpr::None { .. }) {
@@ -291,7 +292,11 @@ impl<'a> Resolver<'a> {
                         None => ok = false,
                     }
                 }
-                if ok { Some(ir::Type::Union { variants: out }) } else { None }
+                if ok {
+                    Some(ir::Type::Union { variants: out })
+                } else {
+                    None
+                }
             }
             TypeExpr::Literal { value } => Some(ir::Type::Literal { value: value.clone() }),
             TypeExpr::Null => Some(ir::Type::Null),
@@ -359,7 +364,11 @@ impl<'a> Resolver<'a> {
                 }
             }
         }
-        if ok { Some(out) } else { None }
+        if ok {
+            Some(out)
+        } else {
+            None
+        }
     }
 }
 
@@ -404,7 +413,12 @@ fn resolve_file(ws: &Workspace, f: &SrcFile, role: Role, diags: &mut Vec<Diagnos
             StmtKind::Import { .. } | StmtKind::Enum { .. } | StmtKind::TypeDecl { .. } => true,
             StmtKind::Path { .. } | StmtKind::Params { .. } | StmtKind::Search { .. } | StmtKind::Body { .. } => role == Role::Endpoint,
             StmtKind::Cache { .. } => role == Role::Endpoint,
-            StmtKind::Header { .. } | StmtKind::HeaderReq { .. } | StmtKind::HeaderRes { .. } | StmtKind::Status { .. } | StmtKind::Wrap { .. } | StmtKind::Cookie { .. } => {
+            StmtKind::Header { .. }
+            | StmtKind::HeaderReq { .. }
+            | StmtKind::HeaderRes { .. }
+            | StmtKind::Status { .. }
+            | StmtKind::Wrap { .. }
+            | StmtKind::Cookie { .. } => {
                 matches!(role, Role::Endpoint | Role::Defaults)
             }
             StmtKind::BaseUrl { .. } | StmtKind::CookieDef { .. } | StmtKind::Wrapper { .. } => role == Role::Init,
@@ -590,7 +604,7 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         }
         if p.is_dir() {
             walk(&p, out);
-        } else if p.extension().map_or(false, |e| e == "comat") {
+        } else if p.extension().is_some_and(|e| e == "comat") {
             out.push(p);
         }
     }
@@ -604,7 +618,12 @@ fn valid_name(s: &str) -> bool {
     !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
-fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, String>>, statuses: Rc<crate::status::StatusTable>) -> (Option<ir::Service>, Vec<Diagnostic>) {
+fn build_service(
+    base: &Path,
+    comat_dir: &Path,
+    overlay: Rc<HashMap<PathBuf, String>>,
+    statuses: Rc<crate::status::StatusTable>,
+) -> (Option<ir::Service>, Vec<Diagnostic>) {
     let mut ws = Workspace { base: base.to_path_buf(), files: BTreeMap::new(), diags: Vec::new(), overlay, statuses };
     let comat_dir = normalize(comat_dir);
     if !comat_dir.is_dir() {
@@ -659,7 +678,11 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
             init = r;
         }
     } else {
-        diags.push(Diagnostic::warning("comatfiles/init.comat", Span::default(), "init.comat がありません（baseUrl と wrapper の宣言が無いものとして扱います）"));
+        diags.push(Diagnostic::warning(
+            "comatfiles/init.comat",
+            Span::default(),
+            "init.comat がありません（baseUrl と wrapper の宣言が無いものとして扱います）",
+        ));
     }
     let wrapper_map: HashMap<&str, &ir::Wrapper> = init.wrappers.iter().map(|w| (w.name.as_str(), w)).collect();
 
@@ -706,7 +729,11 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
             None => (stem.clone(), None),
         };
         if !METHODS.contains(&method.as_str()) {
-            fail(&mut diags, Span::default(), format!("ファイル名 `{}` のメソッド `{method}` が不正です（{}）", file[0], METHODS.join(" / ")));
+            fail(
+                &mut diags,
+                Span::default(),
+                format!("ファイル名 `{}` のメソッド `{method}` が不正です（{}）", file[0], METHODS.join(" / ")),
+            );
             continue;
         }
         let mut dir_segs: Vec<String> = Vec::new();
@@ -721,7 +748,14 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
                 dir_segs.push(format!(":{name}"));
                 module_dirs.push(format!("__{name}"));
             } else if d.starts_with(':') || d.starts_with("__") {
-                fail(&mut diags, Span::default(), format!("ディレクトリ名 `{d}` は廃止された書き方です。動的なセグメントは `[{}]` と書いてください", d.trim_start_matches(':').trim_start_matches('_')));
+                fail(
+                    &mut diags,
+                    Span::default(),
+                    format!(
+                        "ディレクトリ名 `{d}` は廃止された書き方です。動的なセグメントは `[{}]` と書いてください",
+                        d.trim_start_matches(':').trim_start_matches('_')
+                    ),
+                );
                 bad_dir = true;
             } else {
                 if !valid_name(d) {
@@ -802,8 +836,8 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
         // Merging defaults: comatDir → each directory → the file itself
         let mut chain: Vec<&Resolved> = Vec::new();
         let mut cur = comat_dir.clone();
-        let mut dirs_iter = std::iter::once(None).chain(dirs.iter().map(Some));
-        while let Some(d) = dirs_iter.next() {
+        let dirs_iter = std::iter::once(None).chain(dirs.iter().map(Some));
+        for d in dirs_iter {
             if let Some(d) = d {
                 cur = cur.join(d);
             }
@@ -815,7 +849,8 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
 
         let mut wraps: Vec<String> = Vec::new();
         let mut cookie = false;
-        let (mut h, mut hq, mut hs): (BTreeMap<String, ir::Field>, BTreeMap<String, ir::Field>, BTreeMap<String, ir::Field>) = Default::default();
+        let (mut h, mut hq, mut hs): (BTreeMap<String, ir::Field>, BTreeMap<String, ir::Field>, BTreeMap<String, ir::Field>) =
+            Default::default();
         let mut statuses: BTreeMap<u16, (Option<ir::Type>, Vec<ir::Field>)> = BTreeMap::new();
         for r in &chain {
             for (n, off) in &r.wraps {
@@ -906,7 +941,14 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
     }
     for w in &init.wrappers {
         if !endpoints.iter().any(|e| e.wraps.contains(&w.name)) {
-            diags.push(Diagnostic::warning(&ws.display(&comat_dir.join("init.comat")), Span::default(), format!("wrapper `{}` は、どのエンドポイントでも有効になっていません（wrap {} を defaults.comat か .comat に書いてください）", w.name, w.name)));
+            diags.push(Diagnostic::warning(
+                &ws.display(&comat_dir.join("init.comat")),
+                Span::default(),
+                format!(
+                    "wrapper `{}` は、どのエンドポイントでも有効になっていません（wrap {} を defaults.comat か .comat に書いてください）",
+                    w.name, w.name
+                ),
+            ));
         }
     }
     if init.cookie_def.is_none() && endpoints.iter().any(|e| e.cookie) {
@@ -922,7 +964,7 @@ fn build_service(base: &Path, comat_dir: &Path, overlay: Rc<HashMap<PathBuf, Str
             }
         }
     }
-    diags.extend(ws.diags.drain(..));
+    diags.append(&mut ws.diags);
 
     let svc = ir::Service { base_url: init.base_url, cookie: init.cookie_def, wrappers: init.wrappers, types, endpoints };
     (Some(svc), diags)

@@ -1,12 +1,13 @@
 // Client E2E: start node_server in a separate process and connect over real HTTP
-import { after, before, test } from 'node:test'
+
 import assert from 'node:assert/strict'
-import { spawn, type ChildProcess } from 'node:child_process'
+import { type ChildProcess, spawn } from 'node:child_process'
+import { after, before, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { c, UnexpectedStatusError, ValidationError } from '@comatype/typescript'
-import { initComatype } from '../init'
-import * as api from '../api'
 import * as getProfileApi from '@/comatype/user/profile/get'
+import * as api from '../api'
+import { initComatype } from '../init'
 
 let server: ChildProcess
 let baseUrl = ''
@@ -88,7 +89,7 @@ test('登録 → 取得 → 更新 → 削除', async () => {
 test('X-Request-Id は、ラッパーが付けて、サーバが返す', async () => {
   initComatype(baseUrl)
   await api.login({ email: 'taro@example.com', password: 'password' })
-  const me = (await api.getProfile()) // not returned because verbose is not set
+  const me = await api.getProfile() // not returned because verbose is not set
   assert.equal(me.status, 200)
   const taro = me.status === 200 ? me.data : undefined
   const res = await api.getUser(taro!.uid, true)

@@ -4,8 +4,8 @@ use crate::rpc::{read_message, write_message};
 use crate::scan::*;
 use crate::util::*;
 use comatype_core::parser;
-use comatype_core::status::{self, StatusTable};
 use comatype_core::project::check_config_with_overlay;
+use comatype_core::status::{self, StatusTable};
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::io::{self, BufRead, Write};
@@ -185,7 +185,10 @@ impl<'a, W: Write> Server<'a, W> {
                     }
                 }
             }
-            (m @ ("textDocument/definition" | "textDocument/hover" | "textDocument/documentSymbol" | "textDocument/completion"), Some(id)) => {
+            (
+                m @ ("textDocument/definition" | "textDocument/hover" | "textDocument/documentSymbol" | "textDocument/completion"),
+                Some(id),
+            ) => {
                 let result = self.request(m, &params);
                 self.respond(&id, result)?
             }
@@ -215,7 +218,9 @@ impl<'a, W: Write> Server<'a, W> {
     // ---- Diagnostics ----
 
     fn publish(&mut self, uri: &str, diagnostics: Vec<Value>) -> io::Result<()> {
-        self.send(json!({"jsonrpc": "2.0", "method": "textDocument/publishDiagnostics", "params": {"uri": uri, "diagnostics": diagnostics}}))
+        self.send(
+            json!({"jsonrpc": "2.0", "method": "textDocument/publishDiagnostics", "params": {"uri": uri, "diagnostics": diagnostics}}),
+        )
     }
 
     fn lsp_diag(&self, file: &Path, line1: usize, col1: usize, error: bool, message: &str) -> Value {
@@ -279,7 +284,8 @@ impl<'a, W: Write> Server<'a, W> {
             self.publish(&uri, diags)?;
         }
         // Next time it is enough to remember only the files that had diagnostics
-        let with_diags: HashSet<PathBuf> = res.diagnostics.iter().filter(|d| !any_syntax || d.syntax).map(|d| normalize(&base.join(&d.file))).collect();
+        let with_diags: HashSet<PathBuf> =
+            res.diagnostics.iter().filter(|d| !any_syntax || d.syntax).map(|d| normalize(&base.join(&d.file))).collect();
         self.published.insert(config, with_diags);
         Ok(())
     }
@@ -327,7 +333,14 @@ impl<'a, W: Write> Server<'a, W> {
     }
 
     /// What the thing under the cursor points to: ("type" | "wrapper" | "file", location)
-    fn target_at(&self, path: &Path, text: &str, line: usize, col: usize) -> Option<(PathBuf, usize, usize, usize, Option<Decl>, (usize, usize))> {
+    #[allow(clippy::type_complexity)]
+    fn target_at(
+        &self,
+        path: &Path,
+        text: &str,
+        line: usize,
+        col: usize,
+    ) -> Option<(PathBuf, usize, usize, usize, Option<Decl>, (usize, usize))> {
         let line_text = text.lines().nth(line)?;
         // import statement
         for imp in scan_imports(text).into_iter().filter(|i| i.line == line) {
@@ -367,9 +380,7 @@ impl<'a, W: Write> Server<'a, W> {
     fn hover(&self, path: &Path, text: &str, line: usize, col: usize) -> Option<Value> {
         let line_text = text.lines().nth(line)?;
         let word = word_at(line_text, col);
-        let range = |s: usize, e: usize| {
-            json!({"start": {"line": line, "character": char_to_utf16(line_text, s)}, "end": {"line": line, "character": char_to_utf16(line_text, e)}})
-        };
+        let range = |s: usize, e: usize| json!({"start": {"line": line, "character": char_to_utf16(line_text, s)}, "end": {"line": line, "character": char_to_utf16(line_text, e)}});
         if let Some((tp, _, _, _, Some(d), (s, e))) = self.target_at(path, text, line, col) {
             let src = decl_source(&self.text_of(&tp)?, &d, 40);
             let rel = tp.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default();
@@ -395,7 +406,9 @@ impl<'a, W: Write> Server<'a, W> {
                     };
                     Some(format!("**{w}** — {code} {msg}\n\n{body}。`{w} none, {{ ... }}` でレスポンスヘッダ"))
                 }
-                None => Some(format!("**{w}** — 未定義のステータスコード（標準のコードか、`additionalStatusCodes` で足したコードだけ使えます）")),
+                None => Some(format!(
+                    "**{w}** — 未定義のステータスコード（標準のコードか、`additionalStatusCodes` で足したコードだけ使えます）"
+                )),
             }
         } else {
             keyword_doc(&w).map(str::to_string)
@@ -490,7 +503,23 @@ impl<'a, W: Write> Server<'a, W> {
                 }
             }
         } else if statement_start {
-            for k in ["import", "enum", "path", "params", "search", "body", "header", "headerReq", "headerRes", "wrap", "cookie", "cache", "baseUrl", "wrapper", "ctx"] {
+            for k in [
+                "import",
+                "enum",
+                "path",
+                "params",
+                "search",
+                "body",
+                "header",
+                "headerReq",
+                "headerRes",
+                "wrap",
+                "cookie",
+                "cache",
+                "baseUrl",
+                "wrapper",
+                "ctx",
+            ] {
                 items.push(item(k, 14, keyword_doc(k).unwrap_or("").split(" — ").nth(1).unwrap_or("")));
             }
             for (code, msg) in &self.status_table(path) {

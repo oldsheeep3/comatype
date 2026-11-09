@@ -6,6 +6,23 @@ from typing import Any
 
 import httpx
 import pytest
+from helpers import (
+    COOKIE,
+    ID,
+    S200,
+    S204,
+    S401,
+    S404,
+    ApiError,
+    Params,
+    Request,
+    RespHeaders,
+    Search,
+    User,
+    endpoint,
+    put,
+    transport,
+)
 
 from comatype import (
     Client,
@@ -21,9 +38,8 @@ from comatype import (
     Server,
     UnexpectedStatusError,
     serialize_set_cookie,
+    wire,
 )
-from comatype import wire
-from helpers import COOKIE, ID, S200, S204, S401, S404, ApiError, Params, ReqHeaders, Request, RespHeaders, Search, User, endpoint, put, transport
 
 NOW = datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
 USER = User(name="taro", followers=9007199254740993, uid=uuid.UUID(ID), createdAt=NOW, deleted=None)
@@ -35,7 +51,13 @@ USER = User(name="taro", followers=9007199254740993, uid=uuid.UUID(ID), createdA
 def test_to_wire_and_parse_roundtrip() -> None:
     data = wire.to_wire(User, USER)
     # int64 is a string, uuid is a string, alias keys, optional None is dropped, nullable None is kept
-    assert data == {"name": "taro", "followers": "9007199254740993", "uid": ID, "createdAt": "2024-01-02T03:04:05Z", "deleted": None}
+    assert data == {
+        "name": "taro",
+        "followers": "9007199254740993",
+        "uid": ID,
+        "createdAt": "2024-01-02T03:04:05Z",
+        "deleted": None,
+    }
     back = wire.parse_json(User, wire.dump_json(User, USER))
     assert back == USER
 
@@ -98,8 +120,13 @@ def test_strings_roundtrip() -> None:
 def test_set_cookie() -> None:
     assert serialize_set_cookie(COOKIE, "a b") == "session=a%20b; Path=/; HttpOnly; Secure; SameSite=Lax"
     assert "Max-Age=10;" in serialize_set_cookie(COOKIE, Cookie("x", max_age=10)) + ";"
-    assert serialize_set_cookie(COOKIE, Cookie.clear()) == "session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax"
-    assert "Expires=Wed, 02 Jan 2030 03:04:05 GMT" in serialize_set_cookie(COOKIE, Cookie("x", expires=datetime(2030, 1, 2, 3, 4, 5, tzinfo=timezone.utc)))
+    assert (
+        serialize_set_cookie(COOKIE, Cookie.clear())
+        == "session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax"
+    )
+    assert "Expires=Wed, 02 Jan 2030 03:04:05 GMT" in serialize_set_cookie(
+        COOKIE, Cookie("x", expires=datetime(2030, 1, 2, 3, 4, 5, tzinfo=timezone.utc))
+    )
     with pytest.raises(ComatypeError):
         serialize_set_cookie(COOKIE, Cookie("x", path="/a; Domain=evil"))
     with pytest.raises(ComatypeError):
@@ -110,7 +137,15 @@ def test_set_cookie() -> None:
 def test_cookie_jar() -> None:
     now = [1_000_000.0]
     jar = CookieJar(now=lambda: now[0])
-    jar.store(["session=tok%20en; Path=/; HttpOnly", "scoped=1; Path=/admin", "short=1; Max-Age=10", "dated=1; Expires=Thu, 01 Jan 2099 00:00:00 GMT", "broken"])
+    jar.store(
+        [
+            "session=tok%20en; Path=/; HttpOnly",
+            "scoped=1; Path=/admin",
+            "short=1; Max-Age=10",
+            "dated=1; Expires=Thu, 01 Jan 2099 00:00:00 GMT",
+            "broken",
+        ]
+    )
     assert jar.get("/user") == {"session": "tok en", "short": "1", "dated": "1"}
     assert jar.get("/admin/x")["scoped"] == "1"
     assert "scoped" not in jar.get("/administrator")
@@ -134,7 +169,9 @@ def new_server() -> Server:
 
 async def test_routing() -> None:
     s = new_server()
-    s.get(endpoint("get", "/user/:id", params=Params, arg_form="request", request_cls=lambda **kw: kw))(lambda req: S404(error=ApiError(code="id:" + str(req["params"].id))))
+    s.get(endpoint("get", "/user/:id", params=Params, arg_form="request", request_cls=lambda **kw: kw))(
+        lambda req: S404(error=ApiError(code="id:" + str(req["params"].id)))
+    )
     s.get(endpoint("get", "/user/me"))(lambda req: S404(error=ApiError(code="me")))
     s.post(endpoint("post", "/user/me"))(lambda req: S204())
 
@@ -177,7 +214,10 @@ async def test_request_parsing_and_response() -> None:
     assert r.json() == body
     assert r.headers["allow"] == "GET, PUT" and r.headers["x-count"] == "2"
 
-    for bad, code in [({**body, "name": ""}, "body.name"), ({**{k: v for k, v in body.items() if k != "uid"}}, "body.uid")]:
+    for bad, code in [
+        ({**body, "name": ""}, "body.name"),
+        ({**{k: v for k, v in body.items() if k != "uid"}}, "body.uid"),
+    ]:
         r = await call(s, "PUT", f"/user/{ID}", json=bad)
         assert r.status_code == 400 and r.json()["path"] == code
     assert (await call(s, "PUT", f"/user/{ID}")).json()["path"] == "body"  # no body
@@ -189,7 +229,12 @@ async def test_bad_responses_become_500() -> None:
     s = new_server()
     errors: list[BaseException] = []
     s.init(on_error=errors.append)
-    s.get(endpoint("get", "/a"))(lambda req: S200(data=User.model_construct(name="", followers=1, uid=uuid.UUID(ID), created_at=NOW, deleted=None), headers=RespHeaders(Allow=[])))  # body that does not match the .comat
+    s.get(endpoint("get", "/a"))(
+        lambda req: S200(
+            data=User.model_construct(name="", followers=1, uid=uuid.UUID(ID), created_at=NOW, deleted=None),
+            headers=RespHeaders(Allow=[]),
+        )
+    )  # body that does not match the .comat
     s.get(endpoint("get", "/b"))(lambda req: "nope")
     s.get(endpoint("get", "/c", responses=(S204,)))(lambda req: S404(error=ApiError(code="x")))  # undeclared status
     s.get(endpoint("get", "/d"))(lambda req: 1 / 0)
@@ -347,7 +392,6 @@ async def test_client_cookie_jar_roundtrip() -> None:
     async def whoami(request: httpx.Request) -> None:
         got.append(request.headers.get("cookie"))
 
-    seen: list[Any] = []
     s.get(endpoint("get", "/echo"))(lambda req: S204())
     await c.post(login, S401)
     assert jar.get("/") == {"session": "tok-1"}  # the jar keeps it even if HttpOnly
@@ -356,7 +400,13 @@ async def test_client_cookie_jar_roundtrip() -> None:
     seen_cookie: list[str | None] = []
     s.get(endpoint("get", "/who"))(lambda req: (seen_cookie.append(None), S204())[1])
     c2 = Client()
-    c2.init(base_url="http://test", client=httpx.AsyncClient(transport=httpx.MockTransport(lambda r: (seen_cookie.append(r.headers.get("cookie")), httpx.Response(204))[1])), cookies=jar)
+    c2.init(
+        base_url="http://test",
+        client=httpx.AsyncClient(
+            transport=httpx.MockTransport(lambda r: (seen_cookie.append(r.headers.get("cookie")), httpx.Response(204))[1])
+        ),
+        cookies=jar,
+    )
     await c2.get(endpoint("get", "/who"), S204)
     await c2.get(plain, S204)  # not sent to cookie off
     assert seen_cookie[-2:] == ["session=tok-1", None]
@@ -402,6 +452,10 @@ def test_bytes_and_decimal_scalars() -> None:
     m = M(blob=b"hi", d=decimal.Decimal("1.50"), big=5)
     assert wire.to_wire(M, m) == {"blob": "aGk=", "d": "1.50", "big": "5"}
     assert wire.parse_json(M, '{"blob":"aGk=","d":"1.50","big":"5"}') == m
-    for bad in ['{"blob":"%","d":"1","big":"1"}', '{"blob":"aGk=","d":1.5,"big":"1"}', '{"blob":"aGk=","d":"1","big":1}']:
+    for bad in [
+        '{"blob":"%","d":"1","big":"1"}',
+        '{"blob":"aGk=","d":1.5,"big":"1"}',
+        '{"blob":"aGk=","d":"1","big":1}',
+    ]:
         with pytest.raises(ComatypeValidationError):
             wire.parse_json(M, bad)

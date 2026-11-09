@@ -1,7 +1,7 @@
 // Landing page (LP), shared by both locales.
 import Link from 'next/link'
-import { type Locale, withLocale } from '../lib/i18n'
 import { home, languages, matrix } from '../lib/home-content'
+import { type Locale, withLocale } from '../lib/i18n'
 import { renderMarkdown } from '../lib/markdown'
 
 const TERMINAL = `── wrap: none ──
@@ -20,7 +20,8 @@ GET /app/tenant/projects`
 
 export async function Home({ locale }: { locale: Locale }) {
   const c = home[locale]
-  const example = await renderMarkdown(`
+  const example = await renderMarkdown(
+    `
 ::: code-group
 
 <<< @/../usage/comatfiles/user/put_[id].comat [${c.tabComat}]
@@ -30,7 +31,9 @@ export async function Home({ locale }: { locale: Locale }) {
 <<< @/../usage/node_server/user_put_id.ts [${c.tabServer}]
 
 :::
-`, locale)
+`,
+    locale,
+  )
   const to = (p: string) => withLocale(locale, p)
   return (
     <main className="home lp">

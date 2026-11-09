@@ -1,11 +1,11 @@
 // Server `s`: builds a Fetch API Request -> Response function from endpoint descriptors and handlers
 
-import { BUILT } from './endpoint.ts'
-import type { Endpoint, Method, RawRequest, RawResponse, StatusFn } from './endpoint.ts'
+import { cacheable, MemoryCache, serverCacheKey } from './cache.ts'
 import type { WrappersInit } from './client.ts'
-import { setCookieLines } from './cookie.ts'
 import type { CookieValue } from './cookie.ts'
-import { MemoryCache, cacheable, serverCacheKey } from './cache.ts'
+import { setCookieLines } from './cookie.ts'
+import type { Endpoint, Method, RawRequest, RawResponse, StatusFn } from './endpoint.ts'
+import { BUILT } from './endpoint.ts'
 import { ComatypeError } from './errors.ts'
 import { ValidationError } from './schema.ts'
 import { coerceObject, headerString, validateOut } from './wire.ts'
@@ -29,12 +29,10 @@ export type HandlerRequest<R, Ctx> = {
   path: string
 }
 
-export interface ServerMethod<M extends Method> {
-  <Req, Res, Ctx>(
-    endpoint: Endpoint<Req, Res, Ctx, M>,
-    handler: (req: HandlerRequest<Req, Ctx>) => Res | Promise<Res>,
-  ): void
-}
+export type ServerMethod<M extends Method> = <Req, Res, Ctx>(
+  endpoint: Endpoint<Req, Res, Ctx, M>,
+  handler: (req: HandlerRequest<Req, Ctx>) => Res | Promise<Res>,
+) => void
 
 export type ServerInit = WrappersInit & {
   /** Exceptions thrown by handlers or wrappers. Default is console.error. The client gets a 500 */
@@ -91,8 +89,7 @@ function parseCookies(header: string | null): Record<string, string | undefined>
 
 /** Turn a TS-value response built by a handler/wrapper into its wire form (validated and encoded) */
 function toWire(out: any, ep?: Endpoint<any, any, any>): RawResponse {
-  const sf: StatusFn<any, any> | undefined =
-    out?.[BUILT] ?? ep?.responses.find((r) => r.status === out?.status)
+  const sf: StatusFn<any, any> | undefined = out?.[BUILT] ?? ep?.responses.find((r) => r.status === out?.status)
   if (!sf) {
     throw new ComatypeError(`s${out?.status} は${ep ? ` ${ep.module} に` : ''}宣言されていません（.comat に追加してください）`)
   }
@@ -133,7 +130,8 @@ export function createServer(): Server {
     (method: Method) =>
     (ep: Endpoint<any, any, any>, handler: (req: any) => unknown): void => {
       if (ep.method !== method) throw new ComatypeError(`s.${method}() に ${ep.method} のエンドポイント（${ep.module}）は渡せません`)
-      const shape = (r: Pick<Route, 'segs'> & { ep: Endpoint }) => `${r.ep.method} /${r.segs.map((x) => (x.startsWith(':') ? ':' : x)).join('/')}`
+      const shape = (r: Pick<Route, 'segs'> & { ep: Endpoint }) =>
+        `${r.ep.method} /${r.segs.map((x) => (x.startsWith(':') ? ':' : x)).join('/')}`
       const route: Route = {
         ep,
         handler,
@@ -212,7 +210,12 @@ export function createServer(): Server {
         const hit = find(method, segs)
         if (!hit) {
           const allow = [...new Set(routes.filter((r) => find(r.ep.method, segs)).map((r) => r.ep.method.toUpperCase()))]
-          if (allow.length) return jsonResponse(405, { code: 'method_not_allowed', message: `使えるメソッド: ${allow.join(', ')}` }, { allow: allow.join(', ') })
+          if (allow.length)
+            return jsonResponse(
+              405,
+              { code: 'method_not_allowed', message: `使えるメソッド: ${allow.join(', ')}` },
+              { allow: allow.join(', ') },
+            )
           return jsonResponse(404, { code: 'not_found', message: url.pathname })
         }
         const { route } = hit
@@ -234,7 +237,7 @@ export function createServer(): Server {
           const hit = cache.get(cacheKey)
           if (hit) return toResponse(structuredClone(hit))
         }
-        let body: unknown = undefined
+        let body: unknown
         if (text !== '') {
           try {
             body = JSON.parse(text)

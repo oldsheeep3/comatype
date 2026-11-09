@@ -1,10 +1,11 @@
 // Starts the real `comatype lsp` as a child process and speaks LSP over stdin / stdout (checks the contract between the extension and the server)
-import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { test } from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = fileURLToPath(new URL('../../..', import.meta.url))
@@ -73,14 +74,21 @@ test('実際の comatype lsp: 診断（構文エラー→修正）、定義ジ�
   assert.equal(init.result.capabilities.definitionProvider, true)
   c.send({ method: 'initialized', params: {} })
 
-  const diagsFor = (pred) => c.until((m) => m.method === 'textDocument/publishDiagnostics' && m.params.uri === uri && pred(m.params.diagnostics))
-  c.send({ method: 'textDocument/didOpen', params: { textDocument: { uri, languageId: 'comat', version: 1, text: 'import User from ../types/User.comat\ns200 {\n' } } })
+  const diagsFor = (pred) =>
+    c.until((m) => m.method === 'textDocument/publishDiagnostics' && m.params.uri === uri && pred(m.params.diagnostics))
+  c.send({
+    method: 'textDocument/didOpen',
+    params: { textDocument: { uri, languageId: 'comat', version: 1, text: 'import User from ../types/User.comat\ns200 {\n' } },
+  })
   const broken = await diagsFor((d) => d.length > 0)
   assert.equal(broken.params.diagnostics[0].severity, 1)
   assert.equal(broken.params.diagnostics[0].source, 'comatype')
 
   c.messages.length = 0
-  c.send({ method: 'textDocument/didChange', params: { textDocument: { uri, version: 2 }, contentChanges: [{ text: 'import User from ../types/User.comat\ns200 User\n' }] } })
+  c.send({
+    method: 'textDocument/didChange',
+    params: { textDocument: { uri, version: 2 }, contentChanges: [{ text: 'import User from ../types/User.comat\ns200 User\n' }] },
+  })
   await diagsFor((d) => d.every((x) => x.severity !== 1))
 
   const def = await c.request('textDocument/definition', { textDocument: { uri }, position: { line: 1, character: 6 } })

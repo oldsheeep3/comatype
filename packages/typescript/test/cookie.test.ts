@@ -1,16 +1,16 @@
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { AddressInfo } from 'node:net'
+import { test } from 'node:test'
 import {
+  ComatypeError,
+  type CookieDef,
   createClient,
   createCookieJar,
   createServer,
   defineEndpoint,
   defineStatus,
   serializeSetCookie,
-  ComatypeError,
   t,
-  type CookieDef,
 } from '../src/index.ts'
 import { serve } from '../src/node.ts'
 
@@ -157,7 +157,10 @@ test('クライアントのラッパーが r.cookies を足すと Cookie ヘッ�
   try {
     const base = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`
     const c: any = createClient({
-      config: { baseUrl: base, wrappers: { add: async (r: any, n: any) => n({ ...r, cookies: { ...r.cookies, session: 'from wrapper' } }) } },
+      config: {
+        baseUrl: base,
+        wrappers: { add: async (r: any, n: any) => n({ ...r, cookies: { ...r.cookies, session: 'from wrapper' } }) },
+      },
     })
     await c.get(me, s200)
     assert.equal(got, 'from wrapper')

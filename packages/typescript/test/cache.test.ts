@@ -1,9 +1,9 @@
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { AddressInfo } from 'node:net'
 import { createServer as createHttp } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { test } from 'node:test'
+import { clientCacheKey, decodeCacheCookie, encodeCacheCookie, fnv1a, MemoryCache, serverCacheKey } from '../src/cache.ts'
 import { createClient, createCookieJar, createServer, defineEndpoint, defineStatus, t } from '../src/index.ts'
-import { MemoryCache, clientCacheKey, decodeCacheCookie, encodeCacheCookie, fnv1a, serverCacheKey } from '../src/cache.ts'
 import { nodeListener } from '../src/node.ts'
 
 const s200 = defineStatus<{ status: 200; data: { n: number } }, { data: { n: number } }>(200, t.object({ n: t.int() }))

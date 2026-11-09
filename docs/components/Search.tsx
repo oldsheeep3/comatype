@@ -1,10 +1,10 @@
 'use client'
 
+import MiniSearch from 'minisearch'
+import { useRouter } from 'next/navigation'
 // Full-text search. Loads the search.json built at build time the first time it is opened and queries it with MiniSearch.
 // Words are split with the browser's Intl.Segmenter (works for Japanese too).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import MiniSearch from 'minisearch'
 import { localePrefix } from '../lib/i18n'
 import { useLocale, useUi } from './useLocale'
 
@@ -21,12 +21,13 @@ const base = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 function tokenizer(): (s: string) => string[] {
   if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
     const seg = new Intl.Segmenter('ja', { granularity: 'word' })
-    return (s) =>
-      [...seg.segment(s)]
-        .filter((x) => x.isWordLike)
-        .map((x) => x.segment.toLowerCase())
+    return (s) => [...seg.segment(s)].filter((x) => x.isWordLike).map((x) => x.segment.toLowerCase())
   }
-  return (s) => s.toLowerCase().split(/[\s\p{P}]+/u).filter(Boolean)
+  return (s) =>
+    s
+      .toLowerCase()
+      .split(/[\s\p{P}]+/u)
+      .filter(Boolean)
 }
 
 export function SearchButton() {
@@ -85,7 +86,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   }, [locale])
 
   const results = useMemo(() => (index && q.trim() ? index.search(q).slice(0, 12) : []), [index, q])
-  useEffect(() => setCursor(0), [q])
+  useEffect(() => setCursor(0), [])
 
   const go = useCallback(
     (url: string) => {
@@ -108,7 +109,15 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="search-overlay" onClick={onClose} role="dialog" aria-modal aria-label={text.search}>
       <div className="search-modal" onClick={(e) => e.stopPropagation()}>
-        <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKeyDown} placeholder={text.searchPlaceholder} className="search-input" aria-label={text.searchPlaceholder} />
+        <input
+          ref={input}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={text.searchPlaceholder}
+          className="search-input"
+          aria-label={text.searchPlaceholder}
+        />
         <ul className="search-results">
           {failed && <li className="muted">{text.searchFailed}</li>}
           {!failed && !index && <li className="muted">{text.searchLoading}</li>}

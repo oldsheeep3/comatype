@@ -39,7 +39,10 @@ pub fn generate(svc: &Service, role: Role) -> Result<Vec<GenFile>, String> {
     for ep in &svc.endpoints {
         let m = module_name(&ep.module);
         if m == "types" || m == "init" {
-            return Err(format!("{} は Rust では生成先のモジュール名 `{m}` が types / init と衝突します（ファイルかディレクトリの名前を変えてください）", ep.file));
+            return Err(format!(
+                "{} は Rust では生成先のモジュール名 `{m}` が types / init と衝突します（ファイルかディレクトリの名前を変えてください）",
+                ep.file
+            ));
         }
         if let Some(prev) = seen.insert(m.clone(), &ep.file) {
             return Err(format!("{} と {prev} が同じモジュール名 `{m}` になります", ep.file));
@@ -55,9 +58,10 @@ pub fn generate(svc: &Service, role: Role) -> Result<Vec<GenFile>, String> {
 // ---- Names ----
 
 const RESERVED: &[&str] = &[
-    "as", "break", "const", "continue", "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut",
-    "pub", "ref", "return", "static", "struct", "trait", "true", "type", "unsafe", "use", "where", "while", "async", "await", "dyn", "abstract", "become",
-    "box", "do", "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield", "try", "gen",
+    "as", "break", "const", "continue", "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod",
+    "move", "mut", "pub", "ref", "return", "static", "struct", "trait", "true", "type", "unsafe", "use", "where", "while", "async",
+    "await", "dyn", "abstract", "become", "box", "do", "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield",
+    "try", "gen",
 ];
 
 fn words(s: &str) -> Vec<String> {
@@ -72,7 +76,7 @@ fn words(s: &str) -> Vec<String> {
             continue;
         }
         let prev_lower = i > 0 && chars[i - 1].is_ascii_lowercase();
-        let next_lower = chars.get(i + 1).map_or(false, |n| n.is_ascii_lowercase());
+        let next_lower = chars.get(i + 1).is_some_and(|n| n.is_ascii_lowercase());
         let prev_upper = i > 0 && chars[i - 1].is_ascii_uppercase();
         if c.is_ascii_uppercase() && !cur.is_empty() && (prev_lower || (prev_upper && next_lower)) {
             out.push(std::mem::take(&mut cur));
@@ -93,14 +97,18 @@ pub fn module_name(module: &str) -> String {
         .map(|w| w.to_ascii_lowercase())
         .collect::<Vec<_>>()
         .join("_");
-    let n = if n.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("m_{n}") } else { n };
-    if RESERVED.contains(&n.as_str()) || ["self", "super", "crate"].contains(&n.as_str()) { format!("{n}_") } else { n }
+    let n = if n.chars().next().is_none_or(|c| c.is_ascii_digit()) { format!("m_{n}") } else { n };
+    if RESERVED.contains(&n.as_str()) || ["self", "super", "crate"].contains(&n.as_str()) {
+        format!("{n}_")
+    } else {
+        n
+    }
 }
 
 /// Field name (snake_case)
 pub fn snake(s: &str) -> String {
     let n = words(s).iter().map(|w| w.to_ascii_lowercase()).collect::<Vec<_>>().join("_");
-    let n = if n.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("f_{n}") } else { n };
+    let n = if n.chars().next().is_none_or(|c| c.is_ascii_digit()) { format!("f_{n}") } else { n };
     if ["self", "super", "crate"].contains(&n.as_str()) {
         format!("{n}_")
     } else if RESERVED.contains(&n.as_str()) {
@@ -120,7 +128,11 @@ pub fn pascal(s: &str) -> String {
             f.to_ascii_uppercase().to_string() + cs.as_str()
         })
         .collect();
-    if out.chars().next().map_or(true, |c| c.is_ascii_digit()) { format!("V{out}") } else { out }
+    if out.chars().next().is_none_or(|c| c.is_ascii_digit()) {
+        format!("V{out}")
+    } else {
+        out
+    }
 }
 
 fn rs_string(s: &str) -> String {
@@ -254,7 +266,10 @@ impl<'a> Gen<'a> {
         match t {
             Type::Scalar { name, constraint } => {
                 let mut s = String::new();
-                if matches!(name.as_str(), "email" | "phone" | "uuid" | "uuidv4" | "uuidv7" | "date" | "datetime" | "time" | "decimal" | "url") {
+                if matches!(
+                    name.as_str(),
+                    "email" | "phone" | "uuid" | "uuidv4" | "uuidv7" | "date" | "datetime" | "time" | "decimal" | "url"
+                ) {
                     s.push_str(&format!("::comatype::Validate::validate({var}, &{path})?;\n"));
                 }
                 match constraint {
@@ -262,17 +277,35 @@ impl<'a> Gen<'a> {
                         let opt = |v: &Option<i64>| v.map_or("None".to_string(), |n| format!("Some({n})"));
                         let optf = |v: &Option<i64>| v.map_or("None".to_string(), |n| format!("Some({n}.0)"));
                         match name.as_str() {
-                            "string" | "email" | "phone" | "uuid" | "uuidv4" | "uuidv7" | "date" | "datetime" | "time" | "url" => {
-                                s.push_str(&format!("::comatype::validate::check_len(&{path}, {var}.as_str(), {}, {})?;\n", opt(min), opt(max)))
-                            }
-                            "int" => s.push_str(&format!("::comatype::validate::check_range(&{path}, *{var} as f64, {}, {})?;\n", optf(min), optf(max))),
-                            "int64" => s.push_str(&format!("::comatype::validate::check_range(&{path}, {var}.0 as f64, {}, {})?;\n", optf(min), optf(max))),
-                            "decimal" => s.push_str(&format!("::comatype::validate::check_range(&{path}, {var}.to_f64(), {}, {})?;\n", optf(min), optf(max))),
+                            "string" | "email" | "phone" | "uuid" | "uuidv4" | "uuidv7" | "date" | "datetime" | "time" | "url" => s
+                                .push_str(&format!(
+                                    "::comatype::validate::check_len(&{path}, {var}.as_str(), {}, {})?;\n",
+                                    opt(min),
+                                    opt(max)
+                                )),
+                            "int" => s.push_str(&format!(
+                                "::comatype::validate::check_range(&{path}, *{var} as f64, {}, {})?;\n",
+                                optf(min),
+                                optf(max)
+                            )),
+                            "int64" => s.push_str(&format!(
+                                "::comatype::validate::check_range(&{path}, {var}.0 as f64, {}, {})?;\n",
+                                optf(min),
+                                optf(max)
+                            )),
+                            "decimal" => s.push_str(&format!(
+                                "::comatype::validate::check_range(&{path}, {var}.to_f64(), {}, {})?;\n",
+                                optf(min),
+                                optf(max)
+                            )),
                             _ => {}
                         }
                     }
                     Some(Constraint::Pattern { value }) => {
-                        if matches!(name.as_str(), "string" | "email" | "phone" | "uuid" | "uuidv4" | "uuidv7" | "date" | "datetime" | "time" | "url" | "decimal") {
+                        if matches!(
+                            name.as_str(),
+                            "string" | "email" | "phone" | "uuid" | "uuidv4" | "uuidv7" | "date" | "datetime" | "time" | "url" | "decimal"
+                        ) {
                             s.push_str(&format!("::comatype::validate::check_pattern(&{path}, {var}.as_str(), {})?;\n", rs_string(value)));
                         }
                     }
@@ -459,14 +492,20 @@ fn cookie_def_rs(c: &CookieDef) -> String {
 
 /// List of (header name, field access) for the header struct
 fn wire_items(fields: &[Field], var: &str) -> String {
-    fields.iter().map(|f| format!("({}, ::comatype::Wire::to_wire(&{var}.{}))", rs_string(&f.name), snake(&f.name))).collect::<Vec<_>>().join(", ")
+    fields
+        .iter()
+        .map(|f| format!("({}, ::comatype::Wire::to_wire(&{var}.{}))", rs_string(&f.name), snake(&f.name)))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Expression that builds a struct. `values` is (field name, expression to extract)
 fn wire_build(name: &str, fields: &[Field], values_fn: &str, split: bool) -> String {
     let inits: String = fields
         .iter()
-        .map(|f| format!("{}: ::comatype::wire::read(&{values_fn}({}), {}, {split})?,\n", snake(&f.name), rs_string(&f.name), rs_string(&f.name)))
+        .map(|f| {
+            format!("{}: ::comatype::wire::read(&{values_fn}({}), {}, {split})?,\n", snake(&f.name), rs_string(&f.name), rs_string(&f.name))
+        })
         .collect();
     format!("{name} {{\n{inits}}}")
 }
@@ -503,7 +542,8 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
     }
     let ctx_wrappers: Vec<&Wrapper> = ep.wraps.iter().filter_map(|w| svc.wrappers.iter().find(|x| &x.name == w)).collect();
     if role == Role::Server {
-        let fields: String = ctx_wrappers.iter().map(|w| format!("pub {}: super::init::{}Ctx,\n", snake(&w.name), pascal(&w.name))).collect();
+        let fields: String =
+            ctx_wrappers.iter().map(|w| format!("pub {}: super::init::{}Ctx,\n", snake(&w.name), pascal(&w.name))).collect();
         body.push_str(&format!("/// 有効なラッパーが足した値\n#[derive(Debug, Clone)]\npub struct Ctx {{\n{fields}}}\n\n"));
     }
     // Whole request
@@ -588,13 +628,22 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let mut f = format!("fn build_request(arg: &{arg}) -> ::comatype::Result<::comatype::RawRequest> {{\nlet mut raw = ::comatype::RawRequest::new({}, {});\n", rs_string(&ep.method), rs_string(&ep.path));
             if arg == "Request" {
                 if has("params") {
-                    f.push_str(&format!("::comatype::Validate::validate(&arg.params, \"\")?;\n::comatype::wire::fill_path(&mut raw, &[{}])?;\n", wire_items(&ep.params, "arg.params")));
+                    f.push_str(&format!(
+                        "::comatype::Validate::validate(&arg.params, \"\")?;\n::comatype::wire::fill_path(&mut raw, &[{}])?;\n",
+                        wire_items(&ep.params, "arg.params")
+                    ));
                 }
                 if has("search") {
-                    f.push_str(&format!("::comatype::Validate::validate(&arg.search, \"\")?;\n::comatype::wire::add_query(&mut raw, &[{}]);\n", wire_items(&ep.search, "arg.search")));
+                    f.push_str(&format!(
+                        "::comatype::Validate::validate(&arg.search, \"\")?;\n::comatype::wire::add_query(&mut raw, &[{}]);\n",
+                        wire_items(&ep.search, "arg.search")
+                    ));
                 }
                 if has("headers") {
-                    f.push_str(&format!("::comatype::Validate::validate(&arg.headers, \"\")?;\n::comatype::wire::set_headers(&mut raw.headers, &[{}]);\n", wire_items(&ep.request_headers, "arg.headers")));
+                    f.push_str(&format!(
+                        "::comatype::Validate::validate(&arg.headers, \"\")?;\n::comatype::wire::set_headers(&mut raw.headers, &[{}]);\n",
+                        wire_items(&ep.request_headers, "arg.headers")
+                    ));
                 }
                 if has("body") {
                     f.push_str("::comatype::wire::set_body(&mut raw, &arg.body)?;\n");
@@ -605,7 +654,8 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             f.push_str("Ok(raw)\n}\n\n");
             body.push_str(&f);
 
-            let mut p = String::from("fn parse_response(raw: &::comatype::RawResponse) -> ::comatype::Result<Response> {\nmatch raw.status {\n");
+            let mut p =
+                String::from("fn parse_response(raw: &::comatype::RawResponse) -> ::comatype::Result<Response> {\nmatch raw.status {\n");
             for r in &ep.responses {
                 let c = r.status;
                 p.push_str(&format!("{c} => {{\n"));
@@ -621,7 +671,11 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
                     ));
                     payload.push("headers");
                 }
-                p.push_str(&if payload.is_empty() { format!("Ok(Response::S{c})\n") } else { format!("Ok(Response::S{c}({}))\n", payload.join(", ")) });
+                p.push_str(&if payload.is_empty() {
+                    format!("Ok(Response::S{c})\n")
+                } else {
+                    format!("Ok(Response::S{c}({}))\n", payload.join(", "))
+                });
                 p.push_str("}\n");
             }
             p.push_str("_ => Err(::comatype::Error::UnexpectedStatus { status: raw.status, body: raw.body.clone() }),\n}\n}\n");
@@ -631,11 +685,17 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             let mut f = String::from("fn parse_request(raw: &::comatype::RawRequest) -> ::comatype::Result<Request> {\n");
             let mut inits = Vec::new();
             if has("params") {
-                f.push_str(&format!("let params = {};\n::comatype::Validate::validate(&params, \"\")?;\n", wire_build("Params", &ep.params, "::comatype::wire::param_values_of(raw)", false)));
+                f.push_str(&format!(
+                    "let params = {};\n::comatype::Validate::validate(&params, \"\")?;\n",
+                    wire_build("Params", &ep.params, "::comatype::wire::param_values_of(raw)", false)
+                ));
                 inits.push("params");
             }
             if has("search") {
-                f.push_str(&format!("let search = {};\n::comatype::Validate::validate(&search, \"\")?;\n", wire_build("Search", &ep.search, "::comatype::wire::query_values_of(raw)", false)));
+                f.push_str(&format!(
+                    "let search = {};\n::comatype::Validate::validate(&search, \"\")?;\n",
+                    wire_build("Search", &ep.search, "::comatype::wire::query_values_of(raw)", false)
+                ));
                 inits.push("search");
             }
             if has("headers") {
@@ -652,7 +712,14 @@ fn endpoint_file(svc: &Service, names: &BTreeMap<String, String>, ep: &Endpoint,
             if has("ctx") {
                 let cs: String = ctx_wrappers
                     .iter()
-                    .map(|w| format!("{}: ::comatype::ctx_value::<super::init::{}Ctx>(raw, {})?,\n", snake(&w.name), pascal(&w.name), rs_string(&w.name)))
+                    .map(|w| {
+                        format!(
+                            "{}: ::comatype::ctx_value::<super::init::{}Ctx>(raw, {})?,\n",
+                            snake(&w.name),
+                            pascal(&w.name),
+                            rs_string(&w.name)
+                        )
+                    })
                     .collect();
                 f.push_str(&format!("let ctx = Ctx {{\n{cs}}};\n"));
                 inits.push("ctx");

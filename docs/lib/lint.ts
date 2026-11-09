@@ -27,13 +27,15 @@ const messages = {
   en: {
     unmatchedClose: (c: string) => `No matching ${c}`,
     unmatchedOpen: (c: string) => `Missing ${c}`,
-    unknownStatus: (code: number) => `Status code ${code} is not defined (only standard codes and codes added with additionalStatusCodes in comatype.config.json can be used)`,
+    unknownStatus: (code: number) =>
+      `Status code ${code} is not defined (only standard codes and codes added with additionalStatusCodes in comatype.config.json can be used)`,
     noBody: (code: number) => `Status ${code} cannot have a body (write \`s${code} none\`, or omit the type)`,
   },
   'ja-jp': {
     unmatchedClose: (c: string) => `対応する ${c} がありません`,
     unmatchedOpen: (c: string) => `${c} が足りません`,
-    unknownStatus: (code: number) => `ステータスコード ${code} は未定義です（標準のコードか、comatype.config.json の additionalStatusCodes で足したコードだけ使えます）`,
+    unknownStatus: (code: number) =>
+      `ステータスコード ${code} は未定義です（標準のコードか、comatype.config.json の additionalStatusCodes で足したコードだけ使えます）`,
     noBody: (code: number) => `ステータス ${code} はボディを持てません（\`s${code} none\` と書くか、型を省略してください）`,
   },
 }
@@ -98,7 +100,13 @@ export function lintComat(text: string, statuses: StatusInfo[], locale: Locale =
   })
 
   for (const open of stack) {
-    problems.push({ line: open.line, column: open.column, endColumn: open.column + 1, message: msg.unmatchedOpen(OPEN[open.ch]), severity: 'error' })
+    problems.push({
+      line: open.line,
+      column: open.column,
+      endColumn: open.column + 1,
+      message: msg.unmatchedOpen(OPEN[open.ch]),
+      severity: 'error',
+    })
   }
   return problems.sort((a, b) => a.line - b.line || a.column - b.column)
 }
