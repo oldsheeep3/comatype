@@ -320,6 +320,7 @@ fn generate(args: &Args) -> ExitCode {
             let out = base.join(config::resolve_out(&cfg, name, target));
             let files = match target.lang.as_str() {
                 "ts" => comatype_gen_ts::generate(svc).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>()),
+                "js" => comatype_gen_ts::generate_js(svc).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>()),
                 "go" => {
                     let role = if target.role == "client" { comatype_gen_go::Role::Client } else { comatype_gen_go::Role::Server };
                     match go_import_path(target, &out) {

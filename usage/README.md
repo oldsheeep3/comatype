@@ -9,7 +9,7 @@
 | `types/` | 共有の型 |
 | **`node_server/`** | **動く** TypeScript のサーバ（ルート・ラッパー・cookie のセッション）+ テスト |
 | **`node_client/`** | **動く** TypeScript のクライアント（全エンドポイントを呼ぶ関数）+ サーバをつないだ E2E |
-| `go_*` `python_*` `rust_*` `java_*` `kotlin_*` `swift_*` `ruby_*` `csharp_*` | 他の言語の書き方の見本（ラッパー・init・`user_put_id` の呼び出し / ハンドラ。`kotlin_*` `swift_*` `ruby_*` は全エンドポイント）。見本は実行しない。生成器・ランタイム・E2E は各言語にある（下） |
+| `go_*` `python_*` `rust_*` `java_*` `kotlin_*` `swift_*` `ruby_*` `csharp_*` `js_*` | 他の言語の書き方の見本（ラッパー・init・`user_put_id` の呼び出し / ハンドラ。`kotlin_*` `swift_*` `ruby_*` は全エンドポイント）。見本は実行しない。生成器・ランタイム・E2E は各言語にある（下） |
 | `dart_*` | Dart の書き方の見本のみ（生成器は未実装） |
 
 ## TypeScript（pnpm）
@@ -40,13 +40,14 @@ pnpm --filter @usage/node-server start   # PORT=3000 でサーバを起動
 
 ```bash
 cargo run -p comatype-cli -- generate --config usage   # 全言語（targets）を生成。--lang rust などで絞る
-./scripts/e2e-go.sh        # go / python / rust / java / kotlin / swift / ruby / csharp も同じ名前（scripts/e2e-*.sh）
+./scripts/e2e-go.sh        # js / go / python / rust / java / kotlin / swift / ruby / csharp も同じ名前（scripts/e2e-*.sh）
 ```
 
 | 言語 | 見本 |
 |---|---|
 | Go | `go_client` `go_server`（`registerXxx()`） |
 | Python | `python_client` `python_server`（`@s.get(path)`） |
+| JavaScript | `js_client` `js_server`（`await c.put(path, ...)` と `s.put(path, ...)`。`.js` と `.d.ts`） |
 | Rust | `rust_client/src` `rust_server/src`（`Server::put(&ENDPOINT, ...)`） |
 | Java | `java_client` `java_server`（`src/main/java/app`） |
 | Kotlin | `kotlin_client` `kotlin_server`（suspend の `CK` と `coGet` など） |
@@ -67,6 +68,7 @@ cargo run -p comatype-cli -- generate --config usage   # 全言語（targets）�
 | Java | `java_*/build.gradle.kts` | Maven Central `net.sheeplab.comatype:comatype` |
 | Kotlin | `kotlin_*/build.gradle.kts` | Maven Central `net.sheeplab.comatype:comatype-ktx` |
 | Ruby | `ruby_*/Gemfile`、`Gemfile.lock` | RubyGems `comatype` |
+| JavaScript | `js_*/package.json` | `../../packages/javascript`（npm には未公開） |
 | Swift | `swift_*/Package.swift` | `../../packages/swift`（未公開。SwiftPM は、リポジトリ直下の `Package.swift` を必要とするため） |
 | C# | `csharp_*/usage-csharp-*.csproj` | `../../packages/csharp`（NuGet には未公開） |
 

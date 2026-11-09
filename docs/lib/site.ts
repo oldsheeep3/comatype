@@ -82,6 +82,7 @@ export const sidebars: Record<string, SidebarGroup[]> = {
     {
       text: t('Other languages', 'その他の言語'),
       items: [
+        { text: t('JavaScript', 'JavaScript'), href: '/runtime/javascript/' },
         { text: t('Go', 'Go'), href: '/runtime/go/' },
         { text: t('Python', 'Python'), href: '/runtime/python/' },
         { text: t('Rust', 'Rust'), href: '/runtime/rust/' },

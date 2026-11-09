@@ -87,6 +87,16 @@
           "root": "./swift_server"
         },
         {
+          "lang": "js",
+          "role": "client",
+          "root": "./js_client"
+        },
+        {
+          "lang": "js",
+          "role": "server",
+          "root": "./js_server"
+        },
+        {
           "lang": "csharp",
           "role": "client",
           "root": "./csharp_client"

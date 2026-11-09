@@ -131,6 +131,8 @@ importers:
         specifier: ^9.2.0
         version: 9.3.2
 
+  packages/javascript: {}
+
   packages/typescript: {}
 
 packages:

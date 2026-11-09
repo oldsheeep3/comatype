@@ -11,7 +11,7 @@ Comatype runtime for Python: the async client `c` (httpx) and the ASGI server `s
 
 [PyPI](https://pypi.org/project/comatype/) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **Python** runtime that the generated code depends on.
 
 ## How to use

@@ -101,7 +101,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: TypeScript runtime
-        run: pnpm --dir packages/typescript typecheck && pnpm --dir packages/typescript test && pnpm --dir packages/typescript build
+        run: pnpm --dir packages/typescript typecheck && pnpm --dir packages/typescript test && pnpm --dir packages/typescript build && pnpm --dir packages/javascript build
       - name: VS Code extension (test, then build the .vsix without publishing it)
         run: |
           pnpm --dir editors/vscode test

@@ -11,7 +11,7 @@ Comatype runtime for TypeScript: the typed `fetch` client `c` and the server `s`
 
 [npm](https://www.npmjs.com/package/@comatype/typescript) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in ten languages.
 > This package is the **TypeScript** runtime that the generated code depends on.
 
 ## How to use

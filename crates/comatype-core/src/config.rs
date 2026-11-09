@@ -53,7 +53,7 @@ pub struct Target {
     pub package: Option<String>,
 }
 
-pub const LANGS: &[&str] = &["ts", "go", "python", "rust", "java", "ruby", "kotlin", "swift", "csharp", "dart"];
+pub const LANGS: &[&str] = &["ts", "js", "go", "python", "rust", "java", "ruby", "kotlin", "swift", "csharp", "dart"];
 
 /// Reads `comatype.config.json`. `path` is the file or the directory containing it
 pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
@@ -113,7 +113,7 @@ pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
 /// Default `out` per language (SPEC §2.1)
 pub fn default_out(lang: &str) -> &'static str {
     match lang {
-        "ts" | "go" => "comatype",
+        "ts" | "js" | "go" => "comatype",
         "python" | "ruby" => "comatype_gen",
         "rust" => "src/comatype_gen",
         "java" => "src/main/java/comatype/gen",
