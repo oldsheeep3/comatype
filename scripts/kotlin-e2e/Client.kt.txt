@@ -1,0 +1,137 @@
+// Run the generated usage kotlin_client against kotlin_server (COMATYPE_BASE_URL holds the peer's address)
+import comatype.ktx.CK
+import comatype.ktx.CWrap
+import comatype.ktx.blocking
+import comatype.CookieJar
+import comatype.ValidationException
+import comatype.gen.*
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.util.UUID
+import kotlin.system.exitProcess
+
+fun check(ok: Boolean, what: String) {
+    if (!ok) {
+        System.err.println("FAIL: $what")
+        exitProcess(1)
+    }
+}
+
+fun raw(method: String, url: String, auth: String? = null, body: String? = null): HttpResponse<String> {
+    val b = HttpRequest.newBuilder(URI.create(url))
+        .method(method, if (body == null) HttpRequest.BodyPublishers.noBody() else HttpRequest.BodyPublishers.ofString(body))
+    if (auth != null) b.header("Authorization", auth)
+    if (!body.isNullOrEmpty()) b.header("Content-Type", "application/json")
+    return HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofString())
+}
+
+fun main() = blocking {
+    val base = System.getenv("COMATYPE_BASE_URL")
+
+    // Wrapper: add Authorization
+    val bearer: CWrap = { req, next ->
+        req.headers.set("Authorization", "Bearer session-token")
+        next(req)
+    }
+    CK.init(CK.Config(wrappers = Init.Wrappers(bearer)))
+
+    val created = CK.post(PostUser.ENDPOINT, PostUser.Request(body = PostUser.Body("taro", comatype.Email("taro@example.com"), comatype.Phone("+819012345678"))))
+    check(created is PostUser.S200, "post_user: $created")
+    val uid = (created as PostUser.S200).body.uid
+
+    val got = CK.get(GetUser.ENDPOINT, GetUser.Request(GetUser.Params(uid), GetUser.Search(verbose = true)))
+    check(got is GetUser.S200 && got.body.name == "taro", "get_user: $got")
+
+    val upd = CK.put(UserPutId.ENDPOINT, UserPutId.Request(UserPutId.Params(uid), body = Types.UserData("jiro", comatype.Email("j@example.com"), comatype.Phone("+819011112222"), uid)))
+    check(upd is UserPutId.S200 && upd.body.name == "jiro", "put: $upd")
+    check((upd as UserPutId.S200).headers.xResourceVersion == "v2", "put のレスポンスヘッダ: $upd")
+
+    val list = CK.get(UserGet.ENDPOINT, UserGet.Request(UserGet.Search(limit = 1)))
+    check(list is UserGet.S200 && list.body.size == 1, "list: $list")
+    val all = CK.get(UserGet.ENDPOINT, UserGet.Request())
+    check(all is UserGet.S200, "list(引数なし): $all")
+
+    val q = CK.query(QueryUser.ENDPOINT, QueryUser.Request(body = QueryUser.Body(name = "jir")))
+    check(q is QueryUser.S200 && q.body.size == 1, "query: $q")
+
+    val opt = CK.options(OptionsUser.ENDPOINT, OptionsUser.Request())
+    check(opt is OptionsUser.S200 && opt.headers.allow.joinToString(",") == "GET,POST,OPTIONS", "options: $opt")
+
+    val prof = CK.get(UserProfileGet.ENDPOINT, UserProfileGet.Request())
+    check(prof is UserProfileGet.S200 && prof.body.name == "guest", "profile: $prof")
+
+    val ping = CK.get(UserGetPing.ENDPOINT, UserGetPing.Request())
+    check(ping is UserGetPing.S200 && ping.body.ok, "ping: $ping")
+    // Client cache (cache 60000): the second call makes no request (a request would flip ok)
+    val ping2 = CK.get(UserGetPing.ENDPOINT, UserGetPing.Request())
+    check(ping2 is UserGetPing.S200 && ping2.body.ok, "client cache: $ping2")
+    // After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+    CK.clearCache()
+    val ping3 = CK.get(UserGetPing.ENDPOINT, UserGetPing.Request())
+    check(ping3 is UserGetPing.S200 && ping3.body.ok, "server cache: $ping3")
+
+    val bad = CK.post(UserPostLogin.ENDPOINT, UserPostLogin.Request(body = UserPostLogin.Body(comatype.Email("a@b.co"), "nope")))
+    check(bad is UserPostLogin.S401 && bad.body.code == "bad", "login(bad): $bad")
+
+    val nf = CK.get(GetUser.ENDPOINT, GetUser.Request(GetUser.Params(UUID.fromString("3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10"))))
+    check(nf is GetUser.S404 && nf.body.code == "not_found", "not found: $nf")
+
+    val del = CK.delete(UserDeleteId.ENDPOINT, UserDeleteId.Request(UserDeleteId.Params(uid)))
+    check(del is UserDeleteId.S204, "delete: $del")
+    val del2 = CK.delete(UserDeleteId.ENDPOINT, UserDeleteId.Request(UserDeleteId.Params(uid)))
+    check(del2 is UserDeleteId.S404, "delete(2 回目): $del2")
+
+    // Validation before sending: an invalid email / uuidv4 fails without sending a request
+    try {
+        CK.post(UserPostLogin.ENDPOINT, UserPostLogin.Request(body = UserPostLogin.Body(comatype.Email("not-email"), "x")))
+        check(false, "email の検証")
+    } catch (e: ValidationException) {
+        check(e.path == "email", "email の検証: ${e.message}")
+    }
+    try {
+        CK.get(GetUser.ENDPOINT, GetUser.Request(GetUser.Params(UUID.fromString("3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10"))))
+        check(false, "uuidv4 の検証")
+    } catch (e: ValidationException) {
+        check(e.path == "id", "uuidv4 の検証: ${e.message}")
+    }
+
+    // Without a wrapper, it fails before sending
+    CK.init(CK.Config())
+    try {
+        CK.get(UserProfileGet.ENDPOINT, UserProfileGet.Request())
+        check(false, "ラッパーが無い")
+    } catch (e: comatype.ComatypeException.Config) {
+        check(e.message!!.contains("auth"), "ラッパーが無い: ${e.message}")
+    }
+
+    // Without credentials, the server's auth wrapper returns 401
+    val anon = raw("GET", "$base/user/profile")
+    check(anon.statusCode() == 401 && anon.body().contains("unauthorized"), "anon: ${anon.statusCode()} ${anon.body()}")
+    // Invalid input gives 400
+    val inv = raw("GET", "$base/user/not-a-uuid", "Bearer session-token")
+    check(inv.statusCode() == 400 && inv.body().contains("validation_error"), "invalid: ${inv.statusCode()} ${inv.body()}")
+    // Server cache: an identical request gets the same response
+    check(raw("GET", "$base/ping").body() == raw("GET", "$base/ping").body(), "server cache(raw)")
+    // 404 / 405
+    check(raw("GET", "$base/nope").statusCode() == 404, "404")
+    val post = raw("POST", "$base/ping", body = "")
+    check(post.statusCode() == 405 && post.headers().firstValue("Allow").orElse("") == "GET", "405: ${post.statusCode()}")
+
+    // cookie: login issues a Set-Cookie, the jar keeps it and sends it back with the next request
+    val jar = CookieJar()
+    CK.init(CK.Config(wrappers = Init.Wrappers({ req, next -> next(req) }), cookieJar = jar))
+    val r1 = CK.get(UserProfileGet.ENDPOINT, UserProfileGet.Request())
+    check(r1 is UserProfileGet.S401, "ログイン前は 401: $r1")
+    val ok = CK.post(UserPostLogin.ENDPOINT, UserPostLogin.Request(body = UserPostLogin.Body(comatype.Email("a@b.co"), "pw")))
+    check(ok is UserPostLogin.S200, "login: $ok")
+    check(jar.get("/")["session"] == "session-token", "jar: ${jar.get("/")}")
+    val r2 = CK.get(UserProfileGet.ENDPOINT, UserProfileGet.Request())
+    check(r2 is UserProfileGet.S200, "cookie だけで認証される: $r2")
+    val resp = raw("POST", "$base/user/login", body = """{"email":"a@b.co","password":"pw"}""")
+    val want = "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"
+    check(resp.headers().firstValue("Set-Cookie").orElse("") == want, "Set-Cookie: ${resp.headers().firstValue("Set-Cookie")}")
+
+    println("e2e kotlin (generated client <-> generated server): OK")
+}

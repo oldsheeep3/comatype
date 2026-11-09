@@ -1,0 +1,97 @@
+// Actually run the generated usage kotlin_server (scripts/e2e-kotlin.sh uses it in a temporary directory)
+import comatype.CookieValue
+import comatype.S
+import comatype.ktx.SWrap
+import comatype.ktx.coDelete
+import comatype.ktx.coGet
+import comatype.ktx.coOptions
+import comatype.ktx.coPost
+import comatype.ktx.coPut
+import comatype.ktx.coQuery
+import comatype.ktx.init
+import comatype.gen.*
+import java.util.UUID
+
+const val SESSION = "session-token"
+val db = LinkedHashMap<UUID, Types.UserData>()
+var seq = 1L
+val pingCalls = java.util.concurrent.atomic.AtomicInteger()
+
+@Synchronized
+fun newUuid(): UUID = UUID.fromString("3f2b8c1e-5d4a-4b6e-9c1d-%012x".format(seq++))
+
+fun err(code: String, message: String) = Types.ApiError(code, message)
+
+fun <T> ok(r: T): S.Reply<T> = S.Reply.of(r)
+
+fun main() {
+    val s = S()
+    val auth: SWrap<Init.AuthCtx> = { req, next ->
+        val byCookie = req.cookie("session") == SESSION
+        val byHeader = req.header("Authorization") == "Bearer $SESSION"
+        if (!byCookie && !byHeader) {
+            Init.s401(err("unauthorized", "login required"))
+        } else {
+            val user = Types.UserData("guest", comatype.Email("g@example.com"), comatype.Phone("+8100"), newUuid())
+            next(req.withCtx(Init.AuthCtx(user)))
+        }
+    }
+    s.init(Init.Wrappers(auth))
+
+    s.coPost(PostUser.ENDPOINT) { req ->
+        synchronized(db) {
+            val u = Types.UserData(req.body.name, req.body.email, req.body.phone, newUuid())
+            db[u.uid] = u
+            ok<PostUser.Response>(PostUser.S200(u))
+        }
+    }
+    s.coGet(GetUser.ENDPOINT) { req ->
+        synchronized(db) {
+            val u = db[req.params.id]
+            ok<GetUser.Response>(if (u == null) GetUser.S404(err("not_found", "no user")) else GetUser.S200(u))
+        }
+    }
+    s.coPut(UserPutId.ENDPOINT) { req ->
+        synchronized(db) {
+            if (!db.containsKey(req.params.id)) {
+                ok<UserPutId.Response>(UserPutId.S404(err("not_found", "no user")))
+            } else {
+                db[req.params.id] = req.body
+                ok<UserPutId.Response>(UserPutId.S200(req.body, UserPutId.S200Headers(xResourceVersion = "v2")))
+            }
+        }
+    }
+    s.coDelete(UserDeleteId.ENDPOINT) { req ->
+        synchronized(db) {
+            if (db.remove(req.params.id) == null) ok<UserDeleteId.Response>(UserDeleteId.S404(err("not_found", "no user")))
+            else ok<UserDeleteId.Response>(UserDeleteId.S204())
+        }
+    }
+    s.coGet(UserGet.ENDPOINT) { req ->
+        synchronized(db) {
+            val limit = req.search.limit ?: Long.MAX_VALUE
+            ok<UserGet.Response>(UserGet.S200(db.values.take(minOf(limit, Int.MAX_VALUE.toLong()).toInt())))
+        }
+    }
+    s.coGet(UserProfileGet.ENDPOINT) { req -> ok<UserProfileGet.Response>(UserProfileGet.S200(req.ctx.auth.user)) }
+    // ok flips on every call (a cache hit returns the same value)
+    s.coGet(UserGetPing.ENDPOINT) { _ -> ok<UserGetPing.Response>(UserGetPing.S200(UserGetPing.S200Res(pingCalls.incrementAndGet() % 2 == 1))) }
+    s.coPost(UserPostLogin.ENDPOINT) { req ->
+        if (req.body.password != "pw") {
+            ok<UserPostLogin.Response>(UserPostLogin.S401(err("bad", "wrong")))
+        } else {
+            ok<UserPostLogin.Response>(UserPostLogin.S200(UserPostLogin.S200Res(newUuid()))).withCookie(CookieValue.of(SESSION).maxAge(3600))
+        }
+    }
+    s.coQuery(QueryUser.ENDPOINT) { req ->
+        synchronized(db) {
+            val name = req.body.name
+            ok<QueryUser.Response>(QueryUser.S200(db.values.filter { name == null || it.name.contains(name) }))
+        }
+    }
+    s.coOptions(OptionsUser.ENDPOINT) { _ -> ok<OptionsUser.Response>(OptionsUser.S200(OptionsUser.S200Headers(allow = listOf("GET", "POST", "OPTIONS")))) }
+
+    val server = s.serve("127.0.0.1", 0)
+    println("PORT=" + server.address.port)
+    System.out.flush()
+}

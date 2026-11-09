@@ -1,0 +1,186 @@
+// Run the generated usage go_client against go_server (COMATYPE_BASE_URL holds the peer's address)
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/oldsheeep3/comatype/packages/go/c"
+	"github.com/oldsheeep3/comatype/packages/go/comatype"
+
+	"example.com/app/comatype/get_user"
+	comatype_init "example.com/app/comatype/init"
+	"example.com/app/comatype/options_user"
+	"example.com/app/comatype/post_user"
+	"example.com/app/comatype/query_user"
+	"example.com/app/comatype/types"
+	user_delete_id "example.com/app/comatype/user/delete__id"
+	user_get "example.com/app/comatype/user/get"
+	user_get_ping "example.com/app/comatype/user/get_ping"
+	user_post_login "example.com/app/comatype/user/post_login"
+	user_profile_get "example.com/app/comatype/user/profile/get"
+	user_put_id "example.com/app/comatype/user/put__id"
+)
+
+var failed = false
+
+func check(ok bool, format string, args ...any) {
+	if !ok {
+		failed = true
+		fmt.Fprintf(os.Stderr, "FAIL: "+format+"\n", args...)
+	}
+}
+
+func must(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+func main() {
+	ctx := context.Background()
+	base := os.Getenv("COMATYPE_BASE_URL")
+
+	// Wrapper: add Authorization
+	token := "session-token"
+	bearer := func(req *c.RawRequest, next c.Next) (*c.RawResponse, error) {
+		req.Header.Set("Authorization", "Bearer "+token)
+		return next(req)
+	}
+	c.Init(c.Config{Wrappers: comatype_init.Wrappers{Auth: bearer}})
+
+	created, err := c.Post(ctx, post_user.Endpoint, post_user.Body{Name: "taro", Email: "taro@example.com", Phone: "+819012345678"})
+	must(err)
+	check(created.Status == 200 && created.S200 != nil, "post_user: %+v", created)
+	uid := created.S200.UID
+
+	got, err := c.Get(ctx, get_user.Endpoint, get_user.Request{Params: get_user.Params{ID: uid}, Search: get_user.Search{Verbose: c.Ptr(true)}})
+	must(err)
+	check(got.Status == 200 && got.S200.Name == "taro", "get_user: %+v", got)
+
+	upd, err := c.Put(ctx, user_put_id.Endpoint, user_put_id.Request{Params: user_put_id.Params{ID: uid}, Body: types.UserData{Name: "jiro", Email: "j@example.com", Phone: "+819011112222", UID: uid}})
+	must(err)
+	check(upd.Status == 200 && upd.S200.Name == "jiro", "put: %+v", upd)
+	check(upd.S200Headers != nil && upd.S200Headers.XResourceVersion != nil && *upd.S200Headers.XResourceVersion == "v2", "put のレスポンスヘッダ: %+v", upd.S200Headers)
+
+	list, err := c.Get(ctx, user_get.Endpoint, user_get.Request{Search: user_get.Search{Limit: c.Ptr(1)}})
+	must(err)
+	check(list.Status == 200 && list.S200 != nil && len(*list.S200) == 1, "list: %+v", list)
+	all, err := c.Get(ctx, user_get.Endpoint) // No arguments
+	must(err)
+	check(all.Status == 200, "list(引数なし): %+v", all)
+
+	q, err := c.Query(ctx, query_user.Endpoint, query_user.Body{Name: c.Ptr("jir")})
+	must(err)
+	check(q.Status == 200 && len(*q.S200) == 1, "query: %+v", q)
+
+	opt, err := c.Options(ctx, options_user.Endpoint)
+	must(err)
+	check(opt.Status == 200 && strings.Join(opt.S200Headers.Allow, ",") == "GET,POST,OPTIONS", "options: %+v", opt.S200Headers)
+
+	prof, err := c.Get(ctx, user_profile_get.Endpoint)
+	must(err)
+	check(prof.Status == 200 && prof.S200.Name == "guest", "profile: %+v", prof)
+
+	ping, err := c.Get(ctx, user_get_ping.Endpoint)
+	must(err)
+	check(ping.Status == 200 && ping.S200.Ok, "ping: %+v", ping)
+	// Client cache (cache 60000): the second call makes no request (a request would flip ok)
+	ping2, err := c.Get(ctx, user_get_ping.Endpoint)
+	must(err)
+	check(ping2.S200.Ok, "client cache: %+v", ping2)
+	// After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+	c.ClearCache()
+	ping3, err := c.Get(ctx, user_get_ping.Endpoint)
+	must(err)
+	check(ping3.S200.Ok, "server cache: %+v", ping3)
+
+	bad, err := c.Post(ctx, user_post_login.Endpoint, user_post_login.Body{Email: "a@b.co", Password: "nope"})
+	must(err)
+	check(bad.Status == 401 && bad.S401 != nil && bad.S401.Code == "bad", "login(bad): %+v", bad)
+
+	nf, err := c.Get(ctx, get_user.Endpoint, get_user.Request{Params: get_user.Params{ID: "3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10"}})
+	must(err)
+	check(nf.Status == 404 && nf.S404.Code == "not_found", "not found: %+v", nf)
+
+	del, err := c.Delete(ctx, user_delete_id.Endpoint, user_delete_id.Request{Params: user_delete_id.Params{ID: uid}})
+	must(err)
+	check(del.Status == 204, "delete: %+v", del)
+	del2, err := c.Delete(ctx, user_delete_id.Endpoint, user_delete_id.Request{Params: user_delete_id.Params{ID: uid}})
+	must(err)
+	check(del2.Status == 404, "delete(2 回目): %+v", del2)
+
+	// Validation before sending: an invalid email / uuid fails without sending a request
+	_, err = c.Post(ctx, user_post_login.Endpoint, user_post_login.Body{Email: "not-email", Password: "x"})
+	var ve *comatype.ValidationError
+	check(errors.As(err, &ve) && ve.Path == "email", "email の検証: %v", err)
+	_, err = c.Get(ctx, get_user.Endpoint, get_user.Request{Params: get_user.Params{ID: "x"}})
+	check(errors.As(err, &ve), "uuid の検証: %v", err)
+
+	// With a nil wrapper, it fails before sending
+	c.Init(c.Config{})
+	_, err = c.Get(ctx, user_profile_get.Endpoint)
+	check(err != nil && strings.Contains(err.Error(), "auth"), "ラッパーが無い: %v", err)
+
+	// Without credentials, the server's auth wrapper returns 401
+	anon := get(base+"/user/profile", "")
+	check(anon.status == 401 && strings.Contains(anon.body, "unauthorized"), "anon: %+v", anon)
+	// Invalid input gives 400
+	inv := get(base+"/user/not-a-uuid", "Bearer session-token")
+	check(inv.status == 400 && strings.Contains(inv.body, "validation_error"), "invalid: %+v", inv)
+	// Server cache: an identical request gets the same response. Different headers make a different request
+	sc1 := get(base+"/ping", "")
+	sc2 := get(base+"/ping", "")
+	check(sc1.body == sc2.body, "server cache(raw): %s / %s", sc1.body, sc2.body)
+	// 404 / 405
+	check(get(base+"/nope", "").status == 404, "404")
+	post, _ := http.Post(base+"/ping", "application/json", nil)
+	check(post.StatusCode == 405 && post.Header.Get("Allow") == "GET", "405: %d %q", post.StatusCode, post.Header.Get("Allow"))
+
+	// cookie: login issues a Set-Cookie, the jar keeps it and sends it back with the next request
+	jar := comatype.NewCookieJar()
+	pass := func(req *c.RawRequest, next c.Next) (*c.RawResponse, error) { return next(req) }
+	c.Init(c.Config{Wrappers: comatype_init.Wrappers{Auth: pass}, CookieJar: jar})
+	r1, err := c.Get(ctx, user_profile_get.Endpoint)
+	must(err)
+	check(r1.Status == 401, "ログイン前は 401: %d", r1.Status)
+	ok, err := c.Post(ctx, user_post_login.Endpoint, user_post_login.Body{Email: "a@b.co", Password: "pw"})
+	must(err)
+	check(ok.Status == 200, "login: %+v", ok)
+	check(jar.Get("/")["session"] == "session-token", "jar: %v", jar.Get("/"))
+	r2, err := c.Get(ctx, user_profile_get.Endpoint)
+	must(err)
+	check(r2.Status == 200, "cookie だけで認証される: %d", r2.Status)
+	resp, err := http.Post(base+"/user/login", "application/json", strings.NewReader(`{"email":"a@b.co","password":"pw"}`))
+	must(err)
+	want := "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"
+	check(resp.Header.Get("Set-Cookie") == want, "Set-Cookie: %q", resp.Header.Get("Set-Cookie"))
+
+	if failed {
+		os.Exit(1)
+	}
+	fmt.Println("e2e go (generated client <-> generated server): OK")
+}
+
+type result struct {
+	status int
+	body   string
+}
+
+func get(url, auth string) result {
+	req, _ := http.NewRequest("GET", url, nil)
+	if auth != "" {
+		req.Header.Set("Authorization", auth)
+	}
+	res, err := http.DefaultClient.Do(req)
+	must(err)
+	defer res.Body.Close()
+	b, _ := io.ReadAll(res.Body)
+	return result{res.StatusCode, string(b)}
+}

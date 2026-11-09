@@ -1,0 +1,150 @@
+// Actually run the generated usage go_server (scripts/e2e-go.sh uses it as main.go in a temporary directory)
+package main
+
+import (
+	"crypto/rand"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"sync"
+
+	"github.com/oldsheeep3/comatype/packages/go/comatype"
+	"github.com/oldsheeep3/comatype/packages/go/s"
+
+	"example.com/app/comatype/get_user"
+	comatype_init "example.com/app/comatype/init"
+	"example.com/app/comatype/options_user"
+	"example.com/app/comatype/post_user"
+	"example.com/app/comatype/query_user"
+	"example.com/app/comatype/types"
+	user_delete_id "example.com/app/comatype/user/delete__id"
+	user_get "example.com/app/comatype/user/get"
+	user_get_ping "example.com/app/comatype/user/get_ping"
+	user_post_login "example.com/app/comatype/user/post_login"
+	user_profile_get "example.com/app/comatype/user/profile/get"
+	user_put_id "example.com/app/comatype/user/put__id"
+)
+
+const session = "session-token"
+
+var (
+	pingCalls int
+	mu        sync.Mutex
+	db = map[comatype.Uuidv4]types.UserData{}
+)
+
+func newUUID() comatype.Uuidv4 {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return comatype.Uuidv4(fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]))
+}
+
+var auth s.ComatypeWrap[comatype_init.AuthCtx] = func(req *s.RawRequest[comatype_init.AuthCtx], next s.Next[comatype_init.AuthCtx]) s.RawResponse {
+	if req.Cookie("session") != session && req.Header.Get("Authorization") != "Bearer "+session {
+		return comatype_init.S401(&comatype_init.S401Res{Code: "unauthorized", Message: "login required"})
+	}
+	req.Ctx = comatype_init.AuthCtx{User: types.UserData{Name: "guest", Email: "g@example.com", Phone: "+8100", UID: newUUID()}}
+	return next(req)
+}
+
+func main() {
+	s.Init(s.Config{Wrappers: comatype_init.Wrappers{Auth: auth}})
+
+	s.Post(post_user.Endpoint, func(req post_user.Request) post_user.Response {
+		mu.Lock()
+		defer mu.Unlock()
+		u := types.UserData{Name: req.Body.Name, Email: req.Body.Email, Phone: req.Body.Phone, UID: newUUID()}
+		db[u.UID] = u
+		return post_user.S200(&u)
+	})
+	s.Get(get_user.Endpoint, func(req get_user.Request) get_user.Response {
+		mu.Lock()
+		defer mu.Unlock()
+		u, ok := db[req.Params.ID]
+		if !ok {
+			return get_user.S404(&get_user.S404Res{Code: "not_found", Message: "no user"})
+		}
+		return get_user.S200(&u)
+	})
+	s.Put(user_put_id.Endpoint, func(req user_put_id.Request) user_put_id.Response {
+		mu.Lock()
+		defer mu.Unlock()
+		if _, ok := db[req.Params.ID]; !ok {
+			return user_put_id.S404(&user_put_id.S404Res{Code: "not_found", Message: "no user"})
+		}
+		db[req.Params.ID] = req.Body
+		return user_put_id.S200(&req.Body).WithS200Headers(&user_put_id.S200Headers{XResourceVersion: comatype.Ptr("v2")})
+	})
+	s.Delete(user_delete_id.Endpoint, func(req user_delete_id.Request) user_delete_id.Response {
+		mu.Lock()
+		defer mu.Unlock()
+		if _, ok := db[req.Params.ID]; !ok {
+			return user_delete_id.S404(&user_delete_id.S404Res{Code: "not_found", Message: "no user"})
+		}
+		delete(db, req.Params.ID)
+		return user_delete_id.S204()
+	})
+	s.Get(user_get.Endpoint, func(req user_get.Request) user_get.Response {
+		mu.Lock()
+		defer mu.Unlock()
+		list := []types.UserData{}
+		for _, u := range db {
+			if req.Search.Limit != nil && len(list) >= *req.Search.Limit {
+				break
+			}
+			list = append(list, u)
+		}
+		return user_get.S200((*user_get.S200Res)(&list))
+	})
+	s.Get(user_profile_get.Endpoint, func(req user_profile_get.Request) user_profile_get.Response {
+		u := req.Ctx.User
+		return user_profile_get.S200(&u)
+	})
+	s.Get(user_get_ping.Endpoint, func(req user_get_ping.Request) user_get_ping.Response {
+		// ok flips on every call (a cache hit returns the same value)
+		mu.Lock()
+		defer mu.Unlock()
+		pingCalls++
+		return user_get_ping.S200(&user_get_ping.S200Res{Ok: pingCalls%2 == 1})
+	})
+	s.Post(user_post_login.Endpoint, func(req user_post_login.Request) user_post_login.Response {
+		if req.Body.Password != "pw" {
+			return user_post_login.S401(&user_post_login.S401Res{Code: "bad", Message: "wrong"})
+		}
+		return user_post_login.S200(&user_post_login.S200Res{UID: newUUID()}).WithCookie(session, comatype.MaxAge(3600))
+	})
+	s.Query(query_user.Endpoint, func(req query_user.Request) query_user.Response {
+		mu.Lock()
+		defer mu.Unlock()
+		list := []types.UserData{}
+		for _, u := range db {
+			if req.Body.Name == nil || contains(u.Name, *req.Body.Name) {
+				list = append(list, u)
+			}
+		}
+		return query_user.S200((*query_user.S200Res)(&list))
+	})
+	s.Options(options_user.Endpoint, func(req options_user.Request) options_user.Response {
+		return options_user.S200(nil, &options_user.S200Headers{Allow: []string{"GET", "POST", "OPTIONS"}})
+	})
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	fmt.Printf("PORT=%d\n", ln.Addr().(*net.TCPAddr).Port)
+	_ = http.Serve(ln, s.Handler())
+}
+
+func contains(s, sub string) bool {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}

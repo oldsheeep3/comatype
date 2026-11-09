@@ -1,0 +1,115 @@
+"""Actually run the generated usage python_server (scripts/e2e-python.sh uses it as main.py in a temporary directory)."""
+
+from __future__ import annotations
+
+import asyncio
+import uuid
+
+import uvicorn
+
+from comatype import ComatypeWrap, Cookie, s
+from comatype_gen import comatype_init, models
+from comatype_gen import get_user, options_user, post_user, query_user
+from comatype_gen.user import delete__id as user_delete_id
+from comatype_gen.user import get as user_get
+from comatype_gen.user import get_ping as user_get_ping
+from comatype_gen.user import post_login as user_post_login
+from comatype_gen.user import put__id as user_put_id
+from comatype_gen.user.profile import get as user_profile_get
+
+SESSION = "session-token"
+db: dict[uuid.UUID, models.UserData] = {}
+
+
+async def _auth(req, nxt):  # type: ignore[no-untyped-def]
+    if req.cookies.get("session") != SESSION and req.headers.get("authorization") != f"Bearer {SESSION}":
+        return comatype_init.S401(error=comatype_init.S401.Res(code="unauthorized", message="login required"))
+    req.ctx = comatype_init.AuthCtx(user=models.UserData(name="guest", email="g@example.com", phone="+8100", uid=uuid.uuid4()))
+    return await nxt(req)
+
+
+auth = ComatypeWrap[comatype_init.AuthCtx](_auth)
+s.init(wrappers=comatype_init.Wrappers(auth=auth))
+
+
+@s.post(post_user.path)
+async def create_user(req: post_user.Request) -> post_user.Response:
+    u = models.UserData(name=req.body.name, email=req.body.email, phone=req.body.phone, uid=uuid.uuid4())
+    db[u.uid] = u
+    return post_user.S200(data=u)
+
+
+@s.get(get_user.path)
+async def read_user(req: get_user.Request) -> get_user.Response:
+    u = db.get(req.params.id)
+    if u is None:
+        return get_user.S404(error=get_user.S404.Res(code="not_found", message="no user"))
+    return get_user.S200(data=u)
+
+
+@s.put(user_put_id.path)
+async def update_user(req: user_put_id.Request) -> user_put_id.Response:
+    if req.params.id not in db:
+        return user_put_id.S404(error=user_put_id.S404.Res(code="not_found", message="no user"))
+    db[req.params.id] = req.body
+    return user_put_id.S200(data=req.body, headers=user_put_id.S200.Headers(x_resource_version="v2"))
+
+
+@s.delete(user_delete_id.path)
+async def delete_user(req: user_delete_id.Request) -> user_delete_id.Response:
+    if db.pop(req.params.id, None) is None:
+        return user_delete_id.S404(error=user_delete_id.S404.Res(code="not_found", message="no user"))
+    return user_delete_id.S204()
+
+
+@s.get(user_get.path)
+async def list_users(req: user_get.Request) -> user_get.Response:
+    users = list(db.values())
+    limit = req.search.limit
+    return user_get.S200(data=users[:limit] if limit is not None else users)
+
+
+@s.get(user_profile_get.path)
+async def profile(req: user_profile_get.Request) -> user_profile_get.Response:
+    return user_profile_get.S200(data=req.ctx.user)
+
+
+PING_CALLS: list[int] = []
+
+
+@s.get(user_get_ping.path)
+async def ping(req: user_get_ping.Request) -> user_get_ping.Response:
+    # ok flips on every call (a cache hit returns the same value)
+    PING_CALLS.append(1)
+    return user_get_ping.S200(data=user_get_ping.S200.Res(ok=len(PING_CALLS) % 2 == 1))
+
+
+@s.post(user_post_login.path)
+async def login(req: user_post_login.Request) -> user_post_login.Response:
+    if req.body.password != "pw":
+        return user_post_login.S401(error=user_post_login.S401.Res(code="bad", message="wrong"))
+    return user_post_login.S200(data=user_post_login.S200.Res(uid=uuid.uuid4()), cookie=Cookie(SESSION, max_age=3600))
+
+
+@s.query(query_user.path)
+async def search_users(req: query_user.Request) -> query_user.Response:
+    name = req.body.name
+    return query_user.S200(data=[u for u in db.values() if name is None or name in u.name])
+
+
+@s.options(options_user.path)
+async def options(req: options_user.Request) -> options_user.Response:
+    return options_user.S200(headers=options_user.S200.Headers(allow=["GET", "POST", "OPTIONS"]))
+
+
+async def main() -> None:
+    server = uvicorn.Server(uvicorn.Config(s, host="127.0.0.1", port=0, log_level="warning"))
+    task = asyncio.create_task(server.serve())
+    while not server.started:
+        await asyncio.sleep(0.02)
+    port = server.servers[0].sockets[0].getsockname()[1]
+    print(f"PORT={port}", flush=True)
+    await task
+
+
+asyncio.run(main())

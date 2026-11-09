@@ -1,0 +1,134 @@
+"""Run the generated usage python_client against python_server (COMATYPE_BASE_URL holds the peer's address)."""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import uuid
+
+import httpx
+
+from comatype import ComatypeError, ComatypeValidationError, ComatypeWrap, CookieJar, c
+from comatype_gen import comatype_init, models
+from comatype_gen import get_user, options_user, post_user, query_user
+from comatype_gen.user import delete__id as user_delete_id
+from comatype_gen.user import get as user_get
+from comatype_gen.user import get_ping as user_get_ping
+from comatype_gen.user import post_login as user_post_login
+from comatype_gen.user import put__id as user_put_id
+from comatype_gen.user.profile import get as user_profile_get
+
+BASE = os.environ["COMATYPE_BASE_URL"]
+
+
+async def bearer(req, nxt):  # type: ignore[no-untyped-def]
+    req.headers["Authorization"] = "Bearer session-token"
+    return await nxt(req)
+
+
+async def passthrough(req, nxt):  # type: ignore[no-untyped-def]
+    return await nxt(req)
+
+
+async def main() -> None:
+    c.init(wrappers=comatype_init.Wrappers(auth=ComatypeWrap(bearer)))
+
+    created = await c.post(post_user.path, post_user.Body(name="taro", email="taro@example.com", phone="+819012345678"), post_user.S200)
+    assert created.status == 200 and created.data is not None, created
+    uid = created.data.uid
+
+    got = await c.get(get_user.path, get_user.Request(params=get_user.Params(id=uid), search=get_user.Search(verbose=True)), get_user.S200, get_user.S404)
+    assert isinstance(got, get_user.S200) and got.data is not None and got.data.name == "taro", got
+
+    upd = await c.put(
+        user_put_id.path,
+        user_put_id.Request(params=user_put_id.Params(id=uid), body=models.UserData(name="jiro", email="j@example.com", phone="+819011112222", uid=uid)),
+        user_put_id.S200,
+        user_put_id.S404,
+    )
+    assert isinstance(upd, user_put_id.S200) and upd.data is not None and upd.data.name == "jiro", upd
+    assert upd.headers is not None and upd.headers.x_resource_version == "v2", upd.headers
+
+    lst = await c.get(user_get.path, user_get.Request(search=user_get.Search(limit=1)), user_get.S200)
+    assert lst.data is not None and len(lst.data) == 1, lst
+
+    q = await c.query(query_user.path, query_user.Body(name="jir"), query_user.S200)
+    assert q.data is not None and len(q.data) == 1, q
+
+    opt = await c.options(options_user.path, options_user.S200)
+    assert opt.headers.allow == ["GET", "POST", "OPTIONS"], opt
+
+    prof = await c.get(user_profile_get.path, user_profile_get.S200)
+    assert prof.data is not None and prof.data.name == "guest", prof
+
+    ping = await c.get(user_get_ping.path, user_get_ping.S200)
+    assert ping.data is not None and ping.data.ok is True, ping
+    # Client cache (cache 60000): the second call makes no request (a request would flip ok)
+    ping2 = await c.get(user_get_ping.path, user_get_ping.S200)
+    assert ping2.data is not None and ping2.data.ok is True, ping2
+    # After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+    c.clear_cache()
+    ping3 = await c.get(user_get_ping.path, user_get_ping.S200)
+    assert ping3.data is not None and ping3.data.ok is True, ping3
+
+    bad = await c.post(user_post_login.path, user_post_login.Body(email="a@b.co", password="nope"), user_post_login.S200, user_post_login.S401)
+    assert isinstance(bad, user_post_login.S401) and bad.error is not None and bad.error.code == "bad", bad
+
+    nf = await c.get(get_user.path, get_user.Request(params=get_user.Params(id=uuid.uuid4())), get_user.S200, get_user.S404)
+    assert nf.status == 404, nf
+
+    d1 = await c.delete(user_delete_id.path, user_delete_id.Request(params=user_delete_id.Params(id=uid)), user_delete_id.S204, user_delete_id.S404)
+    assert d1.status == 204, d1
+    d2 = await c.delete(user_delete_id.path, user_delete_id.Request(params=user_delete_id.Params(id=uid)), user_delete_id.S204, user_delete_id.S404)
+    assert d2.status == 404, d2
+
+    # Validation before sending
+    try:
+        await c.post(user_post_login.path, user_post_login.Body.model_construct(email="not-email", password="x"), user_post_login.S200, user_post_login.S401)
+    except ComatypeValidationError as e:
+        assert e.path == "body.email", e.path
+    else:
+        raise AssertionError("email の検証")
+
+    # Without credentials, the server's auth wrapper returns 401 / invalid input gives 400 / 404 / 405
+    async with httpx.AsyncClient(base_url=BASE) as http:
+        anon = await http.get("/user/profile")
+        assert anon.status_code == 401 and anon.json()["code"] == "unauthorized", anon.text
+        inv = await http.get("/user/not-a-uuid", headers={"authorization": "Bearer session-token"})
+        assert inv.status_code == 400 and inv.json()["code"] == "validation_error", inv.text
+        assert (await http.get("/nope")).status_code == 404
+        # Server cache: an identical request gets the same response
+        sc1 = await http.get("/ping")
+        sc2 = await http.get("/ping")
+        assert sc1.text == sc2.text, (sc1.text, sc2.text)
+        r405 = await http.post("/ping")
+        assert r405.status_code == 405 and r405.headers["allow"] == "GET", r405.headers
+
+    # Without a wrapper, it fails before sending
+    c.init()
+    try:
+        await c.get(user_get_ping.path, user_get_ping.S200)  # works because wrap auth is off
+        await c.get(user_profile_get.path, user_profile_get.S200)
+    except ComatypeError:
+        pass
+    else:
+        raise AssertionError("ラッパーが無い")
+
+    # cookie: login issues a Set-Cookie, the jar keeps it and sends it back with the next request
+    jar = CookieJar()
+    c.init(wrappers=comatype_init.Wrappers(auth=ComatypeWrap(passthrough)), cookies=jar)
+    r1 = await c.get(user_profile_get.path, user_profile_get.S200, user_profile_get.S401)
+    assert r1.status == 401, r1
+    ok = await c.post(user_post_login.path, user_post_login.Body(email="a@b.co", password="pw"), user_post_login.S200)
+    assert ok.status == 200
+    assert jar.get("/") == {"session": "session-token"}, jar.get("/")
+    r2 = await c.get(user_profile_get.path, user_profile_get.S200, user_profile_get.S401)
+    assert r2.status == 200, r2
+    async with httpx.AsyncClient(base_url=BASE) as http:
+        resp = await http.post("/user/login", json={"email": "a@b.co", "password": "pw"})
+        assert resp.headers["set-cookie"] == "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax", resp.headers["set-cookie"]
+
+    print("e2e python (generated client <-> generated server): OK")
+
+
+asyncio.run(main())

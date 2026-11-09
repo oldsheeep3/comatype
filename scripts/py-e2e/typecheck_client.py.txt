@@ -1,0 +1,62 @@
+"""Check that the generated Python types work as intended (with mypy --strict, every `type: ignore` must be used)."""
+
+from __future__ import annotations
+
+import uuid
+from typing import assert_type
+
+from comatype import c
+from comatype_gen import comatype_init, models, options_user, post_user, query_user
+from comatype_gen.user import delete__id as dele
+from comatype_gen.user import get as user_get
+from comatype_gen.user import post_login
+from comatype_gen.user import put__id as put
+
+USER = models.UserData(name="a", email="a@b.co", phone="+819012345678", uid=uuid.uuid4())
+
+
+async def calls(uid: uuid.UUID) -> None:
+    # put: Request + success + error. The return value is the union of the statuses passed
+    r = await c.put(put.path, put.Request(params=put.Params(id=uid), body=USER), put.S200, put.S404)
+    assert_type(r, put.S200 | put.S404)
+    if r.status == 200:
+        assert_type(r, put.S200)
+        d: models.UserData | None = r.data
+        _ = d
+    if isinstance(r, put.S404):
+        e: put.S404Res | None = r.error
+        _ = e
+
+    # post: pass the body as is
+    p = await c.post(post_user.path, post_user.Body(name="a", email="a@b.co", phone="+819012345678"), post_user.S200)
+    assert_type(p, post_user.S200)
+
+    # No arguments
+    o = await c.options(options_user.path, options_user.S200)
+    allow: list[str] = o.headers.allow
+    _ = allow
+
+    # delete / query / login
+    dd = await c.delete(dele.path, dele.Request(params=dele.Params(id=uid)), dele.S204, dele.S404)
+    assert_type(dd, dele.S204 | dele.S404)
+    q = await c.query(query_user.path, query_user.Body(name="x"), query_user.S200)
+    assert_type(q, query_user.S200)
+    lg = await c.post(post_login.path, post_login.Body(email="a@b.co", password="x"), post_login.S200, post_login.S401)
+    assert_type(lg, post_login.S200 | post_login.S401)
+
+    # Calls with wrong types
+    await c.put(put.path, put.S200)  # type: ignore[arg-type]  # no Request
+    await c.put(put.path, put.Request(params=put.Params(id=uid), body=USER))  # type: ignore[call-overload]  # no status
+    await c.post(post_user.path, 123, post_user.S200)  # type: ignore[misc]  # wrong type for the body
+    await c.post(post_user.path, post_user.S200)  # type: ignore[arg-type]  # no body
+    await c.options(options_user.path, 1, options_user.S200)  # type: ignore[misc]  # no argument is needed
+    await c.put(put.path, put.Request(params=put.Params(id=uid), body=USER), dele.S204)  # Statuses of other endpoints also type-check (checked at runtime)
+
+    put.Request(params=put.Params(id=uid))  # type: ignore[call-arg]  # no body
+    put.Request(body=USER)  # type: ignore[call-arg]  # no params
+    user_get.Request()  # Everything is optional in search, so it can be created without arguments
+    user_get.Request(search=user_get.Search(limit=1))
+
+
+c.init(wrappers=comatype_init.Wrappers(auth=None))  # type: ignore[arg-type]
+comatype_init.Wrappers()  # type: ignore[call-arg]

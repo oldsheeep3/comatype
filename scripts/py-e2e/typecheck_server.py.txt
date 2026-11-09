@@ -1,0 +1,78 @@
+"""Check that the generated Python types work as intended (with mypy --strict, every `type: ignore` must be used)."""
+
+from __future__ import annotations
+
+import uuid
+
+from comatype import ComatypeWrap, s
+from comatype_gen import comatype_init, models, options_user, post_user
+from comatype_gen.user import delete__id as dele
+from comatype_gen.user import get_ping, post_login
+from comatype_gen.user import put__id as put
+from comatype_gen.user.profile import get as profile
+
+
+@s.put(put.path)
+async def ok(req: put.Request) -> put.Response:
+    uid: uuid.UUID = req.params.id
+    body: models.UserData = req.body
+    h: str | None = req.headers.x_client_version
+    _ = (uid, h)
+    if body.name == "":
+        return put.S404(error=put.S404.Res(code="nf", message="x"))
+    return put.S200(data=body)
+
+
+# The argument of a handler must be the Request of its endpoint
+@s.put(put.path)  # type: ignore[arg-type]
+async def wrong_request(req: dele.Request) -> put.Response:
+    return put.S200(data=None)
+
+
+# The return value of a handler must be the Response of its endpoint
+@s.put(put.path)  # type: ignore[arg-type]
+async def wrong_response(req: put.Request) -> put.Response | dele.S204:
+    return dele.S204()
+
+
+# wrap auth is on -> req.ctx.user is readable. Not readable on endpoints with wrap auth off
+@s.get(profile.path)
+async def with_ctx(req: profile.Request) -> profile.Response:
+    u: models.UserData = req.ctx.user
+    return profile.S200(data=u)
+
+
+@s.get(get_ping.path)
+async def no_ctx(req: get_ping.Request) -> get_ping.Response:
+    req.ctx.user  # type: ignore[attr-defined]
+    return get_ping.S200(data=get_ping.S200.Res(ok=True))
+
+
+# 2xx is data, everything else is error. Values of the wrong type cannot be passed
+def statuses() -> None:
+    put.S200(data=None)
+    put.S404(error=put.S404.Res(code="a", message="b"))
+    put.S200(data=1)  # type: ignore[arg-type]
+    put.S404(data=None)  # type: ignore[call-arg]
+    put.S404(error=1)  # type: ignore[arg-type]
+    dele.S204()
+    dele.S204(data=None)  # type: ignore[call-arg]
+    # The required header (Allow) is missing
+    options_user.S200()  # type: ignore[call-arg]
+    options_user.S200(headers=options_user.S200.Headers(allow=["GET"]))
+    options_user.S200(headers=options_user.S200.Headers(allow=1))  # type: ignore[arg-type]
+    # uid: there is no empty field
+    post_user.S200(data=models.UserData(name="a", email="a@b.co", phone="+819012345678", uid=uuid.uuid4()))
+    post_user.Body(name="a", email="a@b.co", phone="+819012345678", uid=uuid.uuid4())  # type: ignore[call-arg]
+    # A cookie is a string or a Cookie
+    post_login.S200(data=post_login.S200.Res(uid=uuid.uuid4()), cookie="tok")
+    post_login.S200(data=post_login.S200.Res(uid=uuid.uuid4()), cookie=1)  # type: ignore[arg-type]
+
+
+# A missing wrapper of init.comat is caught by the type checker
+async def _w(req, nxt):  # type: ignore[no-untyped-def]
+    return await nxt(req)
+
+
+s.init(wrappers=comatype_init.Wrappers(auth=ComatypeWrap[comatype_init.AuthCtx](_w)))
+comatype_init.Wrappers()  # type: ignore[call-arg]

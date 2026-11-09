@@ -1,0 +1,170 @@
+// Run the generated usage rust_client against rust_server (COMATYPE_BASE_URL holds the peer's address)
+mod comatype_gen;
+
+use comatype::c::{self, ComatypeWrap};
+use comatype::{CookieJar, Error};
+use comatype_gen::init as cinit;
+use comatype_gen::types::UserData;
+use comatype_gen::*;
+use std::sync::Arc;
+
+fn check(ok: bool, what: &str) {
+    if !ok {
+        eprintln!("FAIL: {what}");
+        std::process::exit(1);
+    }
+}
+
+fn main() {
+    let base = std::env::var("COMATYPE_BASE_URL").expect("COMATYPE_BASE_URL");
+
+    // Wrapper: add Authorization
+    let bearer = ComatypeWrap::new(|mut req, next| {
+        req.headers.set("Authorization", "Bearer session-token");
+        next(req)
+    });
+    c::init(c::Config::default().wrappers(cinit::Wrappers { auth: bearer }));
+
+    let created = c::post(
+        &post_user::ENDPOINT,
+        post_user::Request {
+            body: post_user::Body { name: "taro".into(), email: "taro@example.com".into(), phone: "+819012345678".into() },
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let post_user::Response::S200(user, _) = created else { panic!("post_user: {created:?}") };
+    let uid = user.uid.clone();
+
+    let got = c::get(
+        &get_user::ENDPOINT,
+        get_user::Request { params: get_user::Params { id: uid.clone() }, search: get_user::Search { verbose: Some(true) }, ..Default::default() },
+    )
+    .unwrap();
+    check(matches!(&got, get_user::Response::S200(u, _) if u.name == "taro"), &format!("get_user: {got:?}"));
+
+    let upd = c::put(
+        &user_put_id::ENDPOINT,
+        user_put_id::Request {
+            params: user_put_id::Params { id: uid.clone() },
+            body: UserData { name: "jiro".into(), email: "j@example.com".into(), phone: "+819011112222".into(), uid: uid.clone() },
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    match &upd {
+        user_put_id::Response::S200(u, h) => {
+            check(u.name == "jiro", "put の名前");
+            check(h.x_resource_version.as_deref() == Some("v2"), &format!("put のレスポンスヘッダ: {h:?}"));
+        }
+        other => panic!("put: {other:?}"),
+    }
+
+    let list = c::get(&user_get::ENDPOINT, user_get::Request { search: user_get::Search { limit: Some(1) }, ..Default::default() }).unwrap();
+    check(matches!(&list, user_get::Response::S200(l, _) if l.len() == 1), &format!("list: {list:?}"));
+    let all = c::get(&user_get::ENDPOINT, user_get::Request::default()).unwrap();
+    check(matches!(all, user_get::Response::S200(..)), "list(引数なし)");
+
+    let q = c::query(&query_user::ENDPOINT, query_user::Request { body: query_user::Body { name: Some("jir".into()), ..Default::default() }, ..Default::default() }).unwrap();
+    check(matches!(&q, query_user::Response::S200(l, _) if l.len() == 1), &format!("query: {q:?}"));
+
+    let opt = c::options(&options_user::ENDPOINT, options_user::Request::default()).unwrap();
+    check(matches!(&opt, options_user::Response::S200(h) if h.allow.join(",") == "GET,POST,OPTIONS"), &format!("options: {opt:?}"));
+
+    let prof = c::get(&user_profile_get::ENDPOINT, user_profile_get::Request::default()).unwrap();
+    check(matches!(&prof, user_profile_get::Response::S200(u, _) if u.name == "guest"), &format!("profile: {prof:?}"));
+
+    let ping = c::get(&user_get_ping::ENDPOINT, user_get_ping::Request::default()).unwrap();
+    check(matches!(&ping, user_get_ping::Response::S200(p, _) if p.ok), &format!("ping: {ping:?}"));
+    // Client cache (cache 60000): the second call makes no request (a request would flip ok)
+    let ping2 = c::get(&user_get_ping::ENDPOINT, user_get_ping::Request::default()).unwrap();
+    check(matches!(&ping2, user_get_ping::Response::S200(p, _) if p.ok), &format!("client cache: {ping2:?}"));
+    // After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+    c::clear_cache();
+    let ping3 = c::get(&user_get_ping::ENDPOINT, user_get_ping::Request::default()).unwrap();
+    check(matches!(&ping3, user_get_ping::Response::S200(p, _) if p.ok), &format!("server cache: {ping3:?}"));
+
+    let bad = c::post(
+        &user_post_login::ENDPOINT,
+        user_post_login::Request { body: user_post_login::Body { email: "a@b.co".into(), password: "nope".into() }, ..Default::default() },
+    )
+    .unwrap();
+    check(matches!(&bad, user_post_login::Response::S401(e, _) if e.code == "bad"), &format!("login(bad): {bad:?}"));
+
+    let nf = c::get(
+        &get_user::ENDPOINT,
+        get_user::Request { params: get_user::Params { id: "3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10".into() }, ..Default::default() },
+    )
+    .unwrap();
+    check(matches!(&nf, get_user::Response::S404(e, _) if e.code == "not_found"), &format!("not found: {nf:?}"));
+
+    let del = c::delete(&user_delete_id::ENDPOINT, user_delete_id::Request { params: user_delete_id::Params { id: uid.clone() }, ..Default::default() }).unwrap();
+    check(matches!(del, user_delete_id::Response::S204(_)), "delete");
+    let del2 = c::delete(&user_delete_id::ENDPOINT, user_delete_id::Request { params: user_delete_id::Params { id: uid.clone() }, ..Default::default() }).unwrap();
+    check(matches!(del2, user_delete_id::Response::S404(..)), "delete(2 回目)");
+
+    // Validation before sending: an invalid email / uuid fails without sending a request
+    let e = c::post(
+        &user_post_login::ENDPOINT,
+        user_post_login::Request { body: user_post_login::Body { email: "not-email".into(), password: "x".into() }, ..Default::default() },
+    )
+    .unwrap_err();
+    check(matches!(&e, Error::Validation(v) if v.path == "email"), &format!("email の検証: {e}"));
+    let e = c::get(&get_user::ENDPOINT, get_user::Request { params: get_user::Params { id: "x".into() }, ..Default::default() }).unwrap_err();
+    check(matches!(e, Error::Validation(_)), "uuid の検証");
+
+    // Without a wrapper, it fails before sending
+    c::init(c::Config::default());
+    let e = c::get(&user_profile_get::ENDPOINT, user_profile_get::Request::default()).unwrap_err();
+    check(matches!(&e, Error::Config(m) if m.contains("auth")), &format!("ラッパーが無い: {e}"));
+
+    // Without credentials, the server's auth wrapper returns 401
+    let (st, body) = raw_get(&format!("{base}/user/profile"), None);
+    check(st == 401 && body.contains("unauthorized"), &format!("anon: {st} {body}"));
+    // Invalid input gives 400
+    let (st, body) = raw_get(&format!("{base}/user/not-a-uuid"), Some("Bearer session-token"));
+    check(st == 400 && body.contains("validation_error"), &format!("invalid: {st} {body}"));
+    // Server cache: an identical request gets the same response
+    let sc1 = raw_get(&format!("{base}/ping"), None);
+    let sc2 = raw_get(&format!("{base}/ping"), None);
+    check(sc1 == sc2, &format!("server cache(raw): {sc1:?} / {sc2:?}"));
+    // 404 / 405
+    check(raw_get(&format!("{base}/nope"), None).0 == 404, "404");
+    match ureq::post(&format!("{base}/ping")).send_string("") {
+        Err(ureq::Error::Status(405, r)) => check(r.header("Allow") == Some("GET"), "405 の Allow"),
+        other => panic!("405: {other:?}"),
+    }
+
+    // cookie: login issues a Set-Cookie, the jar keeps it and sends it back with the next request
+    let jar = Arc::new(CookieJar::new());
+    let pass = ComatypeWrap::new(|req, next| next(req));
+    c::init(c::Config { cookie_jar: Some(jar.clone()), ..c::Config::default().wrappers(cinit::Wrappers { auth: pass }) });
+    let r1 = c::get(&user_profile_get::ENDPOINT, user_profile_get::Request::default()).unwrap();
+    check(matches!(r1, user_profile_get::Response::S401(..)), "ログイン前は 401");
+    let ok = c::post(
+        &user_post_login::ENDPOINT,
+        user_post_login::Request { body: user_post_login::Body { email: "a@b.co".into(), password: "pw".into() }, ..Default::default() },
+    )
+    .unwrap();
+    check(matches!(ok, user_post_login::Response::S200(..)), "login");
+    check(jar.get("/").get("session").map(String::as_str) == Some("session-token"), "jar");
+    let r2 = c::get(&user_profile_get::ENDPOINT, user_profile_get::Request::default()).unwrap();
+    check(matches!(r2, user_profile_get::Response::S200(..)), "cookie だけで認証される");
+    let resp = ureq::post(&format!("{base}/user/login")).set("Content-Type", "application/json").send_string(r#"{"email":"a@b.co","password":"pw"}"#).unwrap();
+    let want = "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax";
+    check(resp.header("Set-Cookie") == Some(want), &format!("Set-Cookie: {:?}", resp.header("Set-Cookie")));
+
+    println!("e2e rust (generated client <-> generated server): OK");
+}
+
+fn raw_get(url: &str, auth: Option<&str>) -> (u16, String) {
+    let mut req = ureq::get(url);
+    if let Some(a) = auth {
+        req = req.set("Authorization", a);
+    }
+    match req.call() {
+        Ok(r) => (r.status(), r.into_string().unwrap_or_default()),
+        Err(ureq::Error::Status(s, r)) => (s, r.into_string().unwrap_or_default()),
+        Err(e) => panic!("{e}"),
+    }
+}

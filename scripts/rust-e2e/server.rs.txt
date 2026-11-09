@@ -1,0 +1,125 @@
+// Actually run the generated usage rust_server (scripts/e2e-rust.sh uses it as main.rs in a temporary directory)
+mod comatype_gen;
+
+use comatype::s::{ComatypeWrap, Reply, Server};
+use comatype::{CookieValue, Uuidv4};
+use comatype_gen::init as cinit;
+use comatype_gen::types::{ApiError, UserData};
+use comatype_gen::*;
+use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+
+const SESSION: &str = "session-token";
+static SEQ: AtomicU64 = AtomicU64::new(1);
+static PING: AtomicU64 = AtomicU64::new(0);
+
+fn new_uuid() -> Uuidv4 {
+    let n = SEQ.fetch_add(1, Ordering::SeqCst);
+    Uuidv4::new(format!("3f2b8c1e-5d4a-4b6e-9c1d-{n:012x}"))
+}
+
+fn err(code: &str, message: &str) -> ApiError {
+    ApiError { code: code.into(), message: message.into() }
+}
+
+type Db = Arc<Mutex<BTreeMap<String, UserData>>>;
+
+fn main() {
+    let db: Db = Arc::new(Mutex::new(BTreeMap::new()));
+    let server = Arc::new(Server::new());
+
+    let auth = ComatypeWrap::<cinit::AuthCtx>::new(|req, next| {
+        let by_cookie = req.cookie("session") == Some(SESSION);
+        let by_header = req.headers.get("Authorization") == Some(&format!("Bearer {SESSION}")[..]);
+        if !by_cookie && !by_header {
+            return cinit::s401(err("unauthorized", "login required"));
+        }
+        let user = UserData { name: "guest".into(), email: "g@example.com".into(), phone: "+8100".into(), uid: new_uuid() };
+        next(req.with_ctx(cinit::AuthCtx { user }))
+    });
+    server.init(cinit::Wrappers { auth });
+
+    {
+        let db = db.clone();
+        server.post(&post_user::ENDPOINT, move |req| {
+            let u = UserData { name: req.body.name, email: req.body.email, phone: req.body.phone, uid: new_uuid() };
+            db.lock().unwrap().insert(u.uid.0.clone(), u.clone());
+            post_user::Reply::from(post_user::Response::S200(u, Default::default()))
+        });
+    }
+    {
+        let db = db.clone();
+        server.get(&get_user::ENDPOINT, move |req| match db.lock().unwrap().get(&req.params.id.0) {
+            Some(u) => get_user::Response::S200(u.clone(), Default::default()).into(),
+            None => get_user::Response::S404(err("not_found", "no user"), Default::default()).into(),
+        });
+    }
+    {
+        let db = db.clone();
+        server.put(&user_put_id::ENDPOINT, move |req| {
+            let mut db = db.lock().unwrap();
+            if !db.contains_key(&req.params.id.0) {
+                return user_put_id::Response::S404(err("not_found", "no user"), Default::default()).into();
+            }
+            db.insert(req.params.id.0.clone(), req.body.clone());
+            let headers = user_put_id::S200Headers { x_resource_version: Some("v2".into()), ..Default::default() };
+            user_put_id::Response::S200(req.body, headers).into()
+        });
+    }
+    {
+        let db = db.clone();
+        server.delete(&user_delete_id::ENDPOINT, move |req| {
+            if db.lock().unwrap().remove(&req.params.id.0).is_none() {
+                return user_delete_id::Response::S404(err("not_found", "no user"), Default::default()).into();
+            }
+            user_delete_id::Response::S204(Default::default()).into()
+        });
+    }
+    {
+        let db = db.clone();
+        server.get(&user_get::ENDPOINT, move |req| {
+            let limit = req.search.limit.map(|n| n as usize).unwrap_or(usize::MAX);
+            let list: Vec<UserData> = db.lock().unwrap().values().take(limit).cloned().collect();
+            user_get::Response::S200(list, Default::default()).into()
+        });
+    }
+    server.get(&user_profile_get::ENDPOINT, |req| user_profile_get::Response::S200(req.ctx.auth.user, Default::default()).into());
+    // ok flips on every call (a cache hit returns the same value)
+    server.get(&user_get_ping::ENDPOINT, |_| {
+        let n = PING.fetch_add(1, Ordering::SeqCst) + 1;
+        user_get_ping::Response::S200(user_get_ping::S200Res { ok: n % 2 == 1 }, Default::default()).into()
+    });
+    server.post(&user_post_login::ENDPOINT, |req| {
+        if req.body.password != "pw" {
+            return user_post_login::Response::S401(err("bad", "wrong"), Default::default()).into();
+        }
+        let res = user_post_login::Response::S200(user_post_login::S200Res { uid: new_uuid() }, Default::default());
+        Reply::from(res).with_cookie(CookieValue::new(SESSION).max_age(3600))
+    });
+    {
+        let db = db.clone();
+        server.query(&query_user::ENDPOINT, move |req| {
+            let list: Vec<UserData> = db
+                .lock()
+                .unwrap()
+                .values()
+                .filter(|u| req.body.name.as_ref().map_or(true, |n| u.name.contains(n.as_str())))
+                .cloned()
+                .collect();
+            query_user::Response::S200(list, Default::default()).into()
+        });
+    }
+    server.options(&options_user::ENDPOINT, |_| {
+        let headers = options_user::S200Headers { allow: vec!["GET".into(), "POST".into(), "OPTIONS".into()], ..Default::default() };
+        options_user::Response::S200(headers).into()
+    });
+
+    server
+        .serve("127.0.0.1:0", |addr| {
+            println!("PORT={}", addr.port());
+            use std::io::Write;
+            std::io::stdout().flush().unwrap();
+        })
+        .unwrap();
+}

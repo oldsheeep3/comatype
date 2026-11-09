@@ -1,0 +1,83 @@
+// Actually run the generated usage swift_server (scripts/e2e-swift.sh uses it as main.swift in a temporary directory)
+import Foundation
+import Comatype
+import ComatypeGen
+
+let session = "session-token"
+let lock = NSLock()
+var db: [UUID: UserData] = [:]
+var order: [UUID] = []
+var seq = 1
+var pingCalls = 0
+
+func newUuid() -> UUID {
+    lock.lock(); defer { lock.unlock() }
+    seq += 1
+    return UUID(uuidString: String(format: "3f2b8c1e-5d4a-4b6e-9c1d-%012x", seq))!
+}
+
+func err(_ code: String, _ message: String) -> ApiError { ApiError(code: code, message: message) }
+
+let auth: S.ComatypeWrap<ComatypeInit.AuthCtx> = { req, next in
+    let byCookie = req.cookie("session") == session
+    let byHeader = req.header("Authorization") == "Bearer \(session)"
+    if !byCookie && !byHeader { return ComatypeInit.s401(err("unauthorized", "login required")) }
+    let user = UserData(name: "guest", email: Email("g@example.com"), phone: Phone("+8100"), uid: newUuid())
+    return try await next(req.withCtx(ComatypeInit.AuthCtx(user: user)))
+}
+
+let s = S()
+s.initialize(wrappers: ComatypeInit.Wrappers(auth: auth))
+
+s.post(PostUser.endpoint) { req in
+    lock.lock(); defer { lock.unlock() }
+    let u = UserData(name: req.body.name, email: req.body.email, phone: req.body.phone, uid: UUID(uuidString: "3f2b8c1e-5d4a-4b6e-9c1d-\(String(format: "%012x", 5000 + order.count))")!)
+    db[u.uid] = u
+    order.append(u.uid)
+    return S.Reply(.s200(body: u))
+}
+s.get(GetUser.endpoint) { req in
+    lock.lock(); defer { lock.unlock() }
+    if let u = db[req.params.id] { return S.Reply(.s200(body: u)) }
+    return S.Reply(.s404(body: err("not_found", "no user")))
+}
+s.put(UserPutId.endpoint) { req in
+    lock.lock(); defer { lock.unlock() }
+    guard db[req.params.id] != nil else { return S.Reply(.s404(body: err("not_found", "no user"))) }
+    db[req.params.id] = req.body
+    return S.Reply(.s200(body: req.body, headers: UserPutId.S200Headers(xResourceVersion: "v2")))
+}
+s.delete(UserDeleteId.endpoint) { req in
+    lock.lock(); defer { lock.unlock() }
+    guard db.removeValue(forKey: req.params.id) != nil else { return S.Reply(.s404(body: err("not_found", "no user"))) }
+    order.removeAll { $0 == req.params.id }
+    return S.Reply(.s204())
+}
+s.get(UserGet.endpoint) { req in
+    lock.lock(); defer { lock.unlock() }
+    let limit = req.search.limit ?? Int.max
+    return S.Reply(.s200(body: order.prefix(limit).compactMap { db[$0] }))
+}
+s.get(UserProfileGet.endpoint) { req in S.Reply(.s200(body: req.ctx.auth.user)) }
+s.get(UserGetPing.endpoint) { _ in
+    try await Task.sleep(nanoseconds: 1_000_000) // the handler is async
+    // ok flips on every call (a cache hit returns the same value)
+    lock.lock(); pingCalls += 1; let n = pingCalls; lock.unlock()
+    return S.Reply(.s200(body: UserGetPing.S200Res(ok: n % 2 == 1)))
+}
+s.post(UserPostLogin.endpoint) { req in
+    if req.body.password != "pw" { return S.Reply(.s401(body: err("bad", "wrong"))) }
+    return S.Reply(.s200(body: UserPostLogin.S200Res(uid: newUuid()))).withCookie(CookieValue(session, maxAge: 3600))
+}
+s.query(QueryUser.endpoint) { req in
+    lock.lock(); defer { lock.unlock() }
+    let list = order.compactMap { db[$0] }.filter { u in req.body.name.map { u.name.contains($0) } ?? true }
+    return S.Reply(.s200(body: list))
+}
+s.options(OptionsUser.endpoint) { _ in S.Reply(.s200(headers: OptionsUser.S200Headers(allow: ["GET", "POST", "OPTIONS"]))) }
+
+setvbuf(stdout, nil, _IOLBF, 0)
+let port = try s.serve(host: "127.0.0.1", port: 0)
+print("PORT=\(port)")
+fflush(stdout)
+dispatchMain()

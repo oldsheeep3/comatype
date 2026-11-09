@@ -1,0 +1,125 @@
+# Run the generated usage ruby_client against ruby_server (COMATYPE_BASE_URL holds the peer's address)
+require_relative "comatype_gen/all"
+require "net/http"
+
+include ComatypeGen
+
+def check(ok, what)
+  return if ok
+
+  warn "FAIL: #{what}"
+  exit 1
+end
+
+def raw(method, url, auth: nil, body: nil)
+  uri = URI(url)
+  req = Net::HTTPGenericRequest.new(method, !body.nil?, true, uri.request_uri)
+  req["Authorization"] = auth if auth
+  if body
+    req["Content-Type"] = "application/json"
+    req.body = body
+  end
+  Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
+end
+
+base = ENV.fetch("COMATYPE_BASE_URL")
+bearer = lambda do |req, nxt|
+  req.headers["Authorization"] = "Bearer session-token"
+  nxt.call(req)
+end
+Comatype::C.init(wrappers: Init.wrappers(auth: bearer))
+
+created = Comatype::C.post(PostUser::ENDPOINT, body: { name: "taro", email: "taro@example.com", phone: "+819012345678" })
+check(created.is_a?(PostUser::S200), "post_user: #{created}")
+uid = created.body.uid
+
+got = Comatype::C.get(GetUser::ENDPOINT, params: { id: uid }, search: { verbose: true })
+check(got.is_a?(GetUser::S200) && got.body.name == "taro", "get_user: #{got}")
+
+upd = Comatype::C.put(UserPutId::ENDPOINT, params: { id: uid },
+                      body: { name: "jiro", email: "j@example.com", phone: "+819011112222", uid: uid })
+check(upd.is_a?(UserPutId::S200) && upd.body.name == "jiro", "put: #{upd}")
+check(upd.headers.x_resource_version == "v2", "put のレスポンスヘッダ: #{upd.headers}")
+
+list = Comatype::C.get(UserGet::ENDPOINT, search: { limit: 1 })
+check(list.is_a?(UserGet::S200) && list.body.size == 1, "list: #{list}")
+all = Comatype::C.get(UserGet::ENDPOINT)
+check(all.is_a?(UserGet::S200), "list(引数なし)")
+
+q = Comatype::C.query(QueryUser::ENDPOINT, body: { name: "jir" })
+check(q.is_a?(QueryUser::S200) && q.body.size == 1, "query: #{q}")
+
+opt = Comatype::C.options(OptionsUser::ENDPOINT)
+check(opt.is_a?(OptionsUser::S200) && opt.headers.allow == %w[GET POST OPTIONS], "options: #{opt}")
+
+prof = Comatype::C.get(UserProfileGet::ENDPOINT)
+check(prof.is_a?(UserProfileGet::S200) && prof.body.name == "guest", "profile: #{prof}")
+
+ping = Comatype::C.get(UserGetPing::ENDPOINT)
+check(ping.is_a?(UserGetPing::S200) && ping.body.ok == true, "ping: #{ping}")
+# Client cache (cache 60000): the second call makes no request (a request would flip ok)
+ping2 = Comatype::C.get(UserGetPing::ENDPOINT)
+check(ping2.body.ok == true, "client cache: #{ping2}")
+# After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+Comatype::C.clear_cache
+ping3 = Comatype::C.get(UserGetPing::ENDPOINT)
+check(ping3.body.ok == true, "server cache: #{ping3}")
+
+bad = Comatype::C.post(UserPostLogin::ENDPOINT, body: { email: "a@b.co", password: "nope" })
+check(bad.is_a?(UserPostLogin::S401) && bad.body.code == "bad", "login(bad): #{bad}")
+
+nf = Comatype::C.get(GetUser::ENDPOINT, params: { id: "3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10" })
+check(nf.is_a?(GetUser::S404) && nf.body.code == "not_found", "not found: #{nf}")
+
+del = Comatype::C.delete(UserDeleteId::ENDPOINT, params: { id: uid })
+check(del.is_a?(UserDeleteId::S204), "delete: #{del}")
+del2 = Comatype::C.delete(UserDeleteId::ENDPOINT, params: { id: uid })
+check(del2.is_a?(UserDeleteId::S404), "delete(2 回目): #{del2}")
+
+# Validation before sending
+begin
+  Comatype::C.post(UserPostLogin::ENDPOINT, body: { email: "not-email", password: "x" })
+  check(false, "email の検証")
+rescue Comatype::ValidationError => e
+  check(e.path == "email", "email の検証: #{e.message}")
+end
+begin
+  Comatype::C.get(GetUser::ENDPOINT, params: { id: "3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10" })
+  check(false, "uuidv4 の検証")
+rescue Comatype::ValidationError => e
+  check(e.path == "id", "uuidv4 の検証: #{e.message}")
+end
+
+# Without a wrapper, it fails before sending
+Comatype::C.init
+begin
+  Comatype::C.get(UserProfileGet::ENDPOINT)
+  check(false, "ラッパーが無い")
+rescue Comatype::ConfigError => e
+  check(e.message.include?("auth"), "ラッパーが無い: #{e.message}")
+end
+
+anon = raw("GET", "#{base}/user/profile")
+check(anon.code == "401" && anon.body.include?("unauthorized"), "anon: #{anon.code} #{anon.body}")
+inv = raw("GET", "#{base}/user/not-a-uuid", auth: "Bearer session-token")
+check(inv.code == "400" && inv.body.include?("validation_error"), "invalid: #{inv.code} #{inv.body}")
+check(raw("GET", "#{base}/ping").body == raw("GET", "#{base}/ping").body, "server cache(raw)")
+check(raw("GET", "#{base}/nope").code == "404", "404")
+post = raw("POST", "#{base}/ping", body: "")
+check(post.code == "405" && post["Allow"] == "GET", "405: #{post.code}")
+
+# cookie
+jar = Comatype::CookieJar.new
+Comatype::C.init(wrappers: Init.wrappers(auth: ->(req, nxt) { nxt.call(req) }), cookies: jar)
+r1 = Comatype::C.get(UserProfileGet::ENDPOINT)
+check(r1.is_a?(UserProfileGet::S401), "ログイン前は 401")
+ok = Comatype::C.post(UserPostLogin::ENDPOINT, body: { email: "a@b.co", password: "pw" })
+check(ok.is_a?(UserPostLogin::S200), "login: #{ok}")
+check(jar.get("/")["session"] == "session-token", "jar: #{jar.get('/')}")
+r2 = Comatype::C.get(UserProfileGet::ENDPOINT)
+check(r2.is_a?(UserProfileGet::S200), "cookie だけで認証される: #{r2}")
+resp = raw("POST", "#{base}/user/login", body: '{"email":"a@b.co","password":"pw"}')
+want = "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"
+check(resp["Set-Cookie"] == want, "Set-Cookie: #{resp['Set-Cookie']}")
+
+puts "e2e ruby (generated client <-> generated server): OK"

@@ -1,0 +1,75 @@
+# Actually run the generated usage ruby_server (scripts/e2e-ruby.sh uses it as main.rb in a temporary directory)
+require_relative "comatype_gen/all"
+
+include ComatypeGen
+SESSION = "session-token"
+$db = {}
+$mu = Mutex.new
+$seq = 1
+
+def new_uuid
+  $mu.synchronize { format("3f2b8c1e-5d4a-4b6e-9c1d-%012x", ($seq += 1)) }
+end
+
+def err(code, message) = Types::ApiError.new(code: code, message: message)
+
+auth = lambda do |req, nxt|
+  by_cookie = req.cookie("session") == SESSION
+  by_header = req.headers["Authorization"] == "Bearer #{SESSION}"
+  next Init.s401(err("unauthorized", "login required")) unless by_cookie || by_header
+
+  user = Types::UserData.new(name: "guest", email: "g@example.com", phone: "+8100", uid: new_uuid)
+  req.ctx[:auth] = Init::AuthCtx.new(user: user)
+  nxt.call(req)
+end
+
+s = Comatype::S.new
+s.init(Init.wrappers(auth: auth))
+
+s.post(PostUser::ENDPOINT) do |req|
+  u = Types::UserData.new(name: req.body.name, email: req.body.email, phone: req.body.phone, uid: new_uuid)
+  $mu.synchronize { $db[u.uid] = u }
+  PostUser::S200.new(u)
+end
+s.get(GetUser::ENDPOINT) do |req|
+  u = $mu.synchronize { $db[req.params.id] }
+  u ? GetUser::S200.new(u) : GetUser::S404.new(err("not_found", "no user"))
+end
+s.put(UserPutId::ENDPOINT) do |req|
+  $mu.synchronize do
+    next UserPutId::S404.new(err("not_found", "no user")) unless $db.key?(req.params.id)
+
+    $db[req.params.id] = req.body
+    UserPutId::S200.new(req.body, headers: { x_resource_version: "v2" })
+  end
+end
+s.delete(UserDeleteId::ENDPOINT) do |req|
+  $mu.synchronize do
+    next UserDeleteId::S404.new(err("not_found", "no user")) unless $db.delete(req.params.id)
+
+    UserDeleteId::S204.new
+  end
+end
+s.get(UserGet::ENDPOINT) do |req|
+  list = $mu.synchronize { $db.values.first(req.search.limit || $db.size) }
+  UserGet::S200.new(list)
+end
+s.get(UserProfileGet::ENDPOINT) { |req| UserProfileGet::S200.new(req.ctx[:auth].user) }
+# ok flips on every call (a cache hit returns the same value)
+$ping_calls = 0
+s.get(UserGetPing::ENDPOINT) { |_| UserGetPing::S200.new(UserGetPing::S200Res.new(ok: ($ping_calls += 1).odd?)) }
+s.post(UserPostLogin::ENDPOINT) do |req|
+  next UserPostLogin::S401.new(err("bad", "wrong")) unless req.body.password == "pw"
+
+  UserPostLogin::S200.new(UserPostLogin::S200Res.new(uid: new_uuid)).with_cookie(SESSION, max_age: 3600)
+end
+s.query(QueryUser::ENDPOINT) do |req|
+  list = $mu.synchronize { $db.values.select { |u| req.body.name.nil? || u.name.include?(req.body.name) } }
+  QueryUser::S200.new(list)
+end
+s.options(OptionsUser::ENDPOINT) { |_| OptionsUser::S200.new(headers: { allow: %w[GET POST OPTIONS] }) }
+
+server, thread = s.serve
+puts "PORT=#{server.addr[1]}"
+$stdout.flush
+thread.join

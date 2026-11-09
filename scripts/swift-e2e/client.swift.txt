@@ -1,0 +1,123 @@
+// Run the generated usage swift_client against swift_server (COMATYPE_BASE_URL holds the peer's address)
+import Foundation
+import Comatype
+import ComatypeGen
+
+func check(_ ok: Bool, _ what: String) {
+    if !ok {
+        FileHandle.standardError.write(Data("FAIL: \(what)\n".utf8))
+        exit(1)
+    }
+}
+
+func raw(_ method: String, _ url: String, auth: String? = nil, body: String? = nil) async throws -> (Int, String, HTTPURLResponse) {
+    var r = URLRequest(url: URL(string: url)!)
+    r.httpMethod = method
+    if let a = auth { r.setValue(a, forHTTPHeaderField: "Authorization") }
+    if let b = body { r.httpBody = Data(b.utf8); r.setValue("application/json", forHTTPHeaderField: "Content-Type") }
+    let (d, resp) = try await URLSession.shared.data(for: r)
+    let h = resp as! HTTPURLResponse
+    return (h.statusCode, String(decoding: d, as: UTF8.self), h)
+}
+
+let base = ProcessInfo.processInfo.environment["COMATYPE_BASE_URL"]!
+
+let bearer: C.ComatypeWrap = { req, next in
+    var r = req
+    r.headers.set("Authorization", "Bearer session-token")
+    return try await next(r)
+}
+C.initialize(C.Config(wrappers: ComatypeInit.Wrappers(auth: bearer)))
+
+let created = try await C.post(PostUser.endpoint, PostUser.Request(body: PostUser.Body(name: "taro", email: Email("taro@example.com"), phone: Phone("+819012345678"))))
+guard case let .s200(user, _) = created else { check(false, "post_user: \(created)"); exit(1) }
+let uid = user.uid
+
+let got = try await C.get(GetUser.endpoint, GetUser.Request(params: GetUser.Params(id: uid), search: GetUser.Search(verbose: true)))
+if case let .s200(u, _) = got { check(u.name == "taro", "get_user") } else { check(false, "get_user: \(got)") }
+
+let upd = try await C.put(UserPutId.endpoint, UserPutId.Request(params: UserPutId.Params(id: uid), body: UserData(name: "jiro", email: Email("j@example.com"), phone: Phone("+819011112222"), uid: uid)))
+if case let .s200(u, h) = upd {
+    check(u.name == "jiro", "put の名前")
+    check(h.xResourceVersion == "v2", "put のレスポンスヘッダ")
+} else { check(false, "put: \(upd)") }
+
+let list = try await C.get(UserGet.endpoint, UserGet.Request(search: UserGet.Search(limit: 1)))
+if case let .s200(l, _) = list { check(l.count == 1, "list") } else { check(false, "list") }
+let all = try await C.get(UserGet.endpoint, UserGet.Request())
+if case .s200 = all {} else { check(false, "list(引数なし)") }
+
+let q = try await C.query(QueryUser.endpoint, QueryUser.Request(body: QueryUser.Body(name: "jir")))
+if case let .s200(l, _) = q { check(l.count == 1, "query") } else { check(false, "query") }
+
+let opt = try await C.options(OptionsUser.endpoint, OptionsUser.Request())
+if case let .s200(h) = opt { check(h.allow == ["GET", "POST", "OPTIONS"], "options: \(h.allow)") } else { check(false, "options") }
+
+let prof = try await C.get(UserProfileGet.endpoint, UserProfileGet.Request())
+if case let .s200(u, _) = prof { check(u.name == "guest", "profile") } else { check(false, "profile") }
+
+let ping = try await C.get(UserGetPing.endpoint, UserGetPing.Request())
+if case let .s200(p, _) = ping { check(p.ok, "ping") } else { check(false, "ping") }
+// Client cache (cache 60000): the second call makes no request (a request would flip ok)
+let ping2 = try await C.get(UserGetPing.endpoint, UserGetPing.Request())
+if case let .s200(p, _) = ping2 { check(p.ok, "client cache") } else { check(false, "client cache") }
+// After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+C.clearCache()
+let ping3 = try await C.get(UserGetPing.endpoint, UserGetPing.Request())
+if case let .s200(p, _) = ping3 { check(p.ok, "server cache") } else { check(false, "server cache") }
+
+let bad = try await C.post(UserPostLogin.endpoint, UserPostLogin.Request(body: UserPostLogin.Body(email: Email("a@b.co"), password: "nope")))
+if case let .s401(e, _) = bad { check(e.code == "bad", "login(bad)") } else { check(false, "login(bad)") }
+
+let nf = try await C.get(GetUser.endpoint, GetUser.Request(params: GetUser.Params(id: UUID(uuidString: "3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10")!)))
+if case let .s404(e, _) = nf { check(e.code == "not_found", "not found") } else { check(false, "not found") }
+
+let del = try await C.delete(UserDeleteId.endpoint, UserDeleteId.Request(params: UserDeleteId.Params(id: uid)))
+if case .s204 = del {} else { check(false, "delete") }
+let del2 = try await C.delete(UserDeleteId.endpoint, UserDeleteId.Request(params: UserDeleteId.Params(id: uid)))
+if case .s404 = del2 {} else { check(false, "delete(2 回目)") }
+
+// Validation before sending
+do {
+    _ = try await C.post(UserPostLogin.endpoint, UserPostLogin.Request(body: UserPostLogin.Body(email: Email("not-email"), password: "x")))
+    check(false, "email の検証")
+} catch let e as ValidationError { check(e.path == "email", "email の検証: \(e)") }
+do {
+    _ = try await C.get(GetUser.endpoint, GetUser.Request(params: GetUser.Params(id: UUID(uuidString: "3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10")!)))
+    check(false, "uuidv4 の検証")
+} catch let e as ValidationError { check(e.path == "id", "uuidv4 の検証: \(e)") }
+
+// Without a wrapper, it fails before sending
+C.initialize(C.Config())
+do {
+    _ = try await C.get(UserProfileGet.endpoint, UserProfileGet.Request())
+    check(false, "ラッパーが無い")
+} catch let e as ComatypeError { check("\(e)".contains("auth"), "ラッパーが無い: \(e)") }
+
+let anon = try await raw("GET", "\(base)/user/profile")
+check(anon.0 == 401 && anon.1.contains("unauthorized"), "anon: \(anon.0) \(anon.1)")
+let inv = try await raw("GET", "\(base)/user/not-a-uuid", auth: "Bearer session-token")
+check(inv.0 == 400 && inv.1.contains("validation_error"), "invalid: \(inv.0) \(inv.1)")
+let sc1 = try await raw("GET", "\(base)/ping").1
+let sc2 = try await raw("GET", "\(base)/ping").1
+check(sc1 == sc2, "server cache(raw): \(sc1) / \(sc2)")
+check(try await raw("GET", "\(base)/nope").0 == 404, "404")
+let post = try await raw("POST", "\(base)/ping", body: "")
+check(post.0 == 405 && post.2.value(forHTTPHeaderField: "Allow") == "GET", "405: \(post.0)")
+
+// cookie
+let jar = CookieJar()
+let pass: C.ComatypeWrap = { req, next in try await next(req) }
+C.initialize(C.Config(wrappers: ComatypeInit.Wrappers(auth: pass), cookieJar: jar))
+let r1 = try await C.get(UserProfileGet.endpoint, UserProfileGet.Request())
+if case .s401 = r1 {} else { check(false, "ログイン前は 401") }
+let ok = try await C.post(UserPostLogin.endpoint, UserPostLogin.Request(body: UserPostLogin.Body(email: Email("a@b.co"), password: "pw")))
+if case .s200 = ok {} else { check(false, "login: \(ok)") }
+check(jar.get("/")["session"] == "session-token", "jar: \(jar.get("/"))")
+let r2 = try await C.get(UserProfileGet.endpoint, UserProfileGet.Request())
+if case .s200 = r2 {} else { check(false, "cookie だけで認証される: \(r2)") }
+let resp = try await raw("POST", "\(base)/user/login", body: #"{"email":"a@b.co","password":"pw"}"#)
+let want = "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"
+check(resp.2.value(forHTTPHeaderField: "Set-Cookie") == want, "Set-Cookie: \(resp.2.value(forHTTPHeaderField: "Set-Cookie") ?? "nil")")
+
+print("e2e swift (generated client <-> generated server): OK")

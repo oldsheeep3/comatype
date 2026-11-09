@@ -1,0 +1,140 @@
+// Run the generated usage java_client against java_server (COMATYPE_BASE_URL holds the peer's address)
+import comatype.C;
+import comatype.CookieJar;
+import comatype.ValidationException;
+import comatype.gen.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.*;
+
+public class Client {
+    static void check(boolean ok, String what) {
+        if (!ok) {
+            System.err.println("FAIL: " + what);
+            System.exit(1);
+        }
+    }
+
+    static final UUID NIL4 = UUID.fromString("3f2b8c1e-5d4a-4b6e-9c1d-2a7f0e8b9c10");
+
+    public static void main(String[] args) throws Exception {
+        String base = System.getenv("COMATYPE_BASE_URL");
+
+        // Wrapper: add Authorization
+        C.ComatypeWrap bearer = (req, next) -> {
+            req.headers.set("Authorization", "Bearer session-token");
+            return next.call(req);
+        };
+        C.init(new C.Config().wrappers(new Init.Wrappers(bearer)));
+
+        var created = C.post(PostUser.ENDPOINT, new PostUser.Request(PostUser.RequestHeaders.empty(),
+                new PostUser.Body("taro", new comatype.Email("taro@example.com"), new comatype.Phone("+819012345678"))));
+        check(created instanceof PostUser.S200, "post_user: " + created);
+        UUID uid = ((PostUser.S200) created).body().uid();
+
+        var got = C.get(GetUser.ENDPOINT, new GetUser.Request(new GetUser.Params(uid), GetUser.Search.empty().withVerbose(true), GetUser.RequestHeaders.empty()));
+        check(got instanceof GetUser.S200 g && g.body().name().equals("taro"), "get_user: " + got);
+
+        var upd = C.put(UserPutId.ENDPOINT, new UserPutId.Request(new UserPutId.Params(uid), UserPutId.RequestHeaders.empty(),
+                new Types.UserData("jiro", new comatype.Email("j@example.com"), new comatype.Phone("+819011112222"), uid)));
+        check(upd instanceof UserPutId.S200 u && u.body().name().equals("jiro"), "put: " + upd);
+        check("v2".equals(((UserPutId.S200) upd).headers().xResourceVersion()), "put のレスポンスヘッダ: " + upd);
+
+        var list = C.get(UserGet.ENDPOINT, new UserGet.Request(UserGet.Search.empty().withLimit(1L), UserGet.RequestHeaders.empty()));
+        check(list instanceof UserGet.S200 l && l.body().size() == 1, "list: " + list);
+        var all = C.get(UserGet.ENDPOINT, new UserGet.Request(UserGet.Search.empty(), UserGet.RequestHeaders.empty()));
+        check(all instanceof UserGet.S200, "list(引数なし): " + all);
+
+        var q = C.query(QueryUser.ENDPOINT, new QueryUser.Request(QueryUser.RequestHeaders.empty(), QueryUser.Body.empty().withName("jir")));
+        check(q instanceof QueryUser.S200 qq && qq.body().size() == 1, "query: " + q);
+
+        var opt = C.options(OptionsUser.ENDPOINT, new OptionsUser.Request(OptionsUser.RequestHeaders.empty()));
+        check(opt instanceof OptionsUser.S200 o && String.join(",", o.headers().allow()).equals("GET,POST,OPTIONS"), "options: " + opt);
+
+        var prof = C.get(UserProfileGet.ENDPOINT, new UserProfileGet.Request(UserProfileGet.RequestHeaders.empty()));
+        check(prof instanceof UserProfileGet.S200 p && p.body().name().equals("guest"), "profile: " + prof);
+
+        var ping = C.get(UserGetPing.ENDPOINT, new UserGetPing.Request(UserGetPing.RequestHeaders.empty()));
+        check(ping instanceof UserGetPing.S200 pg && pg.body().ok(), "ping: " + ping);
+        // Client cache (cache 60000): the second call makes no request (a request would flip ok)
+        var ping2 = C.get(UserGetPing.ENDPOINT, new UserGetPing.Request(UserGetPing.RequestHeaders.empty()));
+        check(ping2 instanceof UserGetPing.S200 p2 && p2.body().ok(), "client cache: " + ping2);
+        // After dropping it, it talks to the server again, but it is the same request, so the server cache hits
+        C.clearCache();
+        var ping3 = C.get(UserGetPing.ENDPOINT, new UserGetPing.Request(UserGetPing.RequestHeaders.empty()));
+        check(ping3 instanceof UserGetPing.S200 p3 && p3.body().ok(), "server cache: " + ping3);
+
+        var bad = C.post(UserPostLogin.ENDPOINT, new UserPostLogin.Request(UserPostLogin.RequestHeaders.empty(),
+                new UserPostLogin.Body(new comatype.Email("a@b.co"), "nope")));
+        check(bad instanceof UserPostLogin.S401 b && b.body().code().equals("bad"), "login(bad): " + bad);
+
+        var nf = C.get(GetUser.ENDPOINT, new GetUser.Request(new GetUser.Params(NIL4), GetUser.Search.empty(), GetUser.RequestHeaders.empty()));
+        check(nf instanceof GetUser.S404 n && n.body().code().equals("not_found"), "not found: " + nf);
+
+        var del = C.delete(UserDeleteId.ENDPOINT, new UserDeleteId.Request(new UserDeleteId.Params(uid), UserDeleteId.RequestHeaders.empty()));
+        check(del instanceof UserDeleteId.S204, "delete: " + del);
+        var del2 = C.delete(UserDeleteId.ENDPOINT, new UserDeleteId.Request(new UserDeleteId.Params(uid), UserDeleteId.RequestHeaders.empty()));
+        check(del2 instanceof UserDeleteId.S404, "delete(2 回目): " + del2);
+
+        // Validation before sending: an invalid email fails without sending a request
+        try {
+            C.post(UserPostLogin.ENDPOINT, new UserPostLogin.Request(UserPostLogin.RequestHeaders.empty(), new UserPostLogin.Body(new comatype.Email("not-email"), "x")));
+            check(false, "email の検証");
+        } catch (ValidationException e) {
+            check(e.path.equals("email"), "email の検証: " + e.getMessage());
+        }
+        try {
+            C.get(GetUser.ENDPOINT, new GetUser.Request(new GetUser.Params(UUID.fromString("3f2b8c1e-5d4a-7b6e-9c1d-2a7f0e8b9c10")), GetUser.Search.empty(), GetUser.RequestHeaders.empty()));
+            check(false, "uuidv4 の検証");
+        } catch (ValidationException e) {
+            check(e.path.equals("id"), "uuidv4 の検証: " + e.getMessage());
+        }
+
+        // Without a wrapper, it fails before sending
+        C.init(new C.Config());
+        try {
+            C.get(UserProfileGet.ENDPOINT, new UserProfileGet.Request(UserProfileGet.RequestHeaders.empty()));
+            check(false, "ラッパーが無い");
+        } catch (comatype.ComatypeException.Config e) {
+            check(e.getMessage().contains("auth"), "ラッパーが無い: " + e.getMessage());
+        }
+
+        // Without credentials, the server's auth wrapper returns 401
+        var anon = raw("GET", base + "/user/profile", null, null);
+        check(anon.statusCode() == 401 && anon.body().contains("unauthorized"), "anon: " + anon.statusCode() + anon.body());
+        // Invalid input gives 400
+        var inv = raw("GET", base + "/user/not-a-uuid", "Bearer session-token", null);
+        check(inv.statusCode() == 400 && inv.body().contains("validation_error"), "invalid: " + inv.statusCode() + inv.body());
+        // Server cache: an identical request gets the same response
+        check(raw("GET", base + "/ping", null, null).body().equals(raw("GET", base + "/ping", null, null).body()), "server cache(raw)");
+        // 404 / 405
+        check(raw("GET", base + "/nope", null, null).statusCode() == 404, "404");
+        var post = raw("POST", base + "/ping", null, "");
+        check(post.statusCode() == 405 && "GET".equals(post.headers().firstValue("Allow").orElse("")), "405: " + post.statusCode());
+
+        // cookie: login issues a Set-Cookie, the jar keeps it and sends it back with the next request
+        CookieJar jar = new CookieJar();
+        C.init(new C.Config().wrappers(new Init.Wrappers((req, next) -> next.call(req))).cookieJar(jar));
+        var r1 = C.get(UserProfileGet.ENDPOINT, new UserProfileGet.Request(UserProfileGet.RequestHeaders.empty()));
+        check(r1 instanceof UserProfileGet.S401, "ログイン前は 401: " + r1);
+        var ok = C.post(UserPostLogin.ENDPOINT, new UserPostLogin.Request(UserPostLogin.RequestHeaders.empty(), new UserPostLogin.Body(new comatype.Email("a@b.co"), "pw")));
+        check(ok instanceof UserPostLogin.S200, "login: " + ok);
+        check("session-token".equals(jar.get("/").get("session")), "jar: " + jar.get("/"));
+        var r2 = C.get(UserProfileGet.ENDPOINT, new UserProfileGet.Request(UserProfileGet.RequestHeaders.empty()));
+        check(r2 instanceof UserProfileGet.S200, "cookie だけで認証される: " + r2);
+        var resp = raw("POST", base + "/user/login", null, "{\"email\":\"a@b.co\",\"password\":\"pw\"}");
+        String want = "session=session-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax";
+        check(want.equals(resp.headers().firstValue("Set-Cookie").orElse("")), "Set-Cookie: " + resp.headers().firstValue("Set-Cookie"));
+
+        System.out.println("e2e java (generated client <-> generated server): OK");
+    }
+
+    static HttpResponse<String> raw(String method, String url, String auth, String body) throws Exception {
+        var b = HttpRequest.newBuilder(URI.create(url)).method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
+        if (auth != null) b.header("Authorization", auth);
+        if (body != null && !body.isEmpty()) b.header("Content-Type", "application/json");
+        return HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
+}

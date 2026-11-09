@@ -1,0 +1,91 @@
+// Actually run the generated usage java_server (scripts/e2e-java.sh uses it in a temporary directory)
+import comatype.CookieValue;
+import comatype.S;
+import comatype.gen.*;
+import java.util.*;
+
+public class Server {
+    static final String SESSION = "session-token";
+    static final Map<UUID, Types.UserData> db = new LinkedHashMap<>();
+    static long seq = 1;
+    static final java.util.concurrent.atomic.AtomicInteger pingCalls = new java.util.concurrent.atomic.AtomicInteger();
+
+    static synchronized UUID newUuid() {
+        return UUID.fromString(String.format("3f2b8c1e-5d4a-4b6e-9c1d-%012x", seq++));
+    }
+
+    static Types.ApiError err(String code, String message) {
+        return new Types.ApiError(code, message);
+    }
+
+    static <T> S.Reply<T> ok(T r) {
+        return S.Reply.of(r);
+    }
+
+    public static void main(String[] args) throws Exception {
+        S s = new S();
+        S.ComatypeWrap<Init.AuthCtx> auth = (req, next) -> {
+            boolean byCookie = SESSION.equals(req.cookie("session"));
+            boolean byHeader = ("Bearer " + SESSION).equals(req.header("Authorization"));
+            if (!byCookie && !byHeader) return Init.s401(err("unauthorized", "login required"));
+            var user = new Types.UserData("guest", new comatype.Email("g@example.com"), new comatype.Phone("+8100"), newUuid());
+            return next.call(req.withCtx(new Init.AuthCtx(user)));
+        };
+        s.init(new Init.Wrappers(auth));
+
+        s.post(PostUser.ENDPOINT, req -> {
+            synchronized (db) {
+                var u = new Types.UserData(req.body().name(), req.body().email(), req.body().phone(), newUuid());
+                db.put(u.uid(), u);
+                return ok(new PostUser.S200(u, PostUser.S200Headers.empty()));
+            }
+        });
+        s.get(GetUser.ENDPOINT, req -> {
+            synchronized (db) {
+                var u = db.get(req.params().id());
+                return ok(u == null ? new GetUser.S404(err("not_found", "no user"), GetUser.S404Headers.empty()) : new GetUser.S200(u, GetUser.S200Headers.empty()));
+            }
+        });
+        s.put(UserPutId.ENDPOINT, req -> {
+            synchronized (db) {
+                if (!db.containsKey(req.params().id())) return ok(new UserPutId.S404(err("not_found", "no user"), UserPutId.S404Headers.empty()));
+                db.put(req.params().id(), req.body());
+                return ok(new UserPutId.S200(req.body(), UserPutId.S200Headers.empty().withXResourceVersion("v2")));
+            }
+        });
+        s.delete(UserDeleteId.ENDPOINT, req -> {
+            synchronized (db) {
+                if (db.remove(req.params().id()) == null) return ok(new UserDeleteId.S404(err("not_found", "no user"), UserDeleteId.S404Headers.empty()));
+                return ok(new UserDeleteId.S204(UserDeleteId.S204Headers.empty()));
+            }
+        });
+        s.get(UserGet.ENDPOINT, req -> {
+            synchronized (db) {
+                long limit = req.search().limit() == null ? Long.MAX_VALUE : req.search().limit();
+                List<Types.UserData> list = new ArrayList<>();
+                for (var u : db.values()) if (list.size() < limit) list.add(u);
+                return ok(new UserGet.S200(list, UserGet.S200Headers.empty()));
+            }
+        });
+        s.get(UserProfileGet.ENDPOINT, req -> ok(new UserProfileGet.S200(req.ctx().auth().user(), UserProfileGet.S200Headers.empty())));
+        // ok flips on every call (a cache hit returns the same value)
+        s.get(UserGetPing.ENDPOINT, req -> ok(new UserGetPing.S200(new UserGetPing.S200Res(pingCalls.incrementAndGet() % 2 == 1), UserGetPing.S200Headers.empty())));
+        s.post(UserPostLogin.ENDPOINT, req -> {
+            if (!"pw".equals(req.body().password())) return ok(new UserPostLogin.S401(err("bad", "wrong"), UserPostLogin.S401Headers.empty()));
+            return S.Reply.of((UserPostLogin.Response) new UserPostLogin.S200(new UserPostLogin.S200Res(newUuid()), UserPostLogin.S200Headers.empty()))
+                    .withCookie(CookieValue.of(SESSION).maxAge(3600));
+        });
+        s.query(QueryUser.ENDPOINT, req -> {
+            synchronized (db) {
+                List<Types.UserData> list = new ArrayList<>();
+                for (var u : db.values()) if (req.body().name() == null || u.name().contains(req.body().name())) list.add(u);
+                return ok(new QueryUser.S200(list, QueryUser.S200Headers.empty()));
+            }
+        });
+        s.options(OptionsUser.ENDPOINT, req -> ok(new OptionsUser.S200(new OptionsUser.S200Headers(List.of("GET", "POST", "OPTIONS"), null, null))));
+
+        var server = s.serve("127.0.0.1", 0);
+        System.out.println("PORT=" + server.getAddress().getPort());
+        System.out.flush();
+    }
+}
