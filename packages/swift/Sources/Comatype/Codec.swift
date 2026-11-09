@@ -49,8 +49,11 @@ public enum Codec {
 
     public static func parseUuid(_ s: String, _ path: String, _ version: Int) throws -> UUID {
         let label = version == 0 ? "uuid" : "uuidv\(version)"
-        guard s.range(of: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", options: .regularExpression) != nil,
-              let u = UUID(uuidString: s) else { throw fail(path, "\(label) の形式が不正です") }
+        guard
+            s.range(of: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", options: .regularExpression)
+                != nil,
+            let u = UUID(uuidString: s)
+        else { throw fail(path, "\(label) の形式が不正です") }
         if version != 0 { try Check.uuidVersion(path, u, version) }
         return u
     }
@@ -92,7 +95,8 @@ public enum Codec {
 
     public static func parseDecimal(_ s: String, _ path: String) throws -> Decimal {
         guard s.range(of: "^-?\\d+(\\.\\d+)?$", options: .regularExpression) != nil,
-              let d = Decimal(string: s, locale: Locale(identifier: "en_US_POSIX")) else { throw fail(path, "decimal は数値の文字列にしてください") }
+            let d = Decimal(string: s, locale: Locale(identifier: "en_US_POSIX"))
+        else { throw fail(path, "decimal は数値の文字列にしてください") }
         return d
     }
 

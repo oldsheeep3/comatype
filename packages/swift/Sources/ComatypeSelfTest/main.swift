@@ -1,6 +1,6 @@
+import Comatype
 // Unit tests of the runtime (an executable so they run without XCTest / Swift Testing): swift run comatype-selftest
 import Foundation
-import Comatype
 
 var failed = 0
 func expect(_ ok: Bool, _ what: String, line: Int = #line) {
@@ -39,7 +39,9 @@ expect(throwsError { try Check.range("n", Double(200), 0, 150) }, "range")
 expect(throwsError { try Check.oneOf("k", "x", ["a", "b"]) }, "oneOf")
 
 let def = CookieDef(name: "session", httpOnly: true, secure: true, sameSite: "lax", path: nil, domain: nil, maxAge: nil)
-expect((try? Cookies.serialize(def, CookieValue("v", maxAge: 3600))) == "session=v; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax", "Set-Cookie")
+expect(
+    (try? Cookies.serialize(def, CookieValue("v", maxAge: 3600))) == "session=v; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax",
+    "Set-Cookie")
 let jar = CookieJar()
 jar.store(["session=v; Path=/; Max-Age=3600; HttpOnly"])
 expect(jar.get("/x")["session"] == "v", "jar 保持")

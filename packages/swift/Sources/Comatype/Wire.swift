@@ -67,7 +67,9 @@ public enum Wire {
         if vals.isEmpty { return nil }
         var items = vals
         if split, vals.count == 1 {
-            items = vals[0].trimmingCharacters(in: .whitespaces).isEmpty ? [] : vals[0].split(separator: ",", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+            items =
+                vals[0].trimmingCharacters(in: .whitespaces).isEmpty
+                ? [] : vals[0].split(separator: ",", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
         }
         return try items.map { try convert(d, $0, name) }
     }
@@ -78,8 +80,8 @@ public enum Wire {
         var out = ""
         for b in s.utf8 {
             switch b {
-            case UInt8(ascii: "A") ... UInt8(ascii: "Z"), UInt8(ascii: "a") ... UInt8(ascii: "z"), UInt8(ascii: "0") ... UInt8(ascii: "9"),
-                 UInt8(ascii: "-"), UInt8(ascii: "."), UInt8(ascii: "_"), UInt8(ascii: "~"):
+            case UInt8(ascii: "A")...UInt8(ascii: "Z"), UInt8(ascii: "a")...UInt8(ascii: "z"), UInt8(ascii: "0")...UInt8(ascii: "9"),
+                UInt8(ascii: "-"), UInt8(ascii: "."), UInt8(ascii: "_"), UInt8(ascii: "~"):
                 out.append(Character(Unicode.Scalar(b)))
             default: out += String(format: "%%%02X", b)
             }
@@ -94,7 +96,9 @@ public enum Wire {
         var i = 0
         while i < b.count {
             if b[i] == UInt8(ascii: "%") {
-                guard i + 3 <= b.count, let h = String(bytes: b[i + 1 ..< i + 3], encoding: .utf8), let v = UInt8(h, radix: 16) else { return nil }
+                guard i + 3 <= b.count, let h = String(bytes: b[i + 1..<i + 3], encoding: .utf8), let v = UInt8(h, radix: 16) else {
+                    return nil
+                }
                 out.append(v)
                 i += 3
             } else if form, b[i] == UInt8(ascii: "+") {

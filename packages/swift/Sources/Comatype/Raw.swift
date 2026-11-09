@@ -100,10 +100,12 @@ public struct Endpoint<Arg, Req, Res> {
     public let parseRequest: ((RawRequest) throws -> Req)?
     public let buildResponse: ((Res) throws -> RawResponse)?
 
-    public init(method: String, path: String, module: String, baseURL: String?, wraps: [String], cookie: Bool, cookieDef: CookieDef?,
-                cache: CacheSpec? = nil, cacheHeaders: [String] = [],
-                buildRequest: ((Arg) throws -> RawRequest)? = nil, parseResponse: ((RawResponse) throws -> Res)? = nil,
-                parseRequest: ((RawRequest) throws -> Req)? = nil, buildResponse: ((Res) throws -> RawResponse)? = nil) {
+    public init(
+        method: String, path: String, module: String, baseURL: String?, wraps: [String], cookie: Bool, cookieDef: CookieDef?,
+        cache: CacheSpec? = nil, cacheHeaders: [String] = [],
+        buildRequest: ((Arg) throws -> RawRequest)? = nil, parseResponse: ((RawResponse) throws -> Res)? = nil,
+        parseRequest: ((RawRequest) throws -> Req)? = nil, buildResponse: ((Res) throws -> RawResponse)? = nil
+    ) {
         self.method = method
         self.path = path
         self.module = module

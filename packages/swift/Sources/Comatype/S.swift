@@ -1,8 +1,9 @@
 import Foundation
+
 #if canImport(Darwin)
-import Darwin
+    import Darwin
 #else
-import Glibc
+    import Glibc
 #endif
 
 /// Server. Register handlers on `S`, then run with `handle` (callable from any framework) or `serve` (a simple server on POSIX sockets).
@@ -121,7 +122,10 @@ public final class S {
             preconditionFailure("\(ep.module) はサーバ用に生成されていません（role: server で生成してください）")
         }
         let segs = S.segs(ep.path)
-        let route = Route(method: method, module: ep.module, segs: segs, statics: segs.filter { !$0.hasPrefix(":") }.count, wraps: ep.wraps, cache: ep.cache) { raw in
+        let route = Route(
+            method: method, module: ep.module, segs: segs, statics: segs.filter { !$0.hasPrefix(":") }.count, wraps: ep.wraps,
+            cache: ep.cache
+        ) { raw in
             let req: Q
             do {
                 req = try parse(raw)
@@ -205,7 +209,9 @@ public final class S {
                 let kv = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
                 guard kv.count == 2 else { continue }
                 let k = kv[0].trimmingCharacters(in: .whitespaces)
-                if raw.cookies[k] == nil { raw.cookies[k] = Wire.percentDecode(kv[1].trimmingCharacters(in: .whitespaces)) ?? String(kv[1]) }
+                if raw.cookies[k] == nil {
+                    raw.cookies[k] = Wire.percentDecode(kv[1].trimmingCharacters(in: .whitespaces)) ?? String(kv[1])
+                }
             }
         }
         raw.headers = headers
@@ -240,7 +246,9 @@ public final class S {
         return resp
     }
 
-    private static func run(_ chain: [ServerWrap], _ i: Int, _ handle: @escaping (RawRequest) async -> RawResponse, _ req: RawRequest) async throws -> RawResponse {
+    private static func run(_ chain: [ServerWrap], _ i: Int, _ handle: @escaping (RawRequest) async -> RawResponse, _ req: RawRequest)
+        async throws -> RawResponse
+    {
         if i == chain.count { return await handle(req) }
         return try await chain[i](req) { r in try await run(chain, i + 1, handle, r) }
     }
@@ -258,9 +266,9 @@ public final class S {
     @discardableResult
     public func serve(host: String = "127.0.0.1", port: UInt16 = 0) throws -> UInt16 {
         #if canImport(Darwin)
-        let fd = socket(AF_INET, SOCK_STREAM, 0)
+            let fd = socket(AF_INET, SOCK_STREAM, 0)
         #else
-        let fd = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
+            let fd = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
         #endif
         guard fd >= 0 else { throw ComatypeError.transport("socket に失敗しました") }
         var yes: Int32 = 1
@@ -284,7 +292,7 @@ public final class S {
             while true {
                 let c = accept(fd, nil, nil)
                 if c < 0 {
-                    if listenFD < 0 { return } // stop() was called
+                    if listenFD < 0 { return }  // stop() was called
                     continue
                 }
                 var one: Int32 = 1
@@ -357,7 +365,9 @@ public final class S {
     private static func serialize(_ r: RawResponse, method: String, keepAlive: Bool) -> Data {
         let noBody = [204, 205, 304].contains(r.status) || method.uppercased() == "HEAD"
         var head = "HTTP/1.1 \(r.status) \(HTTPURLResponse.localizedString(forStatusCode: r.status).capitalized)\r\n"
-        for h in r.headers.items where !["content-length", "connection"].contains(h.name.lowercased()) { head += "\(h.name): \(h.value)\r\n" }
+        for h in r.headers.items where !["content-length", "connection"].contains(h.name.lowercased()) {
+            head += "\(h.name): \(h.value)\r\n"
+        }
         for c in r.setCookies { head += "Set-Cookie: \(c)\r\n" }
         head += "Content-Length: \(noBody ? 0 : r.body.count)\r\nConnection: \(keepAlive ? "keep-alive" : "close")\r\n\r\n"
         var out = Data(head.utf8)
@@ -379,14 +389,18 @@ public final class S {
                 count += 1
                 if count > 200 { return respondSimple(fd, 431, "ヘッダが多すぎます") }
                 if let c = l.firstIndex(of: ":") {
-                    headers.add(String(l[..<c]).trimmingCharacters(in: .whitespaces), String(l[l.index(after: c)...]).trimmingCharacters(in: .whitespaces))
+                    headers.add(
+                        String(l[..<c]).trimmingCharacters(in: .whitespaces),
+                        String(l[l.index(after: c)...]).trimmingCharacters(in: .whitespaces))
                 }
             }
             if (headers.get("Expect") ?? "").lowercased() == "100-continue" { _ = write(fd, Data("HTTP/1.1 100 Continue\r\n\r\n".utf8)) }
             var body = Data()
             if (headers.get("Transfer-Encoding") ?? "").lowercased().contains("chunked") {
                 while true {
-                    guard let sz = rd.line(), let n = Int(sz.split(separator: ";").first.map(String.init) ?? "", radix: 16) else { return respondSimple(fd, 400, "チャンクが不正です") }
+                    guard let sz = rd.line(), let n = Int(sz.split(separator: ";").first.map(String.init) ?? "", radix: 16) else {
+                        return respondSimple(fd, 400, "チャンクが不正です")
+                    }
                     if n == 0 {
                         while let t = rd.line(), !t.isEmpty {}
                         break
@@ -416,7 +430,8 @@ public final class S {
 }
 
 #if canImport(Darwin)
-private let SO_NOSIGPIPE_VALUE = SO_NOSIGPIPE
+    private let SO_NOSIGPIPE_VALUE = SO_NOSIGPIPE
 #else
-private let SO_NOSIGPIPE_VALUE = SO_REUSEADDR // Linux needs MSG_NOSIGNAL on send; here we assume SIGPIPE is ignored at the process level
+    // Linux needs MSG_NOSIGNAL on send; here we assume SIGPIPE is ignored at the process level
+    private let SO_NOSIGPIPE_VALUE = SO_REUSEADDR
 #endif

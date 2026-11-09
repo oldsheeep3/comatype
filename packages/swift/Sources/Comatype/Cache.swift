@@ -76,7 +76,7 @@ public final class ResponseCache {
     }
 
     /// Whether a response may be cached (2xx and no Set-Cookie)
-    public static func cacheable(_ r: RawResponse) -> Bool { (200 ..< 300).contains(r.status) && r.setCookies.isEmpty }
+    public static func cacheable(_ r: RawResponse) -> Bool { (200..<300).contains(r.status) && r.setCookies.isEmpty }
 
     /// Client cache key: method, URL (path and query) and body, plus the request headers declared in `.comat`.
     /// Headers added by wrappers or Config (Authorization etc.) are not included.
@@ -106,7 +106,8 @@ public final class ResponseCache {
         head += "\n"
         var data = Data(head.utf8)
         data.append(r.body)
-        let v = data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        let v = data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
         return v.count <= cookieMax ? v : nil
     }
 
