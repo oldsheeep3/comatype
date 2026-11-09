@@ -21,7 +21,7 @@ tasks.register<JavaExec>("selfTest") {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+    publishToMavenCentral(automaticRelease = true)
     if (System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null) signAllPublications()
     coordinates("net.sheeplab.comatype", "comatype", project.version.toString())
     pom {
