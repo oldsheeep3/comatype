@@ -29,8 +29,8 @@ public final class C {
     }
 
     /**
-     * A wrapper implementation. It can rewrite both the request and the response. One per `wrapper
-     * <name>` in init.comat.
+     * A wrapper implementation. It can rewrite both the request and the response. One per {@code
+     * wrapper <name>} in init.comat.
      */
     @FunctionalInterface
     public interface ComatypeWrap {

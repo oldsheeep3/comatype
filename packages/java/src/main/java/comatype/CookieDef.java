@@ -1,6 +1,6 @@
 package comatype;
 
-/** `cookie <name> { ... }` in init.comat. */
+/** {@code cookie <name> { ... }} in init.comat. */
 public record CookieDef(
         String name,
         boolean httpOnly,
