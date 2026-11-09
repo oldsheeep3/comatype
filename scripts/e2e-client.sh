@@ -13,7 +13,7 @@ cat > "$tmp/tsconfig.json" <<JSON
   "compilerOptions": {
     "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "strict": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"], "allowImportingTsExtensions": true,
-    "baseUrl": ".", "paths": { "@comatype/typescript": ["$root/packages/typescript/src/index.ts"], "@comatype/typescript/node": ["$root/packages/typescript/src/node.ts"] }
+    "paths": { "@comatype/typescript": ["$root/packages/typescript/src/index.ts"], "@comatype/typescript/node": ["$root/packages/typescript/src/node.ts"] }
   },
   "include": ["node_client/comatype", "e2e_client.ts", "e2e_full.ts"]
 }
