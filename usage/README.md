@@ -9,7 +9,7 @@
 | `types/` | 共有の型 |
 | **`node_server/`** | **動く** TypeScript のサーバ（ルート・ラッパー・cookie のセッション）+ テスト |
 | **`node_client/`** | **動く** TypeScript のクライアント（全エンドポイントを呼ぶ関数）+ サーバをつないだ E2E |
-| `go_*` `python_*` `rust_*` `java_*` `kotlin_*` `swift_*` `ruby_*` | 他の言語の書き方の見本（ラッパー・init・`user_put_id` の呼び出し / ハンドラ。`kotlin_*` `swift_*` `ruby_*` は全エンドポイント）。見本は実行しない。生成器・ランタイム・E2E は各言語にある（下） |
+| `go_*` `python_*` `rust_*` `java_*` `kotlin_*` `swift_*` `ruby_*` `csharp_*` | 他の言語の書き方の見本（ラッパー・init・`user_put_id` の呼び出し / ハンドラ。`kotlin_*` `swift_*` `ruby_*` は全エンドポイント）。見本は実行しない。生成器・ランタイム・E2E は各言語にある（下） |
 | `dart_*` | Dart の書き方の見本のみ（生成器は未実装） |
 
 ## TypeScript（pnpm）
@@ -40,7 +40,7 @@ pnpm --filter @usage/node-server start   # PORT=3000 でサーバを起動
 
 ```bash
 cargo run -p comatype-cli -- generate --config usage   # 全言語（targets）を生成。--lang rust などで絞る
-./scripts/e2e-go.sh        # go / python / rust / java / kotlin / swift / ruby も同じ名前（scripts/e2e-*.sh）
+./scripts/e2e-go.sh        # go / python / rust / java / kotlin / swift / ruby / csharp も同じ名前（scripts/e2e-*.sh）
 ```
 
 | 言語 | 見本 |
@@ -52,6 +52,27 @@ cargo run -p comatype-cli -- generate --config usage   # 全言語（targets）�
 | Kotlin | `kotlin_client` `kotlin_server`（suspend の `CK` と `coGet` など） |
 | Swift | `swift_client` `swift_server`（`async` の `C.get` と `s.get`） |
 | Ruby | `ruby_client` `ruby_server`（`Comatype::C.get(ENDPOINT, params: ...)`） |
+| C# | `csharp_client` `csharp_server`（`await C.PutAsync(Endpoint, ...)` と `s.Put(Endpoint, ...)`） |
+
+## 依存の解決（package manager）
+
+各言語のプロジェクトは、その言語の package manager でランタイムを解決する。公開済みのバージョン（0.0.3）を、レジストリから取る。
+
+| 言語 | マニフェスト | ランタイムの取得元 |
+|---|---|---|
+| TypeScript | `node_*/package.json`、`pnpm-lock.yaml` | npm `@comatype/typescript` |
+| Go | `go_*/go.mod`、`go.sum` | `github.com/oldsheeep3/comatype/packages/go`（Go module proxy） |
+| Python | `python_*/pyproject.toml`、`uv.lock` | PyPI `comatype` |
+| Rust | `rust_*/Cargo.toml`、`Cargo.lock` | crates.io `comatype` |
+| Java | `java_*/build.gradle.kts` | Maven Central `net.sheeplab.comatype:comatype` |
+| Kotlin | `kotlin_*/build.gradle.kts` | Maven Central `net.sheeplab.comatype:comatype-ktx` |
+| Ruby | `ruby_*/Gemfile`、`Gemfile.lock` | RubyGems `comatype` |
+| Swift | `swift_*/Package.swift` | `../../packages/swift`（未公開。SwiftPM は、リポジトリ直下の `Package.swift` を必要とするため） |
+| C# | `csharp_*/usage-csharp-*.csproj` | `../../packages/csharp`（NuGet には未公開） |
+
+生成物（`comatype generate` の出力）は、コミットしていない。生成してから、各言語のビルドを行う（例: `cd usage && cargo run -p comatype-cli -- generate --config . && cd go_client && go build ./...`）。サーバの見本は、アプリ自身の関数（`db` や `verify_session`）を呼ぶので、そのままではビルドが通らないものがある。ランタイムの解決そのものは、`go mod download`、`cargo fetch`、`uv sync`、`bundle install`、`gradle build` で確かめられる。
+
+`scripts/e2e-*.sh` は、`usage/` を一時ディレクトリへ写して、リポジトリ内のランタイム（`packages/*`）を使って検証する。公開版ではなく、手元のコードを試すため。
 
 ## キャッシュ（cache）
 

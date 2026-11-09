@@ -22,7 +22,7 @@
 [![npm](https://img.shields.io/npm/dm/@comatype/typescript?label=npm&logo=npm)](https://www.npmjs.com/package/@comatype/typescript)
 [![PyPI](https://img.shields.io/pypi/dm/comatype?label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/comatype/)
 
-API を `.comat` ファイルに 1 回だけ書くと、8 言語の型・検証・クライアント・サーバのコードが生成されます。
+API を `.comat` ファイルに 1 回だけ書くと、9 言語の型・検証・クライアント・サーバのコードが生成されます。
 
 ```comat
 // comatfiles/user/[id]/put.comat  →  PUT /user/:id
@@ -42,9 +42,9 @@ s404 ApiError
 
 ## 対応言語
 
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Go](https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white) ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white) ![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white) ![Ruby](https://img.shields.io/badge/Ruby-CC342D?logo=ruby&logoColor=white) ![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white) ![Dart: planned](https://img.shields.io/badge/Dart-planned-lightgrey?logo=dart&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Go](https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white) ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) ![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white) ![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white) ![Ruby](https://img.shields.io/badge/Ruby-CC342D?logo=ruby&logoColor=white) ![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white) ![C#](https://img.shields.io/badge/C%23-512BD4?logo=dotnet&logoColor=white) ![Dart: planned](https://img.shields.io/badge/Dart-planned-lightgrey?logo=dart&logoColor=white)
 
-TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ client と server。Dart は予定）。生成した client を、生成した server に繋ぐ E2E を、全言語でテストしています。
+TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby / C#（それぞれ client と server。Dart は予定）。生成した client を、生成した server に繋ぐ E2E を、全言語でテストしています。
 
 | 言語 | ランタイムのパッケージ | 状態 |
 |---|---|---|
@@ -55,6 +55,7 @@ TypeScript / Go / Python / Rust / Java / Kotlin / Swift / Ruby（それぞれ cl
 | Java / Kotlin | [`net.sheeplab.comatype:comatype`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype)、[`:comatype-ktx`](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype-ktx)（Maven Central） | 公開済み（各パッケージの README を参照） |
 | Ruby | `comatype`（RubyGems） | 公開済み（各パッケージの README を参照） |
 | Swift | [`packages/swift`](packages/swift) | このリポジトリ内のみ |
+| C# | [`Comatype`](https://www.nuget.org/packages/Comatype)（NuGet） | 未公開（各パッケージの README を参照） |
 | VS Code 拡張 | `comatype.comatype`（VS Code Marketplace、Open VSX） | リリースの準備は完了、未公開 |
 
 ## コマンドライン
@@ -100,6 +101,7 @@ pnpm --dir docs check             # 型検査・ビルド・テスト
 ./scripts/e2e-kotlin.sh           # JDK と kotlinc が必要
 ./scripts/e2e-swift.sh            # Swift 5.9 以上が必要
 ./scripts/e2e-ruby.sh             # Ruby 3.1 以上が必要
+./scripts/e2e-csharp.sh           # .NET 8 以上が必要
 ```
 
 ブランチは、`main` がリリース、`develop` が次の版、`hotfix` が緊急パッチ用です。リリースの手順は [RELEASING.md](RELEASING.md) にあります。

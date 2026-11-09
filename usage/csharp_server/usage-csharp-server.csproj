@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The C# runtime is not published to NuGet yet, so it is a local project. Once it is, use:
+         <PackageReference Include="Comatype" Version="0.0.3" /> -->
+    <ProjectReference Include="../../packages/csharp/Comatype.csproj" />
+  </ItemGroup>
+
+</Project>

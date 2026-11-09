@@ -11,7 +11,7 @@ Comatype runtime for Go: the client `c`, the server `s` and the shared types in 
 
 [pkg.go.dev](https://pkg.go.dev/github.com/oldsheeep3/comatype/packages/go) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
 > This package is the **Go** runtime that the generated code depends on.
 
 ## How to use

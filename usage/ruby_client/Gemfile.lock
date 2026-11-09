@@ -1,0 +1,17 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    comatype (0.0.3)
+
+PLATFORMS
+  arm64-darwin-27
+  ruby
+
+DEPENDENCIES
+  comatype (= 0.0.3)
+
+CHECKSUMS
+  comatype (0.0.3) sha256=47d54ff96a09d97cc6d7eb5b287cb17a12ea9464f8139309761bc175f5899b52
+
+BUNDLED WITH
+  4.0.23

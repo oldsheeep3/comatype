@@ -11,7 +11,7 @@ Comatype runtime for Kotlin: a coroutine (`suspend`) client and server on top of
 
 [Maven Central](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype-ktx) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
 > This package is the **Kotlin** runtime that the generated code depends on.
 
 ## How to use

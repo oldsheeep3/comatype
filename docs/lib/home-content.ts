@@ -32,7 +32,7 @@ export interface HomeContent {
   ctaBody: string
 }
 
-export const languages = ['TypeScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby'] as const
+export const languages = ['TypeScript', 'Go', 'Python', 'Rust', 'Java', 'Kotlin', 'Swift', 'Ruby', 'C#'] as const
 
 /** Runtime facts per language: [language, client / server, runtime dependency in English, in Japanese]. */
 export const matrix: { lang: string; deps: Record<Locale, string>; registry: { name: string; url: string } }[] = [
@@ -76,6 +76,11 @@ export const matrix: { lang: string; deps: Record<Locale, string>; registry: { n
     deps: { en: 'Standard library only (Rack compatible)', 'ja-jp': '標準ライブラリのみ（Rack 互換）' },
     registry: { name: 'RubyGems', url: 'https://rubygems.org/gems/comatype' },
   },
+  {
+    lang: 'C#',
+    deps: { en: 'No dependencies (.NET 8+, async/await)', 'ja-jp': '依存なし（.NET 8 以上。async/await）' },
+    registry: { name: 'NuGet', url: 'https://www.nuget.org/packages/Comatype' },
+  },
 ]
 
 export const home: Record<Locale, HomeContent> = {
@@ -83,12 +88,12 @@ export const home: Record<Locale, HomeContent> = {
     eyebrow: 'Schema-first API toolkit',
     title: 'Write your API types once.',
     tagline:
-      'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, Go, Python, Rust, Java, Kotlin, Swift and Ruby.',
+      'Describe endpoints, types, status codes and headers in a .comat file. Comatype generates typed, validated clients and servers for TypeScript, Go, Python, Rust, Java, Kotlin, Swift, Ruby and C#.',
     start: 'Get started',
     playground: 'Try the Playground',
     reference: 'Reference',
     installLabel: 'Build the CLI',
-    languagesLabel: 'One definition, eight languages',
+    languagesLabel: 'One definition, nine languages',
     exampleTitle: 'One definition. Client and server.',
     exampleLead: 'The same .comat file produces the request and response types on both sides of the wire.',
     tabComat: 'user/put_[id].comat',
@@ -151,7 +156,7 @@ export const home: Record<Locale, HomeContent> = {
         code: 'const res = await c.get(getTodo, { params: { id } }, ok, notFound)\nif (res.status === 200) res.data.title',
       },
     ],
-    matrixTitle: 'Eight languages, client and server',
+    matrixTitle: 'Nine languages, client and server',
     matrixLead:
       'Every language has a generator, a runtime and an end-to-end test that connects the generated client to the generated server.',
     matrixHead: ['Language', 'Client', 'Server', 'Runtime', 'Package'],
@@ -178,7 +183,7 @@ export const home: Record<Locale, HomeContent> = {
     eyebrow: 'スキーマファーストの API ツールキット',
     title: 'API の型を、1 回だけ書く。',
     tagline:
-      'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby の、型付きで検証つきのクライアントとサーバを生成します。',
+      'エンドポイント・型・ステータスコード・ヘッダを .comat に書くだけ。TypeScript・Go・Python・Rust・Java・Kotlin・Swift・Ruby・C# の、型付きで検証つきのクライアントとサーバを生成します。',
     start: 'はじめる',
     playground: 'Playground を試す',
     reference: 'リファレンス',

@@ -14,8 +14,8 @@
 
 - TS と Python は、ファイルの置き場所がそのまま import のパスになります。
 - Go は、ディレクトリがパッケージのパス、パッケージ名は snake_case の連結名（`package user_put_id`）です。
-- Rust は snake_case の連結名のモジュール（`user_put_id`）、Java / Kotlin / Swift / Ruby は PascalCase の連結名（`UserPutId`）です。
-- 次の名前は予約されています: TypeScript と Go の `types` / `init`、Python の `models` / `comatype_init`（`.comat` のモジュール名にできません）。Java / Kotlin は `Types` / `Init`、Swift は `ComatypeInit` と宣言した型の名前、Rust は `types` / `init` です。Python では、キーワード（`class` など）やハイフンを含む名前もエラーです。
+- Rust は snake_case の連結名のモジュール（`user_put_id`）、Java / Kotlin / Swift / Ruby / C# は PascalCase の連結名（`UserPutId`）です。
+- 次の名前は予約されています: TypeScript と Go の `types` / `init`、Python の `models` / `comatype_init`（`.comat` のモジュール名にできません）。Java / Kotlin / C# は `Types` / `Init`、Swift は `ComatypeInit` と宣言した型の名前、Rust は `types` / `init` です。Python では、キーワード（`class` など）やハイフンを含む名前もエラーです。
 
 ## モジュールの中の名前
 

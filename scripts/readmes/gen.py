@@ -183,7 +183,7 @@ TEMPLATE = """<p align="center">
 
 {links}
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
 > This package is the **{language}** runtime that the generated code depends on.
 
 ## How to use

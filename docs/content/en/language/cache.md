@@ -33,7 +33,7 @@ The client relaxes the header condition a little, so that values that change eve
 - The **server** looks in the cache **before** the wrappers. On a hit, it returns the stored response without running the wrappers or the handler. Authentication headers and cookies are part of the key, so another user's response is never returned (note, though, that even if a session expires, a request with the same credentials gets the stored response during the ttl).
 - The **client** looks in the cache after the wrappers, just before the network call. On a hit it does not communicate (the wrappers do run).
 - A memory cache is per process (it is not shared between several server processes). It holds up to 1000 entries and drops the oldest when it goes over.
-- The client cache can be dropped, for example on logout: `c.clearCache()` (TypeScript), `c.ClearCache()` (Go), `c.clear_cache()` (Python), `c::clear_cache()` (Rust), `C.clearCache()` (Java / Kotlin `CK`), `C.clearCache()` (Swift), `Comatype::C.clear_cache` (Ruby).
+- The client cache can be dropped, for example on logout: `c.clearCache()` (TypeScript), `c.ClearCache()` (Go), `c.clear_cache()` (Python), `c::clear_cache()` (Rust), `C.clearCache()` (Java / Kotlin `CK`), `C.clearCache()` (Swift), `Comatype::C.clear_cache` (Ruby), `C.ClearCache()` (C#).
 
 ## Caching in a cookie (client only)
 

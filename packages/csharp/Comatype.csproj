@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RootNamespace>Comatype</RootNamespace>
+    <AssemblyName>Comatype</AssemblyName>
+
+    <PackageId>Comatype</PackageId>
+    <Version>0.0.1</Version>
+    <Description>Comatype runtime for C# (types, validation, client and server)</Description>
+    <Authors>oldsheeep3</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://comatype.sheeplab.net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/oldsheeep3/comatype</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>comatype;api;codegen;client;server;validation</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

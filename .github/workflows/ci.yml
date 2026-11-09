@@ -137,3 +137,11 @@ jobs:
           gradle-version: current
       - name: Java and Kotlin runtimes
         run: gradle -p packages :java:selfTest :kotlin:build --console=plain
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: C# runtime
+        run: |
+          dotnet build packages/csharp/Comatype.csproj -c Release
+          dotnet format whitespace packages/csharp/Comatype.csproj --verify-no-changes
+          ./scripts/test-csharp.sh

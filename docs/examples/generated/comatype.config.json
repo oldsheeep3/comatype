@@ -44,6 +44,11 @@
           "lang": "ruby",
           "role": "client",
           "root": "./ruby"
+        },
+        {
+          "lang": "csharp",
+          "role": "client",
+          "root": "./csharp"
         }
       ]
     }

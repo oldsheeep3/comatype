@@ -47,12 +47,13 @@ pub struct Target {
     /// Go: import path of the output (out). If absent, derived from the module of the go.mod found by walking up from root
     #[serde(default, rename = "importPath")]
     pub import_path: Option<String>,
-    /// Java / Kotlin: package name of the generated code. If absent, derived from the path after `src/main/java/` in out (else `comatype.gen`)
+    /// Java / Kotlin: package name of the generated code. If absent, derived from the path after `src/main/java/` in out (else `comatype.gen`).
+    /// C#: the namespace of the generated code (default `ComatypeGen`)
     #[serde(default)]
     pub package: Option<String>,
 }
 
-pub const LANGS: &[&str] = &["ts", "go", "python", "rust", "java", "ruby", "kotlin", "swift", "dart"];
+pub const LANGS: &[&str] = &["ts", "go", "python", "rust", "java", "ruby", "kotlin", "swift", "csharp", "dart"];
 
 /// Reads `comatype.config.json`. `path` is the file or the directory containing it
 pub fn load(path: &Path) -> Result<(Config, PathBuf), Vec<Diagnostic>> {
@@ -118,6 +119,7 @@ pub fn default_out(lang: &str) -> &'static str {
         "java" => "src/main/java/comatype/gen",
         "kotlin" => "src/main/kotlin/comatype/gen",
         "swift" => "Sources/ComatypeGen",
+        "csharp" => "ComatypeGen",
         "dart" => "lib/comatype_gen",
         _ => "comatype",
     }

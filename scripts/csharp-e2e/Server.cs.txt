@@ -1,0 +1,113 @@
+// Actually run the generated usage csharp_server (scripts/e2e-csharp.sh uses it in a temporary directory)
+using Comatype;
+using ComatypeGen;
+
+const string Session = "session-token";
+var db = new Dictionary<Guid, Types.UserData>();
+long seq = 1;
+var pingCalls = 0;
+
+Guid NewUuid()
+{
+    lock (db) return Guid.Parse($"3f2b8c1e-5d4a-4b6e-9c1d-{seq++:x12}");
+}
+
+Types.ApiError Err(string code, string message) => new(code, message);
+
+var s = new S();
+S.ComatypeWrap<Init.AuthCtx> auth = (req, next) =>
+{
+    var byCookie = req.Cookie("session") == Session;
+    var byHeader = req.Header("Authorization") == "Bearer " + Session;
+    if (!byCookie && !byHeader) return Task.FromResult(Init.S401(Err("unauthorized", "login required")));
+    var user = new Types.UserData("guest", new Email("g@example.com"), new Phone("+8100"), NewUuid());
+    return next(req.WithCtx(new Init.AuthCtx(user)));
+};
+s.Init(new Init.Wrappers(auth));
+
+s.Post(
+    PostUser.Endpoint,
+    req =>
+    {
+        lock (db)
+        {
+            var u = new Types.UserData(req.Body.Name, req.Body.Email, req.Body.Phone, NewUuid());
+            db[u.Uid] = u;
+            return new PostUser.S200(u, PostUser.S200Headers.Empty());
+        }
+    }
+);
+s.Get(
+    GetUser.Endpoint,
+    req =>
+    {
+        lock (db)
+            return db.TryGetValue(req.Params.Id, out var u)
+                ? new GetUser.S200(u, GetUser.S200Headers.Empty())
+                : new GetUser.S404(Err("not_found", "no user"), GetUser.S404Headers.Empty());
+    }
+);
+s.Put(
+    UserPutId.Endpoint,
+    req =>
+    {
+        lock (db)
+        {
+            if (!db.ContainsKey(req.Params.Id)) return new UserPutId.S404(Err("not_found", "no user"), UserPutId.S404Headers.Empty());
+            db[req.Params.Id] = req.Body;
+            return new UserPutId.S200(req.Body, UserPutId.S200Headers.Empty() with { XResourceVersion = "v2" });
+        }
+    }
+);
+s.Delete(
+    UserDeleteId.Endpoint,
+    req =>
+    {
+        lock (db)
+            return db.Remove(req.Params.Id)
+                ? new UserDeleteId.S204(UserDeleteId.S204Headers.Empty())
+                : new UserDeleteId.S404(Err("not_found", "no user"), UserDeleteId.S404Headers.Empty());
+    }
+);
+s.Get(
+    UserGet.Endpoint,
+    req =>
+    {
+        lock (db)
+        {
+            var limit = req.Search.Limit ?? long.MaxValue;
+            var list = db.Values.Take((int)Math.Min(limit, int.MaxValue)).ToList();
+            return new UserGet.S200(list, UserGet.S200Headers.Empty());
+        }
+    }
+);
+s.Get(UserProfileGet.Endpoint, req => new UserProfileGet.S200(req.Ctx.Auth.User, UserProfileGet.S200Headers.Empty()));
+// ok flips on every call (a cache hit returns the same value)
+s.Get(UserGetPing.Endpoint, req => new UserGetPing.S200(new UserGetPing.S200Res(Interlocked.Increment(ref pingCalls) % 2 == 1), UserGetPing.S200Headers.Empty()));
+s.Post(
+    UserPostLogin.Endpoint,
+    req =>
+    {
+        if (req.Body.Password != "pw") return new UserPostLogin.S401(Err("bad", "wrong"), UserPostLogin.S401Headers.Empty());
+        return S.Reply<UserPostLogin.Response>
+            .Of(new UserPostLogin.S200(new UserPostLogin.S200Res(NewUuid()), UserPostLogin.S200Headers.Empty()))
+            .WithCookie(CookieValue.Of(Session).WithMaxAge(3600));
+    }
+);
+s.Query(
+    QueryUser.Endpoint,
+    req =>
+    {
+        lock (db)
+        {
+            var list = db.Values.Where(u => req.Body.Name == null || u.Name.Contains(req.Body.Name)).ToList();
+            return new QueryUser.S200(list, QueryUser.S200Headers.Empty());
+        }
+    }
+);
+s.Options(OptionsUser.Endpoint, req => new OptionsUser.S200(new OptionsUser.S200Headers(new List<string> { "GET", "POST", "OPTIONS" }, null, null)));
+
+var server = s.Serve("127.0.0.1", 0);
+Console.WriteLine("PORT=" + server.Port);
+Console.Out.Flush();
+await Task.Delay(Timeout.Infinite);

@@ -22,6 +22,7 @@ An error says **where** it is wrong.
 | Java / Kotlin | `comatype.ValidationException` | `path` |
 | Swift | `ValidationError` | `path` |
 | Ruby | `Comatype::ValidationError` | `path` |
+| C# | `Comatype.ValidationException` | `Path` |
 
 ## What the server answers
 

@@ -17,6 +17,7 @@ Branches: `main` is the release, `develop` is the next version, `hotfix` is for 
 | PyPI | `comatype` | PyPI trusted publishing for this repository, workflow `release.yml`, environment `pypi` |
 | crates.io | `comatype` | secret `CARGO_REGISTRY_TOKEN` (the crate name must be free) |
 | RubyGems | `comatype` | RubyGems trusted publishing for this repository, workflow `release.yml` (no secret needed) |
+| NuGet | `Comatype` | secret `NUGET_API_KEY` (an API key that may push the package id `Comatype`; without it the step is skipped with a warning) |
 | Maven Central | `net.sheeplab.comatype:comatype`, `net.sheeplab.comatype:comatype-ktx` | secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD` (Central Portal user token), `SIGNING_KEY`, `SIGNING_KEY_PASSWORD` (ASCII-armored GPG key); the namespace `net.sheeplab` must be verified in the Central Portal (it is, via a DNS TXT record managed in cloudflare-iac) |
 | VS Code Marketplace | `comatype.comatype` (`editors/vscode`) | secret `VSCE_PAT` (an Azure DevOps personal access token, see below); the publisher `comatype` must exist |
 | Open VSX | `comatype.comatype` | secret `OVSX_PAT` (an Open VSX access token); the namespace `comatype` must exist |

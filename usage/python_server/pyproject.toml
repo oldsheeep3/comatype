@@ -1,0 +1,10 @@
+[project]
+name = "usage-python-server"
+version = "0.0.0"
+description = "Comatype usage sample (Python server)"
+requires-python = ">=3.10"
+dependencies = ["comatype==0.0.3"]
+
+# A sample, not a package: `uv sync` installs the dependencies only
+[tool.uv]
+package = false

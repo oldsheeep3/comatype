@@ -4,7 +4,7 @@ For redesigning the Comatype website (https://comatype.sheeplab.net) with Claude
 
 ## What the site is
 
-Comatype turns API definitions written once in `.comat` files into types, validation, clients and servers for eight languages. The site is the landing page plus the reference (syntax, runtimes, CLI). Readers are backend and full-stack developers who are deciding whether to adopt it, then looking things up while they work.
+Comatype turns API definitions written once in `.comat` files into types, validation, clients and servers for nine languages. The site is the landing page plus the reference (syntax, runtimes, CLI). Readers are backend and full-stack developers who are deciding whether to adopt it, then looking things up while they work.
 
 Tone: precise, calm, technical. Code is the hero; avoid stock illustrations and marketing noise.
 
