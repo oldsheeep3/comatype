@@ -1,0 +1,11 @@
+[package]
+name = "usage-rust-client"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+comatype = "0.0.3"
+
+# Not part of the repository workspace
+[workspace]

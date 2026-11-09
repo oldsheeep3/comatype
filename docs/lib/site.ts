@@ -89,6 +89,7 @@ export const sidebars: Record<string, SidebarGroup[]> = {
         { text: t('Kotlin', 'Kotlin'), href: '/runtime/kotlin/' },
         { text: t('Swift', 'Swift'), href: '/runtime/swift/' },
         { text: t('Ruby', 'Ruby'), href: '/runtime/ruby/' },
+        { text: t('C#', 'C#'), href: '/runtime/csharp/' },
       ],
     },
     { text: t('Common', '共通'), items: [{ text: t('Wrappers and cookies', 'ラッパーと cookie'), href: '/runtime/wrappers-cookies/' }] },

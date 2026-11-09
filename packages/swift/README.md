@@ -4,7 +4,7 @@ Comatype runtime for Swift (Swift Package `Comatype`): an async client on URLSes
 
 [Source](https://github.com/oldsheeep3/comatype/tree/main/packages/swift) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
 > This package is the **Swift** runtime that the generated code depends on.
 
 ## How to use

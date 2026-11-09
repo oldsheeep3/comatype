@@ -3,3 +3,5 @@ packages:
   - node_client
 allowBuilds:
   esbuild: false
+minimumReleaseAgeExclude:
+  - '@comatype/typescript@0.0.3'

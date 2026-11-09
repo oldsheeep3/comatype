@@ -205,6 +205,31 @@ jobs:
           gem build comatype.gemspec
           GEM_HOST_API_KEY="$key" gem push comatype-*.gem
 
+  nuget:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: ./scripts/set-version.sh "${{ needs.verify.outputs.version }}"
+      - name: Publish Comatype to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          V: ${{ needs.verify.outputs.version }}
+        run: |
+          if curl -sf "https://api.nuget.org/v3-flatcontainer/comatype/index.json" | jq -e --arg v "$V" '.versions | index($v)' >/dev/null; then
+            echo "Comatype $V is already published"
+            exit 0
+          fi
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::warning::NUGET_API_KEY is not set, so Comatype $V is not published to NuGet"
+            exit 0
+          fi
+          dotnet pack packages/csharp/Comatype.csproj -c Release -o nupkg
+          dotnet nuget push "nupkg/Comatype.$V.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+
   # The comatype CLI as a ready-to-run binary for every platform: attached to the GitHub release (and installed by
   # install.sh) and bundled into the platform builds of the VS Code extension. No Rust toolchain needed to use it.
   binaries:

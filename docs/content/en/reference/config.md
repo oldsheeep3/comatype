@@ -34,11 +34,11 @@ Named units of an API. One service has one `comatDir` and several `targets`. In 
 
 | Key | Required | Meaning |
 |---|---|---|
-| `lang` | ✅ | `ts` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` (`dart` can be written, but generating it is not supported yet) |
+| `lang` | ✅ | `ts` / `go` / `python` / `rust` / `java` / `kotlin` / `swift` / `ruby` / `csharp` (`dart` can be written, but generating it is not supported yet) |
 | `role` | ✅ | `client` / `server` |
 | `root` | ✅ | Where the project of that language is |
 | `out` | | Where to write. If omitted, the per-language default (below) |
-| `package` | | Java / Kotlin only. The package name of the generated code. If omitted, the path of `out` after `src/main/java/` (`src/main/kotlin/` for Kotlin), or `comatype.gen` if there is none |
+| `package` | | Java / Kotlin / C# only. The package name of the generated code (the namespace for C#). If omitted, the path of `out` after `src/main/java/` (`src/main/kotlin/` for Kotlin), or `comatype.gen` if there is none (`ComatypeGen` for C#) |
 | `importPath` | | Go only. The import path of the output. If omitted, it is decided from the `module` of the `go.mod` found by searching up from `root`, plus the relative path from `go.mod` to `out` |
 
 #### Default output location
@@ -51,6 +51,7 @@ Named units of an API. One service has one `comatDir` and several `targets`. In 
 | Java | `src/main/java/comatype/gen` |
 | Kotlin | `src/main/kotlin/comatype/gen` |
 | Swift | `Sources/ComatypeGen` |
+| C# | `ComatypeGen` |
 | Dart | `lib/comatype_gen` |
 
 - If one `root` has several services of the same language, it becomes `<default>/<service>`.

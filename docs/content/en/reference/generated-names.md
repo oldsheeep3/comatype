@@ -14,8 +14,8 @@ Each `.comat` becomes one module. The name joins the words of the directories (w
 
 - In TS and Python, the location of the file is the import path as it is.
 - In Go, the directory is the package path, and the package name is the snake_case joined name (`package user_put_id`).
-- Rust uses a module with the snake_case joined name (`user_put_id`), and Java / Kotlin / Swift / Ruby use the PascalCase joined name (`UserPutId`).
-- These names are reserved: `types` / `init` in TypeScript and Go, and `models` / `comatype_init` in Python (they cannot be a `.comat` module name). Java / Kotlin reserve `Types` / `Init`, Swift reserves `ComatypeInit` and the names of declared types, and Rust reserves `types` / `init`. In Python, keywords (such as `class`) and names with a hyphen are errors too.
+- Rust uses a module with the snake_case joined name (`user_put_id`), and Java / Kotlin / Swift / Ruby / C# use the PascalCase joined name (`UserPutId`).
+- These names are reserved: `types` / `init` in TypeScript and Go, and `models` / `comatype_init` in Python (they cannot be a `.comat` module name). Java / Kotlin / C# reserve `Types` / `Init`, Swift reserves `ComatypeInit` and the names of declared types, and Rust reserves `types` / `init`. In Python, keywords (such as `class`) and names with a hyphen are errors too.
 
 ## Names inside a module
 

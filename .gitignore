@@ -24,3 +24,9 @@ __pycache__
 *.egg-info
 *.vsix
 editors/vscode/bin
+
+# .NET
+packages/csharp/**/bin/
+packages/csharp/**/obj/
+usage/csharp_*/bin/
+usage/csharp_*/obj/

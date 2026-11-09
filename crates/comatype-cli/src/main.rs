@@ -342,6 +342,11 @@ fn generate(args: &Args) -> ExitCode {
                     comatype_gen_kotlin::generate(svc, role, &jvm_package(target, &out))
                         .map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
                 }
+                "csharp" => {
+                    let role = if target.role == "client" { comatype_gen_csharp::Role::Client } else { comatype_gen_csharp::Role::Server };
+                    let ns = target.package.clone().unwrap_or_else(|| "ComatypeGen".to_string());
+                    comatype_gen_csharp::generate(svc, role, &ns).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())
+                }
                 "swift" => {
                     let role = if target.role == "client" { comatype_gen_swift::Role::Client } else { comatype_gen_swift::Role::Server };
                     comatype_gen_swift::generate(svc, role).map(|v| v.into_iter().map(|f| (f.path, f.content)).collect::<Vec<_>>())

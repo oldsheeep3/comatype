@@ -7,6 +7,6 @@
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@comatype/typescript": "link:../../packages/typescript"
+    "@comatype/typescript": "^0.0.3"
   }
 }

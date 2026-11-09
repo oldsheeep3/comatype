@@ -22,6 +22,7 @@ Comatype は、通信の**両側**で、同じスキーマを使って検証し�
 | Java / Kotlin | `comatype.ValidationException` | `path` |
 | Swift | `ValidationError` | `path` |
 | Ruby | `Comatype::ValidationError` | `path` |
+| C# | `Comatype.ValidationException` | `Path` |
 
 ## サーバの応答
 

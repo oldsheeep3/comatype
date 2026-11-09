@@ -4,7 +4,7 @@ Comatype runtime for Java 21+: records, sealed responses, an HTTP client on `jav
 
 [Maven Central](https://central.sonatype.com/artifact/net.sheeplab.comatype/comatype) · [Documentation](https://comatype.sheeplab.net) · [GitHub](https://github.com/oldsheeep3/comatype)
 
-> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in eight languages.
+> Comatype: write an API once in `.comat` files, get types, validation, a client and a server in nine languages.
 > This package is the **Java** runtime that the generated code depends on.
 
 ## How to use
