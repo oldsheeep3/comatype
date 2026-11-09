@@ -3,9 +3,29 @@
 const vscode = require('vscode')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
-const { findConfig, parseDiagnostics, importLinks, exportOpenApiArgs, importOpenApiArgs, TARGET_PRESETS, CONFIG_NAME } = require('./lib')
+const {
+  resolveBinary,
+  ensureExecutable,
+  findConfig,
+  parseDiagnostics,
+  importLinks,
+  exportOpenApiArgs,
+  importOpenApiArgs,
+  TARGET_PRESETS,
+  CONFIG_NAME,
+} = require('./lib')
+
+let extensionPath
+
+/** The comatype executable to run: the configured one, the bundled one, or the one on PATH */
+function comatypeBinary() {
+  const bin = resolveBinary({ configured: vscode.workspace.getConfiguration('comatype').get('path'), extensionPath })
+  ensureExecutable(bin)
+  return bin
+}
 
 function activate(context) {
+  extensionPath = context.extensionPath
   registerCommonCommands(context)
   const useServer = vscode.workspace.getConfiguration('comatype').get('languageServer.enabled')
   if (useServer) return activateWithServer(context)
@@ -24,7 +44,7 @@ function activateWithServer(context) {
     client = new LanguageClient(
       'comatype',
       'Comatype',
-      { command: settings().get('path') || 'comatype', args: ['lsp'] },
+      { command: comatypeBinary(), args: ['lsp'] },
       { documentSelector: [{ scheme: 'file', language: 'comat' }], outputChannel: output },
     )
     await client.start()
@@ -56,7 +76,7 @@ function activateWithServer(context) {
 /** Runs comatype and returns { code, stdout, stderr } */
 function runComatype(args, cwd) {
   const { spawn } = require('node:child_process')
-  const bin = vscode.workspace.getConfiguration('comatype').get('path') || 'comatype'
+  const bin = comatypeBinary()
   return new Promise((resolve) => {
     let stdout = ''
     let stderr = ''
@@ -187,7 +207,7 @@ async function runGenerate(output) {
   }
   output.show(true)
   output.appendLine(`$ comatype generate --config ${config}`)
-  const bin = settings.get('path') || 'comatype'
+  const bin = comatypeBinary()
   const res = await new Promise((resolve) => {
     let stderr = ''
     const child = spawn(bin, ['generate', '--config', config], { cwd: path.dirname(config) })
@@ -228,7 +248,7 @@ function activateWithoutServer(context) {
 
   function run(args, cwd) {
     return new Promise((resolve) => {
-      const bin = settings().get('path') || 'comatype'
+      const bin = comatypeBinary()
       let stdout = ''
       let stderr = ''
       const child = spawn(bin, args, { cwd })

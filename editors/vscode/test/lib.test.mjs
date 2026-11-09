@@ -160,3 +160,29 @@ test('arguments of the OpenAPI commands', () => {
   assert.deepEqual(importOpenApiArgs('/spec.yml', '/dest', [], true, true), ['from-openapi', '/spec.yml', '--out', '/dest', '--force'])
   assert.ok(TARGET_PRESETS.every((t) => ['ts', 'go', 'python'].includes(t.lang) && ['client', 'server'].includes(t.role)))
 })
+
+test('resolveBinary: the setting wins, then the bundled binary, then PATH', async () => {
+  const { resolveBinary, binaryName } = await import('../lib.js')
+  const has = (p) => p === '/ext/bin/comatype' || p === 'C:\\ext\\bin\\comatype.exe'
+  assert.equal(resolveBinary({ configured: '/opt/comatype', extensionPath: '/ext', platform: 'linux', exists: has }), '/opt/comatype')
+  assert.equal(resolveBinary({ configured: 'comatype', extensionPath: '/ext', platform: 'linux', exists: has }), '/ext/bin/comatype')
+  assert.equal(resolveBinary({ configured: '', extensionPath: '/ext', platform: 'linux', exists: has }), '/ext/bin/comatype')
+  assert.equal(resolveBinary({ configured: undefined, extensionPath: '/ext', platform: 'linux', exists: () => false }), 'comatype')
+  assert.equal(resolveBinary({ configured: 'comatype', platform: 'linux', exists: has }), 'comatype')
+  assert.equal(binaryName('win32'), 'comatype.exe')
+  assert.equal(binaryName('darwin'), 'comatype')
+})
+
+test('ensureExecutable: chmod on unix for absolute paths only', async () => {
+  const { ensureExecutable } = await import('../lib.js')
+  const calls = []
+  ensureExecutable('/ext/bin/comatype', 'linux', (f, m) => calls.push([f, m]))
+  ensureExecutable('comatype', 'linux', (f, m) => calls.push([f, m]))
+  ensureExecutable('/ext/bin/comatype.exe', 'win32', (f, m) => calls.push([f, m]))
+  assert.deepEqual(calls, [['/ext/bin/comatype', 0o755]])
+  assert.doesNotThrow(() =>
+    ensureExecutable('/x', 'linux', () => {
+      throw new Error('EROFS')
+    }),
+  )
+})
