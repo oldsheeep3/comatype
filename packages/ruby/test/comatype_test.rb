@@ -15,8 +15,8 @@ class ComatypeTest < Minitest::Test
     field :role, "role", [:ref, Role]
     field :age, "age", [:int, { min: 0, max: 150 }], optional: true
     field :id64, "id64", :int64
-    field :tags, "tags", [:array, :string]
-    field :deleted_at, "deletedAt", [:nullable, :datetime]
+    field :tags, "tags", %i[array string]
+    field :deleted_at, "deletedAt", %i[nullable datetime]
   end
 
   def valid

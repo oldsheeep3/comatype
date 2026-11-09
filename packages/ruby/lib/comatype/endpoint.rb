@@ -6,7 +6,8 @@ module Comatype
 
   # Endpoint descriptor (held by generated code). Request / response conversion is done here according to the description.
   class Endpoint
-    attr_reader :method, :path, :module_name, :base_url, :wraps, :cookie, :cookie_def, :cache, :cache_headers, :params, :search, :headers, :body, :responses
+    attr_reader :method, :path, :module_name, :base_url, :wraps, :cookie, :cookie_def, :cache, :cache_headers, :params, :search, :headers,
+                :body, :responses
 
     # params / search / headers: Model subclasses (nil if absent), body: type description (nil if absent)
     # responses: array of Response subclasses

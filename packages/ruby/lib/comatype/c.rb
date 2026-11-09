@@ -21,7 +21,8 @@ module Comatype
       def init(wrappers: {}, base_url: nil, cookies: nil, headers: {}, timeout: 30)
         jar = cookies == true ? CookieJar.new : cookies
         @lock.synchronize do
-          @config = Config.new(base_url: base_url, wrappers: wrappers.transform_keys(&:to_s), cookie_jar: jar, headers: headers, timeout: timeout)
+          @config = Config.new(base_url: base_url, wrappers: wrappers.transform_keys(&:to_s), cookie_jar: jar, headers: headers,
+                               timeout: timeout)
         end
       end
 
