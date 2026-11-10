@@ -288,7 +288,7 @@ jobs:
       V: ${{ needs.verify.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cli-*
           path: artifacts
@@ -325,7 +325,7 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile --filter comatype
       - run: ./scripts/set-version.sh "$V"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cli-*
           path: artifacts
