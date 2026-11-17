@@ -82,13 +82,19 @@ fn date_ok(s: &str) -> bool {
 string_scalar!(
     /// Email address
     Email,
-    |s| { static R: OnceLock<regex::Regex> = OnceLock::new(); re(&R, r"^[^\s@]+@[^\s@]+\.[^\s@]+$").is_match(s) },
+    |s| {
+        static R: OnceLock<regex::Regex> = OnceLock::new();
+        re(&R, r"^[^\s@]+@[^\s@]+\.[^\s@]+$").is_match(s)
+    },
     "email の形式が不正です"
 );
 string_scalar!(
     /// E.164 phone number
     Phone,
-    |s| { static R: OnceLock<regex::Regex> = OnceLock::new(); re(&R, r"^\+[1-9]\d{1,14}$").is_match(s) },
+    |s| {
+        static R: OnceLock<regex::Regex> = OnceLock::new();
+        re(&R, r"^\+[1-9]\d{1,14}$").is_match(s)
+    },
     "phone は E.164 の形式にしてください"
 );
 string_scalar!(Uuid, |s| uuid_ok(s, None), "uuid の形式が不正です");
@@ -103,7 +109,10 @@ string_scalar!(
 string_scalar!(
     /// `HH:MM:SS`
     Time,
-    |s| { static R: OnceLock<regex::Regex> = OnceLock::new(); re(&R, r"^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$").is_match(s) },
+    |s| {
+        static R: OnceLock<regex::Regex> = OnceLock::new();
+        re(&R, r"^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$").is_match(s)
+    },
     "time は HH:MM:SS の形式にしてください"
 );
 string_scalar!(
@@ -120,7 +129,10 @@ string_scalar!(
 string_scalar!(
     /// For amounts etc. A string to avoid rounding errors
     Decimal,
-    |s| { static R: OnceLock<regex::Regex> = OnceLock::new(); re(&R, r"^-?\d+(\.\d+)?$").is_match(s) },
+    |s| {
+        static R: OnceLock<regex::Regex> = OnceLock::new();
+        re(&R, r"^-?\d+(\.\d+)?$").is_match(s)
+    },
     "decimal は数値の文字列にしてください"
 );
 string_scalar!(
